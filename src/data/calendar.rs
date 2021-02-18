@@ -1,24 +1,21 @@
-use crate::data::TaskView;
+use crate::data::Task;
 
 /// A Caldav Calendar
 pub struct Calendar {
     name: String,
 
-    tasks: Vec<TaskView>,
+    tasks: Vec<Task>,
 }
 
 impl Calendar {
-    pub fn name() -> String {
+    pub fn name(&self) -> String {
         self.name
     }
 
-    pub fn tasks() -> Vec<TaskView> {
+    pub fn tasks(&self) -> Vec<&Task> {
         self.tasks
-    }
-}
-
-impl Drop for Calendar {
-    fn drop(&mut self) {
-        // TODO: display a warning in case some TaskViews still have a refcount > 0
+            .iter()
+            .map(|t| &t)
+            .collect()
     }
 }

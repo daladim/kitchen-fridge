@@ -12,16 +12,11 @@ pub use calendar::Calendar;
 pub use tasks::Task;
 use client::Client;
 
-// TODO: consider using references here
-//       (there will be no issue with still-borrowed-data when the DataSource is destroyed, but will it play well with sync stuff?)
-type CalendarView = Arc<Calendar>;
-type TaskView = Arc<Task>;
-
 /// A Caldav data source
 pub struct DataSource {
     client: Option<Client>,
 
-    calendars: Vec<CalendarView>
+    calendars: Vec<Calendar>
 }
 
 impl DataSource {
@@ -43,13 +38,10 @@ impl DataSource {
         // TODO: how to handle conflicts?
     }
 
-    pub fn calendars(&self) -> Vec<CalendarView> {
+    pub fn calendars(&self) -> Vec<&Calendar> {
         self.calendars
-    }
-}
-
-impl Drop for DataSource {
-    fn drop(&mut self) {
-        // TODO: display a warning in case some CalendarViews still have a refcount > 0
+            .iter()
+            .map(|c| &c)
+            .collect()
     }
 }
