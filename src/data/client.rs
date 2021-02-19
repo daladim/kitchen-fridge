@@ -48,35 +48,38 @@ impl Client {
         })
     }
 
+    async fn sub_request(&self, url: &Url, body: String, item1: &str, item2: &str) -> Result<String, Box<dyn Error>> {
+        let method = Method::from_bytes(b"PROPFIND")
+            .expect("cannot create PROPFIND method.");
+
+        let res = reqwest::Client::new()
+            .request(method, url.as_str())
+            .header("Depth", 0)
+            .header(CONTENT_TYPE, "application/xml")
+            .basic_auth(self.username.clone(), Some(self.password.clone()))
+            .body(body)
+            .send()
+            .await?;
+        let text = res.text().await?;
+
+        let root: Element = text.parse().unwrap();
+        let elem1 = find_elem(&root, item1.to_string()).unwrap();
+        let elem2 = find_elem(elem1, item2.to_string()).unwrap();
+        let text = elem2.text();
+        Ok(text)
+    }
+
     /// Return the Principal URL, or fetch it from server if not known yet
     async fn get_principal(&mut self) -> Result<Url, Box<dyn Error>> {
         if let Some(p) = &self.principal {
             return Ok(p.clone());
         }
 
-        let method = Method::from_bytes(b"PROPFIND")
-            .expect("cannot create PROPFIND method.");
-
-        let res = reqwest::Client::new()
-            .request(method, self.url.as_str())
-            .header("Depth", 0)
-            .header(CONTENT_TYPE, "application/xml")
-            .basic_auth(self.username.clone(), Some(self.password.clone()))
-            .body(DAVCLIENT_BODY)
-            .send()
-            .await?;
-        let text = res.text().await?;
-
-        let root: Element = text.parse().unwrap();
-        let principal = find_elem(&root, "current-user-principal".to_string()).unwrap();
-        let principal_href = find_elem(principal, "href".to_string()).unwrap();
-        let h_str = principal_href.text();
-
-        eprintln!("URL is {}", h_str);
-
+        let href = self.sub_request(&self.url, DAVCLIENT_BODY.into(), "current-user-principal", "href").await?;
         let mut principal_url = self.url.clone();
-        principal_url.set_path(&h_str);
+        principal_url.set_path(&href);
         self.principal = Some(principal_url.clone());
+        println!("URL is {}", href);
 
         return Ok(principal_url);
     }
@@ -88,29 +91,11 @@ impl Client {
         }
         let principal_url = self.get_principal().await?;
 
-        let method = Method::from_bytes(b"PROPFIND")
-            .expect("cannot create PROPFIND method. principal");
-
-        let res = reqwest::Client::new()
-            .request(method, principal_url.as_str())
-            .header("Depth", 0)
-            .header(CONTENT_TYPE, "application/xml")
-            .basic_auth(self.username.clone(), Some(self.password.clone()))
-            .body(HOMESET_BODY)
-            .send()
-            .await?;
-
-        let text = res.text().await?;
-
-        let root: Element = text.parse().unwrap();
-        let chs = find_elem(&root, "calendar-home-set".to_string()).unwrap();
-        let chs_href = find_elem(chs, "href".to_string()).unwrap();
-        let chs_str = chs_href.text();
-
+        let href = self.sub_request(&principal_url, HOMESET_BODY.into(), "calendar-home-set", "href").await?;
         let mut chs_url = self.url.clone();
-        chs_url.set_path(&chs_str);
-        println!("Calendar home set {:?}", chs_url.path());
+        chs_url.set_path(&href);
         self.calendar_home_set = Some(chs_url.clone());
+        println!("Calendar home set {:?}", chs_url.path());
 
         Ok(chs_url)
     }
