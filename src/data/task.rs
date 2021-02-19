@@ -1,8 +1,10 @@
 use uuid::Uuid;
 
+pub type TaskId = Uuid;
+
 /// A to-do task
 pub struct Task {
-    id: Uuid,
+    id: TaskId,
     name: String,
 }
 

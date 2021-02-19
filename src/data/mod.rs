@@ -5,11 +5,11 @@
 use std::sync::Arc;
 
 mod calendar;
-mod tasks;
+mod task;
 mod client;
 
 pub use calendar::Calendar;
-pub use tasks::Task;
+pub use task::Task;
 use client::Client;
 
 /// A Caldav data source
@@ -36,6 +36,10 @@ impl DataSource {
     /// Update the local database with info from the Client
     pub fn fetch_from_server(&self) {
         // TODO: how to handle conflicts?
+    }
+
+    pub fn update_changes_to_server(&self) {
+
     }
 
     pub fn calendars(&self) -> Vec<&Calendar> {
