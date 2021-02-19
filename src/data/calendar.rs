@@ -9,14 +9,18 @@ pub struct Calendar {
 }
 
 impl Calendar {
-    pub fn name(&self) -> String {
-        self.name
+    pub fn name(&self) -> &str {
+        &self.name
     }
 
     pub fn tasks(&self) -> Vec<&Task> {
         self.tasks
             .iter()
-            .map(|t| &t)
             .collect()
+    }
+
+    pub fn task_by_id_mut(&mut self, id: TaskId) -> &mut Task {
+        todo!();
+        &mut self.tasks[0]
     }
 }

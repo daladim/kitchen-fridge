@@ -6,11 +6,12 @@ pub type TaskId = Uuid;
 pub struct Task {
     id: TaskId,
     name: String,
+    completed: bool,
 }
 
 impl Task {
     pub fn id(&self) -> Uuid        { self.id           }
-    pub fn name(&self) -> String    { self.name         }
+    pub fn name(&self) -> &str      { &self.name        }
     pub fn completed(&self) -> bool { self.completed    }
 
     pub fn set_completed(&mut self) {
