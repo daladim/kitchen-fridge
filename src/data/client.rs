@@ -26,6 +26,16 @@ static HOMESET_BODY: &str = r#"
     </d:propfind>
 "#;
 
+static CAL_BODY: &str = r#"
+    <d:propfind xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav" >
+       <d:prop>
+         <d:displayname />
+         <d:resourcetype />
+         <c:supported-calendar-component-set />
+       </d:prop>
+    </d:propfind>
+"#;
+
 pub struct Client {
     url: Url,
     username: String,
@@ -48,25 +58,33 @@ impl Client {
         })
     }
 
-    async fn sub_request(&self, url: &Url, body: String, item1: &str, item2: &str) -> Result<String, Box<dyn Error>> {
+    async fn sub_request(&self, url: &Url, body: String, depth: u32) -> Result<String, Box<dyn Error>> {
         let method = Method::from_bytes(b"PROPFIND")
             .expect("cannot create PROPFIND method.");
 
         let res = reqwest::Client::new()
             .request(method, url.as_str())
-            .header("Depth", 0)
+            .header("Depth", depth)
             .header(CONTENT_TYPE, "application/xml")
             .basic_auth(self.username.clone(), Some(self.password.clone()))
             .body(body)
             .send()
             .await?;
         let text = res.text().await?;
-
-        let root: Element = text.parse().unwrap();
-        let elem1 = find_elem(&root, item1.to_string()).unwrap();
-        let elem2 = find_elem(elem1, item2.to_string()).unwrap();
-        let text = elem2.text();
         Ok(text)
+    }
+
+    async fn sub_request_and_process(&self, url: &Url, body: String, items: &[&str]) -> Result<String, Box<dyn Error>> {
+        let text = self.sub_request(url, body, 0).await?;
+
+        let mut current_element: &Element = &text.parse().unwrap();
+        items.iter()
+            .map(|item| {
+                current_element = find_elem(&current_element, item.to_string()).unwrap();
+            })
+            .collect::<()>();
+
+        Ok(current_element.text())
     }
 
     /// Return the Principal URL, or fetch it from server if not known yet
@@ -75,7 +93,7 @@ impl Client {
             return Ok(p.clone());
         }
 
-        let href = self.sub_request(&self.url, DAVCLIENT_BODY.into(), "current-user-principal", "href").await?;
+        let href = self.sub_request_and_process(&self.url, DAVCLIENT_BODY.into(), &["current-user-principal", "href"]).await?;
         let mut principal_url = self.url.clone();
         principal_url.set_path(&href);
         self.principal = Some(principal_url.clone());
@@ -91,13 +109,45 @@ impl Client {
         }
         let principal_url = self.get_principal().await?;
 
-        let href = self.sub_request(&principal_url, HOMESET_BODY.into(), "calendar-home-set", "href").await?;
+        let href = self.sub_request_and_process(&principal_url, HOMESET_BODY.into(), &["calendar-home-set", "href"]).await?;
         let mut chs_url = self.url.clone();
         chs_url.set_path(&href);
         self.calendar_home_set = Some(chs_url.clone());
         println!("Calendar home set {:?}", chs_url.path());
 
         Ok(chs_url)
+    }
+
+    pub async fn get_calendars(&mut self) -> Result<(), Box<dyn Error>> {
+        let cal_home_set = self.get_cal_home_set().await?;
+
+        let text = self.sub_request(&cal_home_set, CAL_BODY.into(), 1).await?;
+        println!("TEXT {}", text);
+        let root: Element = text.parse().unwrap();
+        let reps = find_elems(&root, "response".to_string());
+        for rep in reps {
+            // TODO checking `displayname` here but may there are better way
+            let displayname = find_elem(rep, "displayname".to_string())
+                .unwrap()
+                .text();
+            if displayname == "" {
+                continue;
+            }
+
+            // TODO: filter by:
+            // <cal:supported-calendar-component-set>
+            //     <cal:comp name=\"VEVENT\"/>
+            //     <cal:comp name=\"VTODO\"/>
+            // </cal:supported-calendar-component-set>
+
+            let href = find_elem(rep, "href".to_string()).unwrap();
+            let href_text = href.text();
+            println!("href: {:?}", href_text);
+            //self.calendars.push(href_text.to_string());
+        }
+
+        Ok(())
+
     }
 }
 
@@ -148,6 +198,6 @@ mod test {
     #[tokio::test]
     async fn test_client() {
         let mut client = Client::new(URL, USERNAME, PASSWORD).unwrap();
-        client.get_cal_home_set().await.unwrap();
+        client.get_calendars().await.unwrap();
     }
 }
