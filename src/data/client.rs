@@ -43,6 +43,7 @@ pub struct Client {
 
     principal: Option<Url>,
     calendar_home_set: Option<Url>,
+    calendars_url: Option<Vec<Url>>,
 }
 
 impl Client {
@@ -56,6 +57,7 @@ impl Client {
             password: password.to_string(),
             principal: None,
             calendar_home_set: None,
+            calendars_url: None,
         })
     }
 
@@ -119,13 +121,17 @@ impl Client {
         Ok(chs_url)
     }
 
-    pub async fn get_calendars(&mut self) -> Result<(), Box<dyn Error>> {
+    /// Return the list of calendars, or fetch from server if not known yet
+    pub async fn get_calendars_url(&mut self) -> Result<Vec<Url>, Box<dyn Error>> {
+        if let Some(c) = &self.calendars_url {
+            return Ok(c.clone());
+        }
         let cal_home_set = self.get_cal_home_set().await?;
 
         let text = self.sub_request(&cal_home_set, CAL_BODY.into(), 1).await?;
-        println!("TEXT {}", text);
         let root: Element = text.parse().unwrap();
         let reps = find_elems(&root, "response".to_string());
+        let mut calendars = Vec::new();
         for rep in reps {
             // TODO checking `displayname` here but may there are better way
             let displayname = find_elem(rep, "displayname".to_string())
@@ -143,12 +149,12 @@ impl Client {
 
             let href = find_elem(rep, "href".to_string()).unwrap();
             let href_text = href.text();
-            println!("href: {:?}", href_text);
-            //self.calendars.push(href_text.to_string());
+
+            let mut this_calendar_url = self.url.clone();
+            this_calendar_url.set_path(&href_text);
+            calendars.push(this_calendar_url);
         }
-
-        Ok(())
-
+        Ok(calendars)
     }
 }
 
@@ -199,6 +205,6 @@ mod test {
     #[tokio::test]
     async fn test_client() {
         let mut client = Client::new(URL, USERNAME, PASSWORD).unwrap();
-        client.get_calendars().await.unwrap();
+        client.get_calendars_url().await.unwrap();
     }
 }
