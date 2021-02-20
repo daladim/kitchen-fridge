@@ -5,7 +5,7 @@
 use std::sync::Arc;
 use std::error::Error;
 
-mod calendar;
+pub mod calendar;
 mod task;
 mod client;
 

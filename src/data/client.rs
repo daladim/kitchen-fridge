@@ -3,11 +3,14 @@
 //! Some of it comes from https://github.com/marshalshi/caldav-client-rust.git
 
 use std::error::Error;
+use std::convert::TryFrom;
 
 use reqwest::Method;
 use reqwest::header::CONTENT_TYPE;
 use minidom::Element;
 use url::Url;
+
+use crate::data::Calendar;
 
 static DAVCLIENT_BODY: &str = r#"
     <d:propfind xmlns:d="DAV:">
@@ -43,7 +46,7 @@ pub struct Client {
 
     principal: Option<Url>,
     calendar_home_set: Option<Url>,
-    calendars_url: Option<Vec<Url>>,
+    calendars: Option<Vec<Calendar>>,
 }
 
 impl Client {
@@ -57,7 +60,7 @@ impl Client {
             password: password.to_string(),
             principal: None,
             calendar_home_set: None,
-            calendars_url: None,
+            calendars: None,
         })
     }
 
@@ -122,38 +125,70 @@ impl Client {
     }
 
     /// Return the list of calendars, or fetch from server if not known yet
-    pub async fn get_calendars_url(&mut self) -> Result<Vec<Url>, Box<dyn Error>> {
-        if let Some(c) = &self.calendars_url {
-            return Ok(c.clone());
+    pub async fn get_calendars(&mut self) -> Result<Vec<Calendar>, Box<dyn Error>> {
+        if let Some(c) = &self.calendars {
+            return Ok(c.to_vec());
         }
         let cal_home_set = self.get_cal_home_set().await?;
 
         let text = self.sub_request(&cal_home_set, CAL_BODY.into(), 1).await?;
+
         let root: Element = text.parse().unwrap();
         let reps = find_elems(&root, "response".to_string());
         let mut calendars = Vec::new();
         for rep in reps {
-            // TODO checking `displayname` here but may there are better way
-            let displayname = find_elem(rep, "displayname".to_string())
-                .unwrap()
-                .text();
-            if displayname == "" {
+            let display_name = find_elem(rep, "displayname".to_string()).map(|e| e.text()).unwrap_or("<no name>".to_string());
+            log::debug!("Considering calendar {}", display_name);
+
+            // We filter out non-calendar items
+            let resource_types = match find_elem(rep, "resourcetype".to_string()) {
+                None => continue,
+                Some(rt) => rt,
+            };
+            let mut found_calendar_type = false;
+            for resource_type in resource_types.children() {
+                if resource_type.name() == "calendar" {
+                    found_calendar_type = true;
+                    break;
+                }
+            }
+            if found_calendar_type == false {
                 continue;
             }
 
-            // TODO: filter by:
-            // <cal:supported-calendar-component-set>
-            //     <cal:comp name=\"VEVENT\"/>
-            //     <cal:comp name=\"VTODO\"/>
-            // </cal:supported-calendar-component-set>
+            // We filter out the root calendar collection, that has an empty supported-calendar-component-set
+            let el_supported_comps = match find_elem(rep, "supported-calendar-component-set".to_string()) {
+                None => continue,
+                Some(comps) => comps,
+            };
+            if el_supported_comps.children().count() == 0 {
+                continue;
+            }
 
-            let href = find_elem(rep, "href".to_string()).unwrap();
-            let href_text = href.text();
+            let calendar_href = match find_elem(rep, "href".to_string()) {
+                None => {
+                    log::warn!("Calendar {} has no URL! Ignoring it.", display_name);
+                    continue;
+                },
+                Some(h) => h.text(),
+            };
 
             let mut this_calendar_url = self.url.clone();
-            this_calendar_url.set_path(&href_text);
-            calendars.push(this_calendar_url);
+            this_calendar_url.set_path(&calendar_href);
+
+            let supported_components = match crate::data::calendar::SupportedComponents::try_from(el_supported_comps.clone()) {
+                Err(err) => {
+                    log::warn!("Calendar {} has invalid supported components ({})! Ignoring it.", display_name, err);
+                    continue;
+                },
+                Ok(sc) => sc,
+            };
+            let this_calendar = Calendar::new(display_name, this_calendar_url, supported_components);
+            log::info!("Found calendar {}", this_calendar.name());
+            calendars.push(this_calendar);
         }
+
+        self.calendars = Some(calendars.clone());
         Ok(calendars)
     }
 }
@@ -208,6 +243,11 @@ mod test {
         let _ = env_logger::builder().is_test(true).try_init();
 
         let mut client = Client::new(URL, USERNAME, PASSWORD).unwrap();
-        client.get_calendars_url().await.unwrap();
+        let calendars = client.get_calendars().await.unwrap();
+
+        println!("Calendars:");
+        calendars.iter()
+            .map(|cal| println!("  {}", cal.name()))
+            .collect::<()>();
     }
 }

@@ -3,6 +3,7 @@ use uuid::Uuid;
 pub type TaskId = Uuid;
 
 /// A to-do task
+#[derive(Clone, Debug)]
 pub struct Task {
     id: TaskId,
     name: String,
