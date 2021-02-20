@@ -46,6 +46,7 @@ pub struct Client {
 }
 
 impl Client {
+    /// Create a client. This does not start a connection
     pub fn new<S: AsRef<str>, T: ToString, U: ToString>(url: S, username: T, password: U) -> Result<Self, Box<dyn Error>> {
         let url = Url::parse(url.as_ref())?;
 
