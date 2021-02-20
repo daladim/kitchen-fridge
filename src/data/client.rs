@@ -86,7 +86,7 @@ impl Client {
         let mut current_element: &Element = &text.parse().unwrap();
         items.iter()
             .map(|item| {
-                current_element = find_elem(&current_element, item.to_string()).unwrap();
+                current_element = find_elem(&current_element, item).unwrap();
             })
             .collect::<()>();
 
@@ -134,14 +134,14 @@ impl Client {
         let text = self.sub_request(&cal_home_set, CAL_BODY.into(), 1).await?;
 
         let root: Element = text.parse().unwrap();
-        let reps = find_elems(&root, "response".to_string());
+        let reps = find_elems(&root, "response");
         let mut calendars = Vec::new();
         for rep in reps {
-            let display_name = find_elem(rep, "displayname".to_string()).map(|e| e.text()).unwrap_or("<no name>".to_string());
+            let display_name = find_elem(rep, "displayname").map(|e| e.text()).unwrap_or("<no name>".to_string());
             log::debug!("Considering calendar {}", display_name);
 
             // We filter out non-calendar items
-            let resource_types = match find_elem(rep, "resourcetype".to_string()) {
+            let resource_types = match find_elem(rep, "resourcetype") {
                 None => continue,
                 Some(rt) => rt,
             };
@@ -157,7 +157,7 @@ impl Client {
             }
 
             // We filter out the root calendar collection, that has an empty supported-calendar-component-set
-            let el_supported_comps = match find_elem(rep, "supported-calendar-component-set".to_string()) {
+            let el_supported_comps = match find_elem(rep, "supported-calendar-component-set") {
                 None => continue,
                 Some(comps) => comps,
             };
@@ -165,7 +165,7 @@ impl Client {
                 continue;
             }
 
-            let calendar_href = match find_elem(rep, "href".to_string()) {
+            let calendar_href = match find_elem(rep, "href") {
                 None => {
                     log::warn!("Calendar {} has no URL! Ignoring it.", display_name);
                     continue;
@@ -195,14 +195,15 @@ impl Client {
 
 
 /// Walks the tree and returns every element that has the given name
-pub fn find_elems(root: &Element, searched_name: String) -> Vec<&Element> {
+pub fn find_elems<S: AsRef<str>>(root: &Element, searched_name: S) -> Vec<&Element> {
+    let searched_name = searched_name.as_ref();
     let mut elems: Vec<&Element> = Vec::new();
 
     for el in root.children() {
         if el.name() == searched_name {
             elems.push(el);
         } else {
-            let ret = find_elems(el, searched_name.clone());
+            let ret = find_elems(el, searched_name);
             elems.extend(ret);
         }
     }
@@ -210,7 +211,8 @@ pub fn find_elems(root: &Element, searched_name: String) -> Vec<&Element> {
 }
 
 /// Walks the tree until it finds an elements with the given name
-pub fn find_elem(root: &Element, searched_name: String) -> Option<&Element> {
+pub fn find_elem<S: AsRef<str>>(root: &Element, searched_name: S) -> Option<&Element> {
+    let searched_name = searched_name.as_ref();
     if root.name() == searched_name {
         return Some(root);
     }
@@ -219,7 +221,7 @@ pub fn find_elem(root: &Element, searched_name: String) -> Option<&Element> {
         if el.name() == searched_name {
             return Some(el);
         } else {
-            let ret = find_elem(el, searched_name.clone());
+            let ret = find_elem(el, searched_name);
             if ret.is_some() {
                 return ret;
             }
