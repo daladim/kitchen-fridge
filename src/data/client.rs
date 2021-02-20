@@ -100,7 +100,7 @@ impl Client {
         let mut principal_url = self.url.clone();
         principal_url.set_path(&href);
         self.principal = Some(principal_url.clone());
-        println!("URL is {}", href);
+        log::debug!("Principal URL is {}", href);
 
         return Ok(principal_url);
     }
@@ -116,7 +116,7 @@ impl Client {
         let mut chs_url = self.url.clone();
         chs_url.set_path(&href);
         self.calendar_home_set = Some(chs_url.clone());
-        println!("Calendar home set {:?}", chs_url.path());
+        log::debug!("Calendar home set URL is {:?}", chs_url.path());
 
         Ok(chs_url)
     }
@@ -205,6 +205,8 @@ mod test {
 
     #[tokio::test]
     async fn test_client() {
+        let _ = env_logger::builder().is_test(true).try_init();
+
         let mut client = Client::new(URL, USERNAME, PASSWORD).unwrap();
         client.get_calendars_url().await.unwrap();
     }
