@@ -159,31 +159,32 @@ impl Client {
 }
 
 
-
-pub fn find_elems(root: &Element, tag: String) -> Vec<&Element> {
+/// Walks the tree and returns every element that has the given name
+pub fn find_elems(root: &Element, searched_name: String) -> Vec<&Element> {
     let mut elems: Vec<&Element> = Vec::new();
 
     for el in root.children() {
-        if el.name() == tag {
+        if el.name() == searched_name {
             elems.push(el);
         } else {
-            let ret = find_elems(el, tag.clone());
+            let ret = find_elems(el, searched_name.clone());
             elems.extend(ret);
         }
     }
     elems
 }
 
-pub fn find_elem(root: &Element, tag: String) -> Option<&Element> {
-    if root.name() == tag {
+/// Walks the tree until it finds an elements with the given name
+pub fn find_elem(root: &Element, searched_name: String) -> Option<&Element> {
+    if root.name() == searched_name {
         return Some(root);
     }
 
     for el in root.children() {
-        if el.name() == tag {
+        if el.name() == searched_name {
             return Some(el);
         } else {
-            let ret = find_elem(el, tag.clone());
+            let ret = find_elem(el, searched_name.clone());
             if ret.is_some() {
                 return ret;
             }
