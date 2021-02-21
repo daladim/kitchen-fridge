@@ -66,6 +66,15 @@ impl Calendar {
         &self.name
     }
 
+    pub fn url(&self) -> &Url {
+        &self.url
+    }
+
+    /// Returns whether this calDAV calendar supports to-do items
+    pub fn supports_todo(&self) -> bool {
+        self.supported_components.contains(SupportedComponents::Todo)
+    }
+
     pub fn tasks(&self) -> Vec<&Task> {
         self.tasks
             .iter()
