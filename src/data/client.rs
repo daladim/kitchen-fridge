@@ -40,6 +40,28 @@ static CAL_BODY: &str = r#"
     </d:propfind>
 "#;
 
+static TASKS_BODY: &str = r#"
+    <C:calendar-query xmlns:C="urn:ietf:params:xml:ns:caldav">
+    <D:prop xmlns:D="DAV:">
+        <D:getetag/>
+        <C:calendar-data/>
+    </D:prop>
+    <C:filter>
+        <C:comp-filter name="VCALENDAR">
+        <C:comp-filter name="VTODO">
+            <C:prop-filter name="COMPLETED">
+            <C:is-not-defined/>
+            </C:prop-filter>
+            <C:prop-filter name="STATUS">
+            <C:text-match
+                negate-condition="yes">CANCELLED</C:text-match>
+            </C:prop-filter>
+        </C:comp-filter>
+        </C:comp-filter>
+    </C:filter>
+    </C:calendar-query>
+"#;
+
 pub struct Client {
     url: Url,
     username: String,
@@ -192,7 +214,33 @@ impl Client {
         self.calendars = Some(calendars.clone());
         Ok(calendars)
     }
+
+    async fn get_tasks(&mut self, calendar: &Url) -> Result<(), Box<dyn Error>> {
+        let method = Method::from_bytes(b"REPORT")
+            .expect("cannot create REPORT method.");
+
+        let res = reqwest::Client::new()
+            .request(method, calendar.as_str())
+            .header("Depth", 1)
+            .header(CONTENT_TYPE, "application/xml")
+            .basic_auth(self.username.clone(), Some(self.password.clone()))
+            .body(TASKS_BODY)
+            .send()
+            .await?;
+        let text = res.text().await?;
+
+        let el: Element = text.parse().unwrap();
+        let responses = find_elems(&el, "response");
+
+        for response in responses {
+            crate::print_xml(response);
+            println!("\n");
+        }
+
+        Ok(())
+    }
 }
+
 
 
 
