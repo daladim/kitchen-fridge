@@ -233,8 +233,7 @@ impl Client {
         let responses = find_elems(&el, "response");
 
         for response in responses {
-            crate::print_xml(response);
-            println!("\n");
+            println!("(a response)\n");
         }
 
         Ok(())
@@ -265,5 +264,7 @@ mod test {
         calendars.iter()
             .map(|cal| println!("  {}", cal.name()))
             .collect::<()>();
+
+        client.get_tasks(&calendars[3].url()).await;
     }
 }

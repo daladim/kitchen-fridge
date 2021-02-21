@@ -37,3 +37,16 @@ pub fn find_elem<S: AsRef<str>>(root: &Element, searched_name: S) -> Option<&Ele
     }
     None
 }
+
+pub fn print_xml(element: &Element) {
+    use std::io::Write;
+    let mut writer = std::io::stdout();
+
+    let mut xml_writer = minidom::quick_xml::Writer::new_with_indent(
+        std::io::stdout(),
+        0x20, 4
+    );
+    element.to_writer(&mut xml_writer);
+
+    writer.write(&[0x0a]);
+}
