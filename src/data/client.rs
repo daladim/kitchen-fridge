@@ -62,6 +62,7 @@ static TASKS_BODY: &str = r#"
     </C:calendar-query>
 "#;
 
+
 pub struct Client {
     url: Url,
     username: String,
@@ -215,7 +216,7 @@ impl Client {
         Ok(calendars)
     }
 
-    async fn get_tasks(&mut self, calendar: &Url) -> Result<(), Box<dyn Error>> {
+    pub async fn get_tasks(&mut self, calendar: &Url) -> Result<(), Box<dyn Error>> {
         let method = Method::from_bytes(b"REPORT")
             .expect("cannot create REPORT method.");
 
@@ -240,31 +241,3 @@ impl Client {
     }
 }
 
-
-
-
-
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    use crate::settings::URL;
-    use crate::settings::USERNAME;
-    use crate::settings::PASSWORD;
-
-    #[tokio::test]
-    async fn test_client() {
-        let _ = env_logger::builder().is_test(true).try_init();
-
-        let mut client = Client::new(URL, USERNAME, PASSWORD).unwrap();
-        let calendars = client.get_calendars().await.unwrap();
-
-        println!("Calendars:");
-        calendars.iter()
-            .map(|cal| println!("  {}", cal.name()))
-            .collect::<()>();
-
-        client.get_tasks(&calendars[3].url()).await;
-    }
-}

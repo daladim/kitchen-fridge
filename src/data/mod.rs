@@ -7,7 +7,7 @@ use std::error::Error;
 
 pub mod calendar;
 mod task;
-mod client;
+pub mod client;
 
 pub use calendar::Calendar;
 pub use task::Task;
