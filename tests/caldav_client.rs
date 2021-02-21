@@ -9,7 +9,7 @@ use reqwest::header::CONTENT_TYPE;
 use minidom::Element;
 use url::Url;
 
-use my_tasks::data::client::Client;
+use my_tasks::client::Client;
 use my_tasks::settings::URL;
 use my_tasks::settings::USERNAME;
 use my_tasks::settings::PASSWORD;

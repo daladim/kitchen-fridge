@@ -3,8 +3,8 @@ use std::error::Error;
 
 use url::Url;
 
-use crate::data::Task;
-use crate::data::task::TaskId;
+use crate::task::Task;
+use crate::task::TaskId;
 
 use bitflags::bitflags;
 

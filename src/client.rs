@@ -1,6 +1,4 @@
-//! Code to connect to a Caldav server
-//!
-//! Some of it comes from https://github.com/marshalshi/caldav-client-rust.git
+//! This module provides a client to connect to a CalDAV server
 
 use std::error::Error;
 use std::convert::TryFrom;
@@ -11,7 +9,7 @@ use minidom::Element;
 use url::Url;
 
 use crate::utils::{find_elem, find_elems};
-use crate::data::Calendar;
+use crate::calendar::Calendar;
 
 static DAVCLIENT_BODY: &str = r#"
     <d:propfind xmlns:d="DAV:">
@@ -200,7 +198,7 @@ impl Client {
             let mut this_calendar_url = self.url.clone();
             this_calendar_url.set_path(&calendar_href);
 
-            let supported_components = match crate::data::calendar::SupportedComponents::try_from(el_supported_comps.clone()) {
+            let supported_components = match crate::calendar::SupportedComponents::try_from(el_supported_comps.clone()) {
                 Err(err) => {
                     log::warn!("Calendar {} has invalid supported components ({})! Ignoring it.", display_name, err);
                     continue;

@@ -1,17 +1,9 @@
-//! This module is the data source of the Caldav items
-//!
-//! This gives access to data from both the server and a local database for quick retrieval when the app starts
+//! This module provides CalDAV data sources and utilities
 
-use std::sync::Arc;
+/*
 use std::error::Error;
 
-pub mod calendar;
-mod task;
-pub mod client;
 
-pub use calendar::Calendar;
-pub use task::Task;
-use client::Client;
 
 /// A Caldav data source
 pub struct DataSource {
@@ -37,16 +29,21 @@ impl DataSource {
 
     /// Update the local database with info from the Client
     pub fn fetch_from_server(&mut self) {
-
+        // TODO: how to handle conflicts?
     }
 
     pub fn update_changes_to_server(&self) {
 
     }
 
+    // TODO: the API should force calling fetch_from_server before
     pub fn calendars(&self) -> Vec<&Calendar> {
+        // TODO: what happens when a user has a reference, which is modified/updated from the server? Conflict mut/not mut?
+        // TODO: how can the user modify Tasks from a non-mut reference?
         self.calendars
             .iter()
             .collect()
     }
 }
+
+*/

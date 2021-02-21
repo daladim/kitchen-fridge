@@ -1,0 +1,1 @@
+//! This module provides a local cache for CalDAV data
