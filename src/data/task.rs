@@ -1,6 +1,4 @@
-use uuid::Uuid;
-
-pub type TaskId = Uuid;
+pub type TaskId = String; // This is an HTML "etag"
 
 /// A to-do task
 #[derive(Clone, Debug)]
@@ -11,7 +9,7 @@ pub struct Task {
 }
 
 impl Task {
-    pub fn id(&self) -> Uuid        { self.id           }
+    pub fn id(&self) -> &TaskId     { &self.id          }
     pub fn name(&self) -> &str      { &self.name        }
     pub fn completed(&self) -> bool { self.completed    }
 
