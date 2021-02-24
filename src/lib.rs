@@ -8,6 +8,8 @@
 //! A `Provider` abstracts these two sources by merging them together into one virtual source. \
 //! It also handles synchronisation between the local cache and the server.
 
+pub mod traits;
+
 pub mod calendar;
 pub use calendar::Calendar;
 mod task;
