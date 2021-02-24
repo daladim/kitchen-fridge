@@ -1,7 +1,9 @@
+use serde::{Deserialize, Serialize};
+
 pub type TaskId = String; // This is an HTML "etag"
 
 /// A to-do task
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Task {
     id: TaskId,
     name: String,
