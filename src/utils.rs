@@ -1,7 +1,6 @@
 ///! Some utility functions
 
 use minidom::Element;
-use serde::Deserialize;
 
 /// Walks an XML tree and returns every element that has the given name
 pub fn find_elems<S: AsRef<str>>(root: &Element, searched_name: S) -> Vec<&Element> {
@@ -50,28 +49,4 @@ pub fn print_xml(element: &Element) {
     element.to_writer(&mut xml_writer);
 
     writer.write(&[0x0a]);
-}
-
-
-/// Used to (de)serialize url::Url
-pub mod url_serde{
-    use super::*;
-
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<url::Url, D::Error>
-    where
-        D: serde::de::Deserializer<'de>
-    {
-        let s = String::deserialize(deserializer)?;
-        match url::Url::parse(&s) {
-            Ok(u) => Ok(u),
-            Err(_) => { return Err(serde::de::Error::invalid_value(serde::de::Unexpected::Str(&s), &"Expected an url")); }
-        }
-    }
-
-    pub fn serialize<S>(u: &url::Url, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::ser::Serializer,
-    {
-        serializer.serialize_str( u.as_str() )
-    }
 }

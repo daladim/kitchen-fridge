@@ -2,7 +2,6 @@ use std::convert::TryFrom;
 use std::error::Error;
 
 use url::Url;
-use serde::{Deserialize, Serialize};
 
 use crate::task::Task;
 use crate::task::TaskId;
@@ -10,7 +9,6 @@ use crate::task::TaskId;
 use bitflags::bitflags;
 
 bitflags! {
-    #[derive(Serialize, Deserialize)]
     pub struct SupportedComponents: u8 {
         /// An event, such as a calendar meeting
         const EVENT = 1;
@@ -47,10 +45,9 @@ impl TryFrom<minidom::Element> for SupportedComponents {
 
 
 /// A Caldav Calendar
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug)]
 pub struct Calendar {
     name: String,
-    #[serde(with="crate::utils::url_serde")]
     url: Url,
     supported_components: SupportedComponents,
 
