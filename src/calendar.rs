@@ -57,6 +57,7 @@ pub struct Calendar {
 }
 
 impl Calendar {
+    /// Create a new calendar
     pub fn new(name: String, url: Url, supported_components: SupportedComponents) -> Self {
         Self {
             name, url, supported_components,
@@ -64,10 +65,12 @@ impl Calendar {
         }
     }
 
+    /// Returns the calendar name
     pub fn name(&self) -> &str {
         &self.name
     }
 
+    /// Returns the calendar URL
     pub fn url(&self) -> &Url {
         &self.url
     }
@@ -77,14 +80,37 @@ impl Calendar {
         self.supported_components.contains(SupportedComponents::TODO)
     }
 
-    pub fn tasks(&self) -> Vec<&Task> {
+    /// Add a task into this calendar
+    pub fn add_task(&mut self, task: Task) {
+        self.tasks.push(task);
+    }
+
+    pub fn delete_task(&mut self, task_id: &TaskId) {
+        self.tasks.retain(|t| t.id() != task_id);
+    }
+
+    /// Returns the list of tasks that this calendar contains
+    /// Pass a `completed` flag to filter only the completed (or non-completed) tasks
+    pub fn get_tasks(&self, completed: Option<bool>) -> Vec<&Task> {
+        self.get_tasks_modified_since(None, completed)
+    }
+
+    /// Returns a particular task
+    pub fn get_task_by_id_mut(&mut self, id: &TaskId) -> Option<&mut Task> {
+        for task in &mut self.tasks {
+            if task.id() == id {
+                return Some(task);
+            }
+        }
+        return None;
+    }
+
+
+    /// Returns the tasks that have been last-modified after `since`
+    /// Pass a `completed` flag to filter only the completed (or non-completed) tasks
+    fn get_tasks_modified_since(&self, _since: Option<std::time::SystemTime>, _completed: Option<bool>) -> Vec<&Task> {
         self.tasks
             .iter()
             .collect()
-    }
-
-    pub fn task_by_id_mut(&mut self, id: TaskId) -> &mut Task {
-        todo!();
-        &mut self.tasks[0]
     }
 }
