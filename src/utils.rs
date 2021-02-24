@@ -46,7 +46,6 @@ pub fn print_xml(element: &Element) {
         std::io::stdout(),
         0x20, 4
     );
-    element.to_writer(&mut xml_writer);
-
-    writer.write(&[0x0a]);
+    let _ = element.to_writer(&mut xml_writer);
+    let _ = writer.write(&[0x0a]);
 }

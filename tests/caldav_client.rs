@@ -1,9 +1,6 @@
 //! Some tests of a CalDAV client.
 //! Most of them are not really integration tests, but just development tests that should be cleaned up one day.
 
-use std::error::Error;
-use std::convert::TryFrom;
-
 use reqwest::Method;
 use reqwest::header::CONTENT_TYPE;
 use minidom::Element;
@@ -44,11 +41,11 @@ async fn test_client() {
     let calendars = client.get_calendars().await.unwrap();
 
     println!("Calendars:");
-    calendars.iter()
+    let _ = calendars.iter()
         .map(|cal| println!("  {}\t{}", cal.name(), cal.url().as_str()))
         .collect::<()>();
 
-    client.get_tasks(&calendars[3].url()).await;
+    let _ = client.get_tasks(&calendars[3].url()).await;
 }
 
 #[tokio::test]
