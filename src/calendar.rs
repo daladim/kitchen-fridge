@@ -11,9 +11,9 @@ use bitflags::bitflags;
 bitflags! {
     pub struct SupportedComponents: u8 {
         /// An event, such as a calendar meeting
-        const Event = 1;
+        const EVENT = 1;
         /// A to-do item, such as a reminder
-        const Todo = 2;
+        const TODO = 2;
     }
 }
 
@@ -30,8 +30,8 @@ impl TryFrom<minidom::Element> for SupportedComponents {
         for child in element.children() {
             match child.attr("name") {
                 None => continue,
-                Some("VEVENT") => flags.insert(Self::Event),
-                Some("VTODO") => flags.insert(Self::Todo),
+                Some("VEVENT") => flags.insert(Self::EVENT),
+                Some("VTODO") => flags.insert(Self::TODO),
                 Some(other) => {
                     log::warn!("Unimplemented supported component type: {:?}. Ignoring it", other);
                     continue
@@ -72,7 +72,7 @@ impl Calendar {
 
     /// Returns whether this calDAV calendar supports to-do items
     pub fn supports_todo(&self) -> bool {
-        self.supported_components.contains(SupportedComponents::Todo)
+        self.supported_components.contains(SupportedComponents::TODO)
     }
 
     pub fn tasks(&self) -> Vec<&Task> {
