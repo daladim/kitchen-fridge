@@ -6,6 +6,7 @@ use std::error::Error;
 
 use serde::{Deserialize, Serialize};
 use async_trait::async_trait;
+use url::Url;
 
 use crate::traits::CalDavSource;
 use crate::Calendar;
@@ -87,6 +88,23 @@ impl CalDavSource for Cache {
             self.data.calendars.iter_mut()
             .collect()
         )
+    }
+
+    async fn get_calendar(&self, url: Url) -> Option<&Calendar> {
+        for cal in &self.data.calendars {
+            if cal.url() == &url {
+                return Some(cal);
+}
+        }
+        return None;
+    }
+    async fn get_calendar_mut(&mut self, url: Url) -> Option<&mut Calendar> {
+        for cal in &mut self.data.calendars {
+            if cal.url() == &url {
+                return Some(cal);
+            }
+        }
+        return None;
     }
 }
 
