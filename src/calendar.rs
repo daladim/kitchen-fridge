@@ -1,8 +1,10 @@
 use std::convert::TryFrom;
 use std::error::Error;
+use std::collections::HashMap;
 
 use url::Url;
 use serde::{Deserialize, Serialize};
+use chrono::{DateTime, Utc};
 
 use crate::task::Task;
 use crate::task::TaskId;
@@ -91,7 +93,7 @@ impl Calendar {
 
     /// Returns the list of tasks that this calendar contains
     /// Pass a `completed` flag to filter only the completed (or non-completed) tasks
-    pub fn get_tasks(&self, completed: Option<bool>) -> Vec<&Task> {
+    pub fn get_tasks(&self, completed: Option<bool>) -> HashMap<TaskId, &Task> {
         self.get_tasks_modified_since(None, completed)
     }
 
@@ -108,9 +110,20 @@ impl Calendar {
 
     /// Returns the tasks that have been last-modified after `since`
     /// Pass a `completed` flag to filter only the completed (or non-completed) tasks
-    fn get_tasks_modified_since(&self, _since: Option<std::time::SystemTime>, _completed: Option<bool>) -> Vec<&Task> {
-        self.tasks
-            .iter()
-            .collect()
+    pub fn get_tasks_modified_since(&self, since: Option<DateTime<Utc>>, _completed: Option<bool>) -> HashMap<TaskId, &Task> {
+        let mut map = HashMap::new();
+
+        for task in &self.tasks {
+            match since {
+                None => (),
+                Some(since) => if task.last_modified() < since {
+                    continue;
+                },
+            }
+
+            map.insert(task.id().clone(), task);
+        }
+
+        map
     }
 }
