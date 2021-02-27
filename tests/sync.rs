@@ -40,18 +40,18 @@ fn print_calendar_list(cals: &Vec<Calendar>) {
 }
 
 /// Populate sources with the following:
-/// * At the last sync: both sources had A, B, C, D, E, F, G, H at last sync
+/// * At the last sync: both sources had A, B, C, D, E, F, G, H, I, J, K, L, M at last sync
 /// * Before the newer sync, this will be the content of the sources:
-///     * server: A,    C, D,  E', F',  G~, H , I
-///     * cache:  A, B,    D', E,  F'', G , H~,    J
+///     * server: A,    C, D,  E', F',  G✓, H , I',      K, L, M, N
+///     * cache:  A, B,    D', E,  F'', G , H✓, I✓, J✓, K, L, M,    O
 ///
 /// Hence, here is the expected result after the sync:
-///     * both:   A,       D', E', F',  G~, H~, I, J
+///     * both:   A,       D', E', F',  G✓, H✓, I',      K, L, M, N, O
 ///
 /// Notes:
 /// * X': name has been modified since the last sync
 /// * F'/F'': name conflict
-/// * G~: task has been marked as completed
+/// * G✓: task has been marked as completed
 async fn populate_test_provider() -> Provider<Cache, Cache> {
     let mut server = Cache::new(&PathBuf::from(String::from("server.json")));
     let mut local = Cache::new(&PathBuf::from(String::from("local.json")));
@@ -64,8 +64,13 @@ async fn populate_test_provider() -> Provider<Cache, Cache> {
     let task_f = Task::new("task F".into(), Utc.ymd(2000, 1, 6).and_hms(0, 0, 0));
     let task_g = Task::new("task G".into(), Utc.ymd(2000, 1, 7).and_hms(0, 0, 0));
     let task_h = Task::new("task H".into(), Utc.ymd(2000, 1, 8).and_hms(0, 0, 0));
+    let task_i = Task::new("task I".into(), Utc.ymd(2000, 1, 9).and_hms(0, 0, 0));
+    let task_j = Task::new("task J".into(), Utc.ymd(2000, 1, 10).and_hms(0, 0, 0));
+    let task_k = Task::new("task K".into(), Utc.ymd(2000, 1, 11).and_hms(0, 0, 0));
+    let task_l = Task::new("task L".into(), Utc.ymd(2000, 1, 12).and_hms(0, 0, 0));
+    let task_m = Task::new("task M".into(), Utc.ymd(2000, 1, 12).and_hms(0, 0, 0));
 
-    let last_sync = task_h.last_modified();
+    let last_sync = task_m.last_modified();
     assert!(last_sync < Utc::now());
 
     let task_b_id = task_b.id().clone();
@@ -75,6 +80,11 @@ async fn populate_test_provider() -> Provider<Cache, Cache> {
     let task_f_id = task_f.id().clone();
     let task_g_id = task_g.id().clone();
     let task_h_id = task_h.id().clone();
+    let task_i_id = task_i.id().clone();
+    let task_j_id = task_j.id().clone();
+    let task_k_id = task_k.id().clone();
+    let task_l_id = task_l.id().clone();
+    let task_m_id = task_m.id().clone();
 
     // Step 1
     // Build the calendar as it was at the time of the sync
@@ -87,6 +97,11 @@ async fn populate_test_provider() -> Provider<Cache, Cache> {
     calendar.add_task(task_f);
     calendar.add_task(task_g);
     calendar.add_task(task_h);
+    calendar.add_task(task_i);
+    calendar.add_task(task_j);
+    calendar.add_task(task_k);
+    calendar.add_task(task_l);
+    calendar.add_task(task_m);
 
     server.add_calendar(calendar.clone());
     local.add_calendar(calendar.clone());
@@ -106,8 +121,13 @@ async fn populate_test_provider() -> Provider<Cache, Cache> {
     cal_server.get_task_by_id_mut(&task_g_id).unwrap()
         .set_completed(true);
 
-    let task_i = Task::new("task I".into(), Utc::now());
-    cal_server.add_task(task_i);
+    cal_server.get_task_by_id_mut(&task_i_id).unwrap()
+        .set_name("I renamed in the server".into());
+
+    cal_server.delete_task(&task_j_id);
+
+    let task_n = Task::new("task N (new from server)".into(), Utc::now());
+    cal_server.add_task(task_n);
 
 
     // Step 3
@@ -125,8 +145,14 @@ async fn populate_test_provider() -> Provider<Cache, Cache> {
     cal_local.get_task_by_id_mut(&task_h_id).unwrap()
         .set_completed(true);
 
-    let task_j = Task::new("task J".into(), Utc::now());
-    cal_local.add_task(task_j);
+    cal_local.get_task_by_id_mut(&task_i_id).unwrap()
+        .set_completed(true);
+
+    cal_local.get_task_by_id_mut(&task_j_id).unwrap()
+        .set_completed(true);
+
+    let task_o = Task::new("task O (new from local)".into(), Utc::now());
+    cal_local.add_task(task_o);
 
     Provider::new(server, local, last_sync)
 }

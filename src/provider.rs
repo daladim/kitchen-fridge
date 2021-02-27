@@ -38,15 +38,6 @@ where
     pub fn local(&self)  -> &L { &self.local }
 
     pub async fn sync(&mut self) -> Result<(), Box<dyn Error>> {
-        self.pull_items_from_server().await?;
-        self.resolve_conflicts().await;
-        self.push_items_to_server().await;
-
-        // what to do with errors? Return Err directly? Go ahead as far as we can?
-        Ok(())
-    }
-
-    pub async fn pull_items_from_server(&mut self) -> Result<(), Box<dyn Error>> {
         let cals_server = self.server.get_calendars_mut().await?;
 
         for cal_server in cals_server {
@@ -87,15 +78,6 @@ where
 
         Ok(())
     }
-
-    pub async fn resolve_conflicts(&mut self) {
-        log::error!("We should do something here");
-    }
-
-    pub async fn push_items_to_server(&mut self) {
-
-    }
-
 }
 
 
