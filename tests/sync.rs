@@ -18,18 +18,35 @@ async fn test_sync() {
     let mut provider = populate_test_provider().await;
     provider.sync().await.unwrap();
 
-    let cal_server = provider.server().get_calendars().await.unwrap();
-    let cal_local = provider.local().get_calendars().await.unwrap();
-    assert_eq!(cal_server, cal_local, "{:#?}\n{:#?}", cal_server, cal_local);
+    let cals_server = provider.server().get_calendars().await.unwrap();
+    let cals_local = provider.local().get_calendars().await.unwrap();
+    print_calendar_list(cals_local);
+    panic!();
+
+    //assert_eq!(cal_server, cal_local, "{:#?}\n{:#?}", cal_server, cal_local);
 
     panic!("TODO: also check that the contents are expected!");
+}
+
+/// A debug utility that pretty-prints calendars
+fn print_calendar_list(cals: &Vec<Calendar>) {
+    for cal in cals {
+        println!("CAL {}", cal.url());
+        for (_, item) in cal.get_tasks(None) {
+            let completion = if item.completed() {"✓"} else {" "};
+            println!("    {} {}", completion, item.name());
+        }
+    }
 }
 
 /// Populate sources with the following:
 /// * At the last sync: both sources had A, B, C, D, E, F, G, H at last sync
 /// * Before the newer sync, this will be the content of the sources:
 ///     * server: A,    C, D,  E', F',  G~, H , I
-///     * cache:  A, B,    D', E,  F'', G , H~,   J
+///     * cache:  A, B,    D', E,  F'', G , H~,    J
+///
+/// Hence, here is the expected result after the sync:
+///     * both:   A,       D', E', F',  G~, H~, I, J
 ///
 /// Notes:
 /// * X': name has been modified since the last sync

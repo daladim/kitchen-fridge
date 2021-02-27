@@ -14,9 +14,10 @@ pub mod calendar;
 pub use calendar::Calendar;
 mod task;
 pub use task::Task;
+pub mod provider;
+pub use provider::Provider;
 
 pub mod client;
-pub mod provider;
 pub mod cache;
 
 pub mod settings;

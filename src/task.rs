@@ -1,10 +1,12 @@
+use std::fmt::{Display, Formatter};
+
 use chrono::{Utc, DateTime};
 
 use serde::{Deserialize, Serialize};
 
 // TODO: turn into this one day
 //      pub type TaskId = String; // This is an HTML "etag"
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Hash, Serialize, Deserialize)]
 pub struct TaskId {
     content: String,
 }
@@ -12,6 +14,12 @@ impl TaskId{
     pub fn new() -> Self {
         let u = uuid::Uuid::new_v4().to_hyphenated().to_string();
         Self { content:u }
+    }
+}
+impl Eq for TaskId {}
+impl Display for TaskId {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+        write!(f, "{}", self.content)
     }
 }
 
