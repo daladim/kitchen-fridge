@@ -7,6 +7,7 @@ use chrono::{DateTime, Utc};
 use crate::traits::CalDavSource;
 use crate::Calendar;
 use crate::Task;
+use crate::task::TaskId;
 
 
 pub struct Provider<S, L>
@@ -61,7 +62,12 @@ where
             let local_mod = cal_local.get_tasks_modified_since(Some(self.last_sync), None);
 
             let mut tasks_to_add_to_local = Vec::new();
+            let mut tasks_id_to_remove_from_local = Vec::new();
             for (new_id, new_item) in &server_mod {
+                if server_mod.contains_key(new_id) {
+                    log::warn!("Conflict for task {} ({}). Using the server version.", new_item.name(), new_id);
+                    tasks_id_to_remove_from_local.push(new_id.clone());
+                }
                 tasks_to_add_to_local.push((*new_item).clone());
             }
 
@@ -74,6 +80,7 @@ where
                 tasks_to_add_to_server.push((*new_item).clone());
             }
 
+            remove_from_calendar(&tasks_id_to_remove_from_local, cal_local);
             move_to_calendar(&mut tasks_to_add_to_local, cal_local);
             move_to_calendar(&mut tasks_to_add_to_server, cal_server);
         }
@@ -99,3 +106,9 @@ fn move_to_calendar(tasks: &mut Vec<Task>, calendar: &mut Calendar) {
     }
 }
 
+fn remove_from_calendar(ids: &Vec<TaskId>, calendar: &mut Calendar) {
+    for id in ids {
+        log::info!("  Removing {:?} from local calendar", id);
+        calendar.delete_task(id);
+    }
+}
