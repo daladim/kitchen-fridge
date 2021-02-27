@@ -1,7 +1,6 @@
 use std::fmt::{Display, Formatter};
 
 use chrono::{Utc, DateTime};
-
 use serde::{Deserialize, Serialize};
 
 // TODO: turn into this one day
@@ -26,9 +25,15 @@ impl Display for TaskId {
 /// A to-do task
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Task {
+    /// The task unique ID, that will never change
     id: TaskId,
-    name: String,
+
+    /// The last modification date of this task
     last_modified: DateTime<Utc>,
+
+    /// The display name of the task
+    name: String,
+    /// The completion of the task
     completed: bool,
 }
 
@@ -36,9 +41,10 @@ impl Task {
     /// Create a new Task
     pub fn new(name: String, last_modified: DateTime<Utc>) -> Self {
         Self {
-            name, last_modified,
             id: TaskId::new(),
-            completed: false
+            name,
+            last_modified,
+            completed: false,
         }
     }
 
