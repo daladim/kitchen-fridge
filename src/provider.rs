@@ -51,9 +51,9 @@ where
 
             let server_mod = cal_server.get_tasks_modified_since(Some(self.last_sync));
             let server_del = cal_server.get_items_deleted_since(self.last_sync);
-            let local_mod = cal_local.get_tasks_modified_since(Some(self.last_sync));
             let local_del = cal_local.get_items_deleted_since(self.last_sync);
 
+            // Pull remote changes from the server
             let mut tasks_to_add_to_local = Vec::new();
             let mut tasks_id_to_remove_from_local = Vec::new();
             for deleted_id in server_del {
@@ -66,10 +66,21 @@ where
                 }
                 tasks_to_add_to_local.push((*new_item).clone());
             }
+            // Even in case of conflicts, "the server always wins", so it is safe to remove tasks from the local cache as soon as now
+            remove_from_calendar(&tasks_id_to_remove_from_local, cal_local);
+
+
+
+            // Push local changes to the server
+            let local_mod = cal_local.get_tasks_modified_since(Some(self.last_sync));
 
             let mut tasks_to_add_to_server = Vec::new();
             let mut tasks_id_to_remove_from_server = Vec::new();
             for deleted_id in local_del {
+                if server_mod.contains_key(&deleted_id) {
+                    log::warn!("Conflict for task {}, that has been locally deleted and updated in the server. Using the server version.", deleted_id);
+                    continue;
+                }
                 tasks_id_to_remove_from_server.push(deleted_id);
             }
             for (new_id, new_item) in &local_mod {
@@ -80,7 +91,6 @@ where
                 tasks_to_add_to_server.push((*new_item).clone());
             }
 
-            remove_from_calendar(&tasks_id_to_remove_from_local, cal_local);
             remove_from_calendar(&tasks_id_to_remove_from_server, cal_server);
             move_to_calendar(&mut tasks_to_add_to_local, cal_local);
             move_to_calendar(&mut tasks_to_add_to_server, cal_server);
