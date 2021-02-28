@@ -50,10 +50,15 @@ where
             };
 
             let server_mod = cal_server.get_tasks_modified_since(Some(self.last_sync), None);
+            let server_del = cal_server.get_tasks_deleted_since(self.last_sync);
             let local_mod = cal_local.get_tasks_modified_since(Some(self.last_sync), None);
+            let local_del = cal_local.get_tasks_deleted_since(self.last_sync);
 
             let mut tasks_to_add_to_local = Vec::new();
             let mut tasks_id_to_remove_from_local = Vec::new();
+            for deleted_id in server_del {
+                tasks_id_to_remove_from_local.push(deleted_id);
+            }
             for (new_id, new_item) in &server_mod {
                 if server_mod.contains_key(new_id) {
                     log::warn!("Conflict for task {} ({}). Using the server version.", new_item.name(), new_id);
@@ -63,6 +68,10 @@ where
             }
 
             let mut tasks_to_add_to_server = Vec::new();
+            let mut tasks_id_to_remove_from_server = Vec::new();
+            for deleted_id in local_del {
+                tasks_id_to_remove_from_server.push(deleted_id);
+            }
             for (new_id, new_item) in &local_mod {
                 if server_mod.contains_key(new_id) {
                     log::warn!("Conflict for task {} ({}). Using the server version.", new_item.name(), new_id);
@@ -72,6 +81,7 @@ where
             }
 
             remove_from_calendar(&tasks_id_to_remove_from_local, cal_local);
+            remove_from_calendar(&tasks_id_to_remove_from_server, cal_server);
             move_to_calendar(&mut tasks_to_add_to_local, cal_local);
             move_to_calendar(&mut tasks_to_add_to_server, cal_server);
         }
