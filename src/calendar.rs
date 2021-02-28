@@ -1,6 +1,7 @@
 use std::convert::TryFrom;
 use std::error::Error;
 use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use url::Url;
 use serde::{Deserialize, Serialize};
@@ -56,6 +57,7 @@ pub struct Calendar {
     supported_components: SupportedComponents,
 
     tasks: Vec<Task>,
+    deleted_tasks: BTreeMap<DateTime<Utc>, TaskId>,
 }
 
 impl Calendar {
@@ -64,6 +66,7 @@ impl Calendar {
         Self {
             name, url, supported_components,
             tasks: Vec::new(),
+            deleted_tasks: BTreeMap::new(),
         }
     }
 
@@ -89,6 +92,7 @@ impl Calendar {
 
     pub fn delete_task(&mut self, task_id: &TaskId) {
         self.tasks.retain(|t| t.id() != task_id);
+        self.deleted_tasks.insert(Utc::now(), task_id.clone());
     }
 
     /// Returns the list of tasks that this calendar contains
@@ -96,17 +100,6 @@ impl Calendar {
     pub fn get_tasks(&self, completed: Option<bool>) -> HashMap<TaskId, &Task> {
         self.get_tasks_modified_since(None, completed)
     }
-
-    /// Returns a particular task
-    pub fn get_task_by_id_mut(&mut self, id: &TaskId) -> Option<&mut Task> {
-        for task in &mut self.tasks {
-            if task.id() == id {
-                return Some(task);
-            }
-        }
-        return None;
-    }
-
 
     /// Returns the tasks that have been last-modified after `since`
     /// Pass a `completed` flag to filter only the completed (or non-completed) tasks
@@ -125,5 +118,22 @@ impl Calendar {
         }
 
         map
+    }
+
+    /// Returns the tasks that have been deleted after `since`
+    pub fn get_tasks_deleted_since(&self, since: DateTime<Utc>) -> Vec<TaskId> {
+        self.deleted_tasks.range(since..)
+            .map(|(_key, value)| value.clone())
+            .collect()
+    }
+
+    /// Returns a particular task
+    pub fn get_task_by_id_mut(&mut self, id: &TaskId) -> Option<&mut Task> {
+        for task in &mut self.tasks {
+            if task.id() == id {
+                return Some(task);
+            }
+        }
+        return None;
     }
 }
