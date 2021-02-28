@@ -5,39 +5,42 @@ use std::error::Error;
 use chrono::{DateTime, Utc};
 
 use crate::traits::CalDavSource;
+use crate::traits::SyncSlave;
 use crate::Calendar;
 use crate::Item;
 use crate::item::ItemId;
 
 
+/// A data source that combines two `CalDavSources` (usually a server and a local cache), which is able to sync both sources.
 pub struct Provider<S, L>
 where
     S: CalDavSource,
-    L: CalDavSource,
+    L: CalDavSource + SyncSlave,
 {
     /// The remote server
     server: S,
     /// The local cache
     local: L,
-
-    /// The last time the provider successfully synchronized both sources
-    last_sync: DateTime<Utc>,
 }
 
 impl<S,L> Provider<S, L>
 where
     S: CalDavSource,
-    L: CalDavSource,
+    L: CalDavSource + SyncSlave,
 {
-    /// Create a provider that will merge both sources
-    pub fn new(server: S, local: L, last_sync: DateTime<Utc>) -> Self {
-        Self { server, local, last_sync }
+    pub fn new(server: S, local: L) -> Self {
+        Self { server, local }
     }
 
     pub fn server(&self) -> &S { &self.server }
     pub fn local(&self)  -> &L { &self.local }
+    /// Returns the last time the `local` source has been synced
+    pub fn last_sync_timestamp(&self) -> Option<DateTime<Utc>> {
+        self.local.get_last_sync()
+    }
 
     pub async fn sync(&mut self) -> Result<(), Box<dyn Error>> {
+        let last_sync = self.local.get_last_sync();
         let cals_server = self.server.get_calendars_mut().await?;
 
         for cal_server in cals_server {
@@ -49,9 +52,15 @@ where
                 Some(cal) => cal,
             };
 
-            let server_mod = cal_server.get_tasks_modified_since(Some(self.last_sync));
-            let server_del = cal_server.get_items_deleted_since(self.last_sync);
-            let local_del = cal_local.get_items_deleted_since(self.last_sync);
+            let server_mod = cal_server.get_tasks_modified_since(last_sync);
+            let server_del = match last_sync {
+                Some(date) => cal_server.get_items_deleted_since(date),
+                None => Vec::new(),
+            };
+            let local_del = match last_sync {
+                Some(date) => cal_local.get_items_deleted_since(date),
+                None => Vec::new(),
+            };
 
             // Pull remote changes from the server
             let mut tasks_to_add_to_local = Vec::new();
@@ -72,7 +81,7 @@ where
 
 
             // Push local changes to the server
-            let local_mod = cal_local.get_tasks_modified_since(Some(self.last_sync));
+            let local_mod = cal_local.get_tasks_modified_since(last_sync);
 
             let mut tasks_to_add_to_server = Vec::new();
             let mut tasks_id_to_remove_from_server = Vec::new();
@@ -95,6 +104,8 @@ where
             move_to_calendar(&mut tasks_to_add_to_local, cal_local);
             move_to_calendar(&mut tasks_to_add_to_server, cal_server);
         }
+
+        self.local.update_last_sync(None);
 
         Ok(())
     }

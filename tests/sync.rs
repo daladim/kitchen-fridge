@@ -162,5 +162,5 @@ async fn populate_test_provider() -> Provider<Cache, Cache> {
     let task_o = Item::Task(Task::new("task O (new from local)".into(), Utc::now()));
     cal_local.add_item(task_o);
 
-    Provider::new(server, local, last_sync)
+    Provider::new(server, local)
 }

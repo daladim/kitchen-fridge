@@ -7,8 +7,10 @@ use std::error::Error;
 use serde::{Deserialize, Serialize};
 use async_trait::async_trait;
 use url::Url;
+use chrono::{DateTime, Utc};
 
 use crate::traits::CalDavSource;
+use crate::traits::SyncSlave;
 use crate::Calendar;
 
 
@@ -21,6 +23,7 @@ pub struct Cache {
 #[derive(Default, Debug, PartialEq, Serialize, Deserialize)]
 struct CachedData {
     calendars: Vec<Calendar>,
+    last_sync: Option<DateTime<Utc>>,
 }
 
 impl Cache {
@@ -108,7 +111,15 @@ impl CalDavSource for Cache {
     }
 }
 
+impl SyncSlave for Cache {
+    fn get_last_sync(&self) -> Option<DateTime<Utc>> {
+        self.data.last_sync
+    }
 
+    fn update_last_sync(&mut self, timepoint: Option<DateTime<Utc>>) {
+        self.data.last_sync = Some(timepoint.unwrap_or_else(|| Utc::now()));
+    }
+}
 
 #[cfg(test)]
 mod tests {
