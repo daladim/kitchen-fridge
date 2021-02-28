@@ -14,6 +14,7 @@ use crate::traits::SyncSlave;
 use crate::Calendar;
 
 
+/// A CalDAV source that stores its item in a local file
 #[derive(Debug, PartialEq)]
 pub struct Cache {
     backing_file: PathBuf,
@@ -27,16 +28,17 @@ struct CachedData {
 }
 
 impl Cache {
-    /// Get the cache file
+    /// Get the path to the cache file
     pub fn cache_file() -> PathBuf {
         return PathBuf::from(String::from("~/.config/my-tasks/cache.json"))
     }
 
-    /// Initialize a cache from the content of a backing file (if it exists, otherwise start with the default contents)
+    /// Initialize a cache from the content of a valid backing file if it exists.
+    /// Returns an error otherwise
     pub fn from_file(path: &Path) -> Result<Self, Box<dyn Error>> {
         let data = match std::fs::File::open(path) {
-            Err(_) => {
-                CachedData::default()
+            Err(err) => {
+                return Err(format!("Unable to open file {:?}: {}", path, err).into());
             },
             Ok(file) => serde_json::from_reader(file)?,
         };
@@ -72,9 +74,8 @@ impl Cache {
             return;
         };
     }
-}
 
-impl Cache {
+
     pub fn add_calendar(&mut self, calendar: Calendar) {
         self.data.calendars.push(calendar);
     }

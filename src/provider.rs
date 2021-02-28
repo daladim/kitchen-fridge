@@ -28,17 +28,27 @@ where
     S: CalDavSource,
     L: CalDavSource + SyncSlave,
 {
+    /// Create a provider.
+    ///
+    /// `server` is usually a [`Client`](crate::client::Client), `local` is usually a [`Cache`](crate::cache::Cache).
+    /// However, both can be interchangeable. The only difference is that `server` always wins in case of a sync conflict
     pub fn new(server: S, local: L) -> Self {
         Self { server, local }
     }
 
+    /// Returns the data source described as the `server`
     pub fn server(&self) -> &S { &self.server }
+    /// Returns the data source described as the `local`
     pub fn local(&self)  -> &L { &self.local }
     /// Returns the last time the `local` source has been synced
     pub fn last_sync_timestamp(&self) -> Option<DateTime<Utc>> {
         self.local.get_last_sync()
     }
 
+    /// Performs a synchronisation between `local` and `server`.
+    ///
+    /// This bidirectional sync applies additions/deleteions made on a source to the other source.
+    /// In case of conflicts (the same item has been modified on both ends since the last sync, `server` always wins)
     pub async fn sync(&mut self) -> Result<(), Box<dyn Error>> {
         let last_sync = self.local.get_last_sync();
         let cals_server = self.server.get_calendars_mut().await?;

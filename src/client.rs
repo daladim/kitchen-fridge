@@ -61,6 +61,7 @@ static TASKS_BODY: &str = r#"
 "#;
 
 
+/// A CalDAV source that fetches its data from a CalDAV server
 pub struct Client {
     url: Url,
     username: String,
