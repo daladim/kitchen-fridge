@@ -21,25 +21,14 @@ async fn test_sync() {
 
     let cals_server = provider.server().get_calendars().await.unwrap();
     let cals_local = provider.local().get_calendars().await.unwrap();
-    print_calendar_list(cals_local);
-    print_calendar_list(cals_server);
+    my_tasks::utils::print_calendar_list(cals_local);
+    my_tasks::utils::print_calendar_list(cals_server);
     panic!();
 
     //assert_eq!(cal_server, cal_local, "{:#?}\n{:#?}", cal_server, cal_local);
 
     panic!("TODO: also check that the contents are expected!");
-}
 
-/// A debug utility that pretty-prints calendars
-fn print_calendar_list(cals: &Vec<Calendar>) {
-    for cal in cals {
-        println!("CAL {}", cal.url());
-        for (_, item) in cal.get_items() {
-            let task = item.unwrap_task();
-            let completion = if task.completed() {"✓"} else {" "};
-            println!("    {} {}", completion, task.name());
-        }
-    }
 }
 
 /// Populate sources with the following:

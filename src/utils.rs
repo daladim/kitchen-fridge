@@ -2,6 +2,8 @@
 
 use minidom::Element;
 
+use crate::Calendar;
+
 /// Walks an XML tree and returns every element that has the given name
 pub fn find_elems<S: AsRef<str>>(root: &Element, searched_name: S) -> Vec<&Element> {
     let searched_name = searched_name.as_ref();
@@ -48,4 +50,16 @@ pub fn print_xml(element: &Element) {
     );
     let _ = element.to_writer(&mut xml_writer);
     let _ = writer.write(&[0x0a]);
+}
+
+/// A debug utility that pretty-prints calendars
+pub fn print_calendar_list(cals: &Vec<Calendar>) {
+    for cal in cals {
+        println!("CAL {}", cal.url());
+        for (_, item) in cal.get_items() {
+            let task = item.unwrap_task();
+            let completion = if task.completed() {"✓"} else {" "};
+            println!("    {} {}", completion, task.name());
+        }
+    }
 }
