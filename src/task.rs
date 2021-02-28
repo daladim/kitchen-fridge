@@ -1,32 +1,13 @@
-use std::fmt::{Display, Formatter};
-
 use chrono::{Utc, DateTime};
 use serde::{Deserialize, Serialize};
 
-// TODO: turn into this one day
-//      pub type TaskId = String; // This is an HTML "etag"
-#[derive(Clone, Debug, PartialEq, Hash, Serialize, Deserialize)]
-pub struct TaskId {
-    content: String,
-}
-impl TaskId{
-    pub fn new() -> Self {
-        let u = uuid::Uuid::new_v4().to_hyphenated().to_string();
-        Self { content:u }
-    }
-}
-impl Eq for TaskId {}
-impl Display for TaskId {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
-        write!(f, "{}", self.content)
-    }
-}
+use crate::item::ItemId;
 
 /// A to-do task
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Task {
     /// The task unique ID, that will never change
-    id: TaskId,
+    id: ItemId,
 
     /// The last modification date of this task
     last_modified: DateTime<Utc>,
@@ -41,14 +22,14 @@ impl Task {
     /// Create a new Task
     pub fn new(name: String, last_modified: DateTime<Utc>) -> Self {
         Self {
-            id: TaskId::new(),
+            id: ItemId::new(),
             name,
             last_modified,
             completed: false,
         }
     }
 
-    pub fn id(&self) -> &TaskId     { &self.id          }
+    pub fn id(&self) -> &ItemId     { &self.id          }
     pub fn name(&self) -> &str      { &self.name        }
     pub fn completed(&self) -> bool { self.completed    }
     pub fn last_modified(&self) -> DateTime<Utc> { self.last_modified }

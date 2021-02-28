@@ -7,8 +7,8 @@ use url::Url;
 use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
 
-use crate::task::Task;
-use crate::task::TaskId;
+use crate::Item;
+use crate::item::ItemId;
 
 use bitflags::bitflags;
 
@@ -49,6 +49,24 @@ impl TryFrom<minidom::Element> for SupportedComponents {
 }
 
 
+/// Flags to tell which events should be retrieved
+pub enum SearchFilter {
+    /// Return all items
+    All,
+    /// Return only tasks
+    Tasks,
+    // /// Return only completed tasks
+    // CompletedTasks,
+    // /// Return only calendar events
+    // Events,
+}
+
+impl Default for SearchFilter {
+    fn default() -> Self {
+        SearchFilter::All
+    }
+}
+
 /// A Caldav Calendar
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Calendar {
@@ -56,8 +74,8 @@ pub struct Calendar {
     url: Url,
     supported_components: SupportedComponents,
 
-    tasks: Vec<Task>,
-    deleted_tasks: BTreeMap<DateTime<Utc>, TaskId>,
+    items: Vec<Item>,
+    deleted_items: BTreeMap<DateTime<Utc>, ItemId>,
 }
 
 impl Calendar {
@@ -65,8 +83,8 @@ impl Calendar {
     pub fn new(name: String, url: Url, supported_components: SupportedComponents) -> Self {
         Self {
             name, url, supported_components,
-            tasks: Vec::new(),
-            deleted_tasks: BTreeMap::new(),
+            items: Vec::new(),
+            deleted_items: BTreeMap::new(),
         }
     }
 
@@ -85,55 +103,79 @@ impl Calendar {
         self.supported_components.contains(SupportedComponents::TODO)
     }
 
-    /// Add a task into this calendar
-    pub fn add_task(&mut self, task: Task) {
-        self.tasks.push(task);
+    /// Returns whether this calDAV calendar supports calendar items
+    pub fn supports_events(&self) -> bool {
+        self.supported_components.contains(SupportedComponents::EVENT)
     }
 
-    pub fn delete_task(&mut self, task_id: &TaskId) {
-        self.tasks.retain(|t| t.id() != task_id);
-        self.deleted_tasks.insert(Utc::now(), task_id.clone());
+    /// Add an item into this calendar
+    pub fn add_item(&mut self, item: Item) {
+        self.items.push(item);
     }
 
-    /// Returns the list of tasks that this calendar contains
-    /// Pass a `completed` flag to filter only the completed (or non-completed) tasks
-    pub fn get_tasks(&self, completed: Option<bool>) -> HashMap<TaskId, &Task> {
-        self.get_tasks_modified_since(None, completed)
+    /// Remove an item from this calendar
+    pub fn delete_item(&mut self, item_id: &ItemId) {
+        self.items.retain(|i| i.id() != item_id);
+        self.deleted_items.insert(Utc::now(), item_id.clone());
     }
 
-    /// Returns the tasks that have been last-modified after `since`
-    /// Pass a `completed` flag to filter only the completed (or non-completed) tasks
-    pub fn get_tasks_modified_since(&self, since: Option<DateTime<Utc>>, _completed: Option<bool>) -> HashMap<TaskId, &Task> {
+    /// Returns the list of items that this calendar contains
+    pub fn get_items(&self) -> HashMap<ItemId, &Item> {
+        self.get_items_modified_since(None, None)
+    }
+    /// Returns the items that have been last-modified after `since`
+    pub fn get_items_modified_since(&self, since: Option<DateTime<Utc>>, filter: Option<SearchFilter>) -> HashMap<ItemId, &Item> {
+        let filter = filter.unwrap_or_default();
+
         let mut map = HashMap::new();
 
-        for task in &self.tasks {
+        for item in &self.items {
             match since {
                 None => (),
-                Some(since) => if task.last_modified() < since {
+                Some(since) => if item.last_modified() < since {
                     continue;
                 },
             }
 
-            map.insert(task.id().clone(), task);
+            match filter {
+                SearchFilter::Tasks => {
+                    if item.is_task() == false {
+                        continue;
+                    }
+                },
+                _ => (),
+            }
+
+            map.insert(item.id().clone(), item);
         }
 
         map
     }
 
-    /// Returns the tasks that have been deleted after `since`
-    pub fn get_tasks_deleted_since(&self, since: DateTime<Utc>) -> Vec<TaskId> {
-        self.deleted_tasks.range(since..)
-            .map(|(_key, value)| value.clone())
-            .collect()
+    /// Returns the items that have been deleted after `since`
+    pub fn get_items_deleted_since(&self, since: DateTime<Utc>) -> Vec<ItemId> {
+        self.deleted_items.range(since..)
+        .map(|(_key, value)| value.clone())
+        .collect()
     }
 
-    /// Returns a particular task
-    pub fn get_task_by_id_mut(&mut self, id: &TaskId) -> Option<&mut Task> {
-        for task in &mut self.tasks {
-            if task.id() == id {
-                return Some(task);
+    /// Returns a particular item
+    pub fn get_item_by_id_mut(&mut self, id: &ItemId) -> Option<&mut Item> {
+        for item in &mut self.items {
+            if item.id() == id {
+                return Some(item);
             }
         }
         return None;
+    }
+
+
+    /// Returns the list of tasks that this calendar contains
+    pub fn get_tasks(&self) -> HashMap<ItemId, &Item> {
+        self.get_tasks_modified_since(None)
+    }
+    /// Returns the tasks that have been last-modified after `since`
+    pub fn get_tasks_modified_since(&self, since: Option<DateTime<Utc>>) -> HashMap<ItemId, &Item> {
+        self.get_items_modified_since(since, Some(SearchFilter::Tasks))
     }
 }

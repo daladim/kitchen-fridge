@@ -12,8 +12,12 @@ pub mod traits;
 
 pub mod calendar;
 pub use calendar::Calendar;
+mod item;
+pub use item::Item;
 mod task;
 pub use task::Task;
+mod event;
+pub use event::Event;
 pub mod provider;
 pub use provider::Provider;
 

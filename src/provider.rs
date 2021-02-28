@@ -6,8 +6,8 @@ use chrono::{DateTime, Utc};
 
 use crate::traits::CalDavSource;
 use crate::Calendar;
-use crate::Task;
-use crate::task::TaskId;
+use crate::Item;
+use crate::item::ItemId;
 
 
 pub struct Provider<S, L>
@@ -49,10 +49,10 @@ where
                 Some(cal) => cal,
             };
 
-            let server_mod = cal_server.get_tasks_modified_since(Some(self.last_sync), None);
-            let server_del = cal_server.get_tasks_deleted_since(self.last_sync);
-            let local_mod = cal_local.get_tasks_modified_since(Some(self.last_sync), None);
-            let local_del = cal_local.get_tasks_deleted_since(self.last_sync);
+            let server_mod = cal_server.get_tasks_modified_since(Some(self.last_sync));
+            let server_del = cal_server.get_items_deleted_since(self.last_sync);
+            let local_mod = cal_local.get_tasks_modified_since(Some(self.last_sync));
+            let local_del = cal_local.get_items_deleted_since(self.last_sync);
 
             let mut tasks_to_add_to_local = Vec::new();
             let mut tasks_id_to_remove_from_local = Vec::new();
@@ -91,16 +91,16 @@ where
 }
 
 
-fn move_to_calendar(tasks: &mut Vec<Task>, calendar: &mut Calendar) {
-    while tasks.len() > 0 {
-        let task = tasks.remove(0);
-        calendar.add_task(task);
+fn move_to_calendar(items: &mut Vec<Item>, calendar: &mut Calendar) {
+    while items.len() > 0 {
+        let item = items.remove(0);
+        calendar.add_item(item);
     }
 }
 
-fn remove_from_calendar(ids: &Vec<TaskId>, calendar: &mut Calendar) {
+fn remove_from_calendar(ids: &Vec<ItemId>, calendar: &mut Calendar) {
     for id in ids {
         log::info!("  Removing {:?} from local calendar", id);
-        calendar.delete_task(id);
+        calendar.delete_item(id);
     }
 }
