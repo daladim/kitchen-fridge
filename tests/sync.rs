@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use chrono::{Utc, TimeZone};
 use url::Url;
 
-use my_tasks::traits::CalDavSource;
+use my_tasks::traits::{CalDavSource, SyncSlave};
 use my_tasks::traits::PartialCalendar;
 use my_tasks::cache::Cache;
 use my_tasks::Item;
@@ -64,6 +64,7 @@ async fn populate_test_provider() -> Provider<Cache, CachedCalendar, Cache, Cach
     let task_m = Item::Task(Task::new("task M".into(), Utc.ymd(2000, 1, 12).and_hms(0, 0, 0)));
 
     let last_sync = task_m.last_modified();
+    local.update_last_sync(Some(last_sync));
     assert!(last_sync < Utc::now());
 
     let task_b_id = task_b.id().clone();
