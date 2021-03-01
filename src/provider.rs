@@ -60,6 +60,7 @@ where
     /// In case of conflicts (the same item has been modified on both ends since the last sync, `server` always wins)
     pub async fn sync(&mut self) -> Result<(), Box<dyn Error>> {
         let last_sync = self.local.get_last_sync();
+        log::info!("Starting a sync. Last sync was at {:?}", last_sync);
         let cals_server = self.server.get_calendars_mut().await?;
 
         for cal_server in cals_server {
