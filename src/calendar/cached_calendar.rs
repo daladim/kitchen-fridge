@@ -1,5 +1,3 @@
-use std::convert::TryFrom;
-use std::error::Error;
 use std::collections::HashMap;
 use std::collections::BTreeMap;
 
@@ -103,7 +101,7 @@ impl PartialCalendar for CachedCalendar {
         return None;
     }
 
-    fn find_missing_items_compared_to(&self, other: &dyn PartialCalendar) -> Vec<ItemId> {
+    fn find_missing_items_compared_to(&self, _other: &dyn PartialCalendar) -> Vec<ItemId> {
         unimplemented!("todo");
     }
 }

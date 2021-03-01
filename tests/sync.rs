@@ -4,7 +4,7 @@ use chrono::{Utc, TimeZone};
 use url::Url;
 
 use my_tasks::traits::CalDavSource;
-use my_tasks::traits::{PartialCalendar, CompleteCalendar};
+use my_tasks::traits::PartialCalendar;
 use my_tasks::cache::Cache;
 use my_tasks::Item;
 use my_tasks::Task;
@@ -76,8 +76,6 @@ async fn populate_test_provider() -> Provider<Cache, CachedCalendar, Cache, Cach
     let task_i_id = task_i.id().clone();
     let task_j_id = task_j.id().clone();
     let task_k_id = task_k.id().clone();
-    let task_l_id = task_l.id().clone();
-    let task_m_id = task_m.id().clone();
 
     // Step 1
     // Build the calendar as it was at the time of the sync

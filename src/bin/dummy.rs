@@ -1,3 +1,4 @@
+/*
 use std::path::Path;
 
 use my_tasks::{client::Client, traits::CalDavSource};
@@ -7,8 +8,8 @@ use my_tasks::settings::URL;
 use my_tasks::settings::USERNAME;
 use my_tasks::settings::PASSWORD;
 
-
 const CACHE_FILE: &str = "caldav_cache.json";
+*/
 
 #[tokio::main]
 async fn main() {

@@ -5,7 +5,6 @@ use async_trait::async_trait;
 use url::Url;
 use chrono::{DateTime, Utc};
 
-use crate::calendar::cached_calendar::CachedCalendar;
 use crate::item::Item;
 use crate::item::ItemId;
 

@@ -2,18 +2,15 @@
 
 use std::error::Error;
 use std::convert::TryFrom;
-use std::sync::Mutex;
 
 use reqwest::Method;
 use reqwest::header::CONTENT_TYPE;
 use minidom::Element;
 use url::Url;
-use async_trait::async_trait;
 
 use crate::utils::{find_elem, find_elems};
 use crate::calendar::cached_calendar::CachedCalendar;
 use crate::traits::PartialCalendar;
-use crate::traits::CalDavSource;
 
 
 static DAVCLIENT_BODY: &str = r#"
@@ -237,7 +234,7 @@ impl Client {
         let el: Element = text.parse().unwrap();
         let responses = find_elems(&el, "response");
 
-        for response in responses {
+        for _response in responses {
             println!("(a response)\n");
         }
 

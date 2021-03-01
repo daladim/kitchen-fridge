@@ -2,15 +2,8 @@ pub mod cached_calendar;
 
 use std::convert::TryFrom;
 use std::error::Error;
-use std::collections::HashMap;
-use std::collections::BTreeMap;
 
-use url::Url;
 use serde::{Deserialize, Serialize};
-use chrono::{DateTime, Utc};
-
-use crate::Item;
-use crate::item::ItemId;
 
 use bitflags::bitflags;
 

@@ -7,7 +7,6 @@ use chrono::{DateTime, Utc};
 use crate::traits::{CalDavSource, CompleteCalendar};
 use crate::traits::SyncSlave;
 use crate::traits::PartialCalendar;
-use crate::calendar::cached_calendar::CachedCalendar;
 use crate::Item;
 use crate::item::ItemId;
 
@@ -74,7 +73,7 @@ where
 
             let server_mod = cal_server.get_items_modified_since(last_sync, None);
             let server_del = match last_sync {
-                Some(date) => cal_server.find_missing_items_compared_to(cal_local),
+                Some(_date) => cal_server.find_missing_items_compared_to(cal_local),
                 None => Vec::new(),
             };
             let local_del = match last_sync {
