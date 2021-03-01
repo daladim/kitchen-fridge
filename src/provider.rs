@@ -1,39 +1,49 @@
 //! This modules abstracts data sources and merges them in a single virtual one
 
-use std::error::Error;
+use std::{error::Error, marker::PhantomData};
 
 use chrono::{DateTime, Utc};
 
-use crate::traits::CalDavSource;
+use crate::traits::{CalDavSource, CompleteCalendar};
 use crate::traits::SyncSlave;
-use crate::Calendar;
+use crate::traits::PartialCalendar;
+use crate::calendar::cached_calendar::CachedCalendar;
 use crate::Item;
 use crate::item::ItemId;
 
 
 /// A data source that combines two `CalDavSources` (usually a server and a local cache), which is able to sync both sources.
-pub struct Provider<S, L>
+pub struct Provider<L, T, S, U>
 where
-    S: CalDavSource,
-    L: CalDavSource + SyncSlave,
+    L: CalDavSource<T> + SyncSlave,
+    T: CompleteCalendar,
+    S: CalDavSource<U>,
+    U: PartialCalendar,
 {
     /// The remote server
     server: S,
     /// The local cache
     local: L,
+
+    phantom_t: PhantomData<T>,
+    phantom_u: PhantomData<U>,
 }
 
-impl<S,L> Provider<S, L>
+impl<L, T, S, U> Provider<L, T, S, U>
 where
-    S: CalDavSource,
-    L: CalDavSource + SyncSlave,
+    L: CalDavSource<T> + SyncSlave,
+    T: CompleteCalendar,
+    S: CalDavSource<U>,
+    U: PartialCalendar,
 {
     /// Create a provider.
     ///
     /// `server` is usually a [`Client`](crate::client::Client), `local` is usually a [`Cache`](crate::cache::Cache).
     /// However, both can be interchangeable. The only difference is that `server` always wins in case of a sync conflict
     pub fn new(server: S, local: L) -> Self {
-        Self { server, local }
+        Self { server, local,
+            phantom_t: PhantomData, phantom_u: PhantomData,
+        }
     }
 
     /// Returns the data source described as the `server`
@@ -62,9 +72,9 @@ where
                 Some(cal) => cal,
             };
 
-            let server_mod = cal_server.get_tasks_modified_since(last_sync);
+            let server_mod = cal_server.get_items_modified_since(last_sync, None);
             let server_del = match last_sync {
-                Some(date) => cal_server.get_items_deleted_since(date),
+                Some(date) => cal_server.find_missing_items_compared_to(cal_local),
                 None => Vec::new(),
             };
             let local_del = match last_sync {
@@ -91,7 +101,7 @@ where
 
 
             // Push local changes to the server
-            let local_mod = cal_local.get_tasks_modified_since(last_sync);
+            let local_mod = cal_local.get_items_modified_since(last_sync, None);
 
             let mut tasks_to_add_to_server = Vec::new();
             let mut tasks_id_to_remove_from_server = Vec::new();
@@ -122,14 +132,14 @@ where
 }
 
 
-fn move_to_calendar(items: &mut Vec<Item>, calendar: &mut Calendar) {
+fn move_to_calendar<C: PartialCalendar>(items: &mut Vec<Item>, calendar: &mut C) {
     while items.len() > 0 {
         let item = items.remove(0);
         calendar.add_item(item);
     }
 }
 
-fn remove_from_calendar(ids: &Vec<ItemId>, calendar: &mut Calendar) {
+fn remove_from_calendar<C: PartialCalendar>(ids: &Vec<ItemId>, calendar: &mut C) {
     for id in ids {
         log::info!("  Removing {:?} from local calendar", id);
         calendar.delete_item(id);

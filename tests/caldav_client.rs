@@ -7,6 +7,8 @@ use minidom::Element;
 use url::Url;
 
 use my_tasks::client::Client;
+use my_tasks::traits::PartialCalendar;
+
 use my_tasks::settings::URL;
 use my_tasks::settings::USERNAME;
 use my_tasks::settings::PASSWORD;
@@ -24,7 +26,7 @@ static EXAMPLE_TASKS_BODY_LAST_MODIFIED: &str = r#"
     <C:comp-filter name="VCALENDAR">
       <C:comp-filter name="VTODO">
         <C:prop-filter name="LAST-MODIFIED">
-            <C:time-range start="20210220T000000Z"
+            <C:time-range start="20210228T002308Z"
                           end="20260105T000000Z"/>
         </C:prop-filter>
       </C:comp-filter>
@@ -45,7 +47,7 @@ async fn test_client() {
         .map(|cal| println!("  {}\t{}", cal.name(), cal.url().as_str()))
         .collect::<()>();
 
-    let _ = client.get_tasks(&calendars[3].url()).await;
+    let _ = client.get_tasks(&calendars[0].url()).await;
 }
 
 #[tokio::test]

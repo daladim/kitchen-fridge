@@ -11,7 +11,7 @@
 pub mod traits;
 
 pub mod calendar;
-pub use calendar::Calendar;
+pub use calendar::cached_calendar::CachedCalendar;
 mod item;
 pub use item::Item;
 mod task;

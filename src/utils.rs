@@ -2,7 +2,7 @@
 
 use minidom::Element;
 
-use crate::Calendar;
+use crate::traits::CompleteCalendar;
 
 /// Walks an XML tree and returns every element that has the given name
 pub fn find_elems<S: AsRef<str>>(root: &Element, searched_name: S) -> Vec<&Element> {
@@ -53,7 +53,7 @@ pub fn print_xml(element: &Element) {
 }
 
 /// A debug utility that pretty-prints calendars
-pub fn print_calendar_list(cals: &Vec<Calendar>) {
+pub fn print_calendar_list<C: CompleteCalendar>(cals: &Vec<C>) {
     for cal in cals {
         println!("CAL {}", cal.url());
         for (_, item) in cal.get_items() {

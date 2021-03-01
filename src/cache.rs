@@ -11,7 +11,8 @@ use chrono::{DateTime, Utc};
 
 use crate::traits::CalDavSource;
 use crate::traits::SyncSlave;
-use crate::Calendar;
+use crate::traits::PartialCalendar;
+use crate::calendar::cached_calendar::CachedCalendar;
 
 
 /// A CalDAV source that stores its item in a local file
@@ -23,7 +24,7 @@ pub struct Cache {
 
 #[derive(Default, Debug, PartialEq, Serialize, Deserialize)]
 struct CachedData {
-    calendars: Vec<Calendar>,
+    calendars: Vec<CachedCalendar>,
     last_sync: Option<DateTime<Utc>>,
 }
 
@@ -76,33 +77,33 @@ impl Cache {
     }
 
 
-    pub fn add_calendar(&mut self, calendar: Calendar) {
+    pub fn add_calendar(&mut self, calendar: CachedCalendar) {
         self.data.calendars.push(calendar);
     }
 }
 
 #[async_trait]
-impl CalDavSource for Cache {
-    async fn get_calendars(&self) -> Result<&Vec<Calendar>, Box<dyn Error>> {
+impl CalDavSource<CachedCalendar> for Cache {
+    async fn get_calendars(&self) -> Result<&Vec<CachedCalendar>, Box<dyn Error>> {
         Ok(&self.data.calendars)
     }
 
-    async fn get_calendars_mut(&mut self) -> Result<Vec<&mut Calendar>, Box<dyn Error>> {
+    async fn get_calendars_mut(&mut self) -> Result<Vec<&mut CachedCalendar>, Box<dyn Error>> {
         Ok(
             self.data.calendars.iter_mut()
             .collect()
         )
     }
 
-    async fn get_calendar(&self, url: Url) -> Option<&Calendar> {
+    async fn get_calendar(&self, url: Url) -> Option<&CachedCalendar> {
         for cal in &self.data.calendars {
             if cal.url() == &url {
                 return Some(cal);
-}
+            }
         }
         return None;
     }
-    async fn get_calendar_mut(&mut self, url: Url) -> Option<&mut Calendar> {
+    async fn get_calendar_mut(&mut self, url: Url) -> Option<&mut CachedCalendar> {
         for cal in &mut self.data.calendars {
             if cal.url() == &url {
                 return Some(cal);
@@ -135,7 +136,7 @@ mod tests {
 
         let mut cache = Cache::new(&cache_path);
 
-        let cal1 = Calendar::new("shopping list".to_string(),
+        let cal1 = CachedCalendar::new("shopping list".to_string(),
                                 Url::parse("https://caldav.com/shopping").unwrap(),
                             SupportedComponents::TODO);
         cache.add_calendar(cal1);

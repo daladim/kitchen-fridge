@@ -2,14 +2,19 @@
 
 use std::error::Error;
 use std::convert::TryFrom;
+use std::sync::Mutex;
 
 use reqwest::Method;
 use reqwest::header::CONTENT_TYPE;
 use minidom::Element;
 use url::Url;
+use async_trait::async_trait;
 
 use crate::utils::{find_elem, find_elems};
-use crate::calendar::Calendar;
+use crate::calendar::cached_calendar::CachedCalendar;
+use crate::traits::PartialCalendar;
+use crate::traits::CalDavSource;
+
 
 static DAVCLIENT_BODY: &str = r#"
     <d:propfind xmlns:d="DAV:">
@@ -69,7 +74,7 @@ pub struct Client {
 
     principal: Option<Url>,
     calendar_home_set: Option<Url>,
-    calendars: Option<Vec<Calendar>>,
+    calendars: Option<Vec<CachedCalendar>>,
 }
 
 impl Client {
@@ -148,7 +153,7 @@ impl Client {
     }
 
     /// Return the list of calendars, or fetch from server if not known yet
-    pub async fn get_calendars(&mut self) -> Result<Vec<Calendar>, Box<dyn Error>> {
+    pub async fn get_calendars(&mut self) -> Result<Vec<CachedCalendar>, Box<dyn Error>> {
         if let Some(c) = &self.calendars {
             return Ok(c.to_vec());
         }
@@ -206,7 +211,7 @@ impl Client {
                 },
                 Ok(sc) => sc,
             };
-            let this_calendar = Calendar::new(display_name, this_calendar_url, supported_components);
+            let this_calendar = CachedCalendar::new(display_name, this_calendar_url, supported_components);
             log::info!("Found calendar {}", this_calendar.name());
             calendars.push(this_calendar);
         }

@@ -4,10 +4,11 @@ use chrono::{Utc, TimeZone};
 use url::Url;
 
 use my_tasks::traits::CalDavSource;
+use my_tasks::traits::{PartialCalendar, CompleteCalendar};
 use my_tasks::cache::Cache;
 use my_tasks::Item;
 use my_tasks::Task;
-use my_tasks::Calendar;
+use my_tasks::calendar::cached_calendar::CachedCalendar;
 use my_tasks::Provider;
 
 #[tokio::test]
@@ -44,7 +45,7 @@ async fn test_sync() {
 /// * X': name has been modified since the last sync
 /// * F'/F'': name conflict
 /// * G✓: task has been marked as completed
-async fn populate_test_provider() -> Provider<Cache, Cache> {
+async fn populate_test_provider() -> Provider<Cache, CachedCalendar, Cache, CachedCalendar> {
     let mut server = Cache::new(&PathBuf::from(String::from("server.json")));
     let mut local = Cache::new(&PathBuf::from(String::from("local.json")));
 
@@ -80,7 +81,7 @@ async fn populate_test_provider() -> Provider<Cache, Cache> {
 
     // Step 1
     // Build the calendar as it was at the time of the sync
-    let mut calendar = Calendar::new("a list".into(), Url::parse("http://todo.list/cal").unwrap(), my_tasks::calendar::SupportedComponents::TODO);
+    let mut calendar = CachedCalendar::new("a list".into(), Url::parse("http://todo.list/cal").unwrap(), my_tasks::calendar::SupportedComponents::TODO);
     calendar.add_item(task_a);
     calendar.add_item(task_b);
     calendar.add_item(task_c);
