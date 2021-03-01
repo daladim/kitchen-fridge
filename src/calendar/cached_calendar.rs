@@ -92,6 +92,12 @@ impl PartialCalendar for CachedCalendar {
         map
     }
 
+    fn get_item_ids(&mut self) -> Vec<ItemId> {
+        self.items.iter()
+            .map(|item| item.id().clone())
+            .collect()
+    }
+
     fn get_item_by_id_mut(&mut self, id: &ItemId) -> Option<&mut Item> {
         for item in &mut self.items {
             if item.id() == id {
@@ -99,10 +105,6 @@ impl PartialCalendar for CachedCalendar {
             }
         }
         return None;
-    }
-
-    fn find_missing_items_compared_to(&self, _other: &dyn PartialCalendar) -> Vec<ItemId> {
-        unimplemented!("todo");
     }
 }
 

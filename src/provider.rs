@@ -72,9 +72,8 @@ where
                 Some(cal) => cal,
             };
 
-            let server_mod = cal_server.get_items_modified_since(last_sync, None);
             let server_del = match last_sync {
-                Some(_date) => cal_server.find_missing_items_compared_to(cal_local),
+                Some(_date) => cal_server.find_deletions(cal_local.get_item_ids()),
                 None => Vec::new(),
             };
             let local_del = match last_sync {
@@ -88,6 +87,7 @@ where
             for deleted_id in server_del {
                 tasks_id_to_remove_from_local.push(deleted_id);
             }
+            let server_mod = cal_server.get_items_modified_since(last_sync, None);
             for (new_id, new_item) in &server_mod {
                 if server_mod.contains_key(new_id) {
                     log::warn!("Conflict for task {} ({}). Using the server version.", new_item.name(), new_id);

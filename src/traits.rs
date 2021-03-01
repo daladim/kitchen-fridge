@@ -54,6 +54,9 @@ pub trait PartialCalendar {
     fn get_items_modified_since(&self, since: Option<DateTime<Utc>>, filter: Option<crate::calendar::SearchFilter>)
         -> HashMap<ItemId, &Item>;
 
+    /// Get the IDs of all current items in this calendar
+    fn get_item_ids(&mut self) -> Vec<ItemId>;
+
     /// Returns a particular item
     fn get_item_by_id_mut(&mut self, id: &ItemId) -> Option<&mut Item>;
 
@@ -63,9 +66,29 @@ pub trait PartialCalendar {
     /// Remove an item from this calendar
     fn delete_item(&mut self, item_id: &ItemId);
 
-    /// Compares with another calendar and lists missing items
-    /// This function is a sort of replacement for `get_items_deleted_since`, that is not available on PartialCalendars
-    fn find_missing_items_compared_to(&self, other: &dyn PartialCalendar) -> Vec<ItemId>;
+
+    /// Returns whether this calDAV calendar supports to-do items
+    fn supports_todo(&self) -> bool {
+        self.supported_components().contains(crate::calendar::SupportedComponents::TODO)
+    }
+
+    /// Returns whether this calDAV calendar supports calendar items
+    fn supports_events(&self) -> bool {
+        self.supported_components().contains(crate::calendar::SupportedComponents::EVENT)
+    }
+
+    /// Finds the IDs of the items that are missing compared to a reference set
+    fn find_deletions(&mut self, reference_set: Vec<ItemId>) -> Vec<ItemId> {
+        let mut deletions = Vec::new();
+
+        let current_items = self.get_item_ids();
+        for original_item in reference_set {
+            if current_items.contains(&original_item) == false {
+                deletions.push(original_item);
+            }
+        }
+        deletions
+    }
 }
 
 /// A calendar we always know everything about.
@@ -81,16 +104,3 @@ pub trait CompleteCalendar : PartialCalendar {
     fn get_items(&self) -> HashMap<ItemId, &Item>;
 }
 
-
-
-impl PartialCalendar {
-    /// Returns whether this calDAV calendar supports to-do items
-    pub fn supports_todo(&self) -> bool {
-        self.supported_components().contains(crate::calendar::SupportedComponents::TODO)
-    }
-
-    /// Returns whether this calDAV calendar supports calendar items
-    pub fn supports_events(&self) -> bool {
-        self.supported_components().contains(crate::calendar::SupportedComponents::EVENT)
-    }
-}
