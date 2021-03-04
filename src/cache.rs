@@ -3,6 +3,8 @@
 use std::path::PathBuf;
 use std::path::Path;
 use std::error::Error;
+use std::collections::HashMap;
+use std::hash::Hash;
 
 use serde::{Deserialize, Serialize};
 use async_trait::async_trait;
@@ -12,6 +14,7 @@ use chrono::{DateTime, Utc};
 use crate::traits::CalDavSource;
 use crate::traits::SyncSlave;
 use crate::traits::PartialCalendar;
+use crate::traits::CompleteCalendar;
 use crate::calendar::cached_calendar::CachedCalendar;
 
 
@@ -80,6 +83,47 @@ impl Cache {
     pub fn add_calendar(&mut self, calendar: CachedCalendar) {
         self.data.calendars.push(calendar);
     }
+
+    /// Compares two Caches to check they have the same current content
+    ///
+    /// This is not a complete equality test: some attributes (last sync date, deleted items...) may differ
+    pub async fn has_same_contents_than(&self, other: &Self) -> Result<bool, Box<dyn Error>> {
+        let calendars_l = self.get_calendars().await?;
+        let calendars_r = other.get_calendars().await?;
+
+        for cal_l in calendars_l {
+            for cal_r in calendars_r {
+                if cal_l.url() == cal_r.url() {
+                    let items_l = cal_l.get_items();
+                    let items_r = cal_r.get_items();
+
+                    if keys_are_the_same(&items_l, &items_r) == false {
+                        return Ok(false);
+}
+                    for (id_l, item_l) in items_l {
+                        let item_r = items_r.get(&id_l).unwrap();
+                        //println!("  items {} {}", item_r.name(), item_l.name());
+                        if &item_l != item_r {
+                            return Ok(false);
+                        }
+                    }
+
+                    break;
+                }
+            }
+        }
+        // TODO: also check there is no missing calendar in one side or the other
+        // TODO: also check there is no missing task in either side of each calendar
+        Ok(true)
+    }
+}
+
+fn keys_are_the_same<T, U, V>(left: &HashMap<T, U>, right: &HashMap<T, V>) -> bool
+where
+    T: Hash + Eq,
+{
+    left.len() == right.len()
+    && left.keys().all(|k| right.contains_key(k))
 }
 
 #[async_trait]

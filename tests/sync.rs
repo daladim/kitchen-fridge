@@ -14,7 +14,7 @@ use my_tasks::Provider;
 #[tokio::test]
 /// This test simulates a synchronisation between a local cache and a server
 /// To "mock" a server, let's use a second cache
-async fn test_sync() {
+async fn test_regular_sync() {
     let _ = env_logger::builder().is_test(true).try_init();
 
     let mut provider = populate_test_provider().await;
@@ -24,11 +24,8 @@ async fn test_sync() {
     let cals_local = provider.local().get_calendars().await.unwrap();
     my_tasks::utils::print_calendar_list(cals_local);
     my_tasks::utils::print_calendar_list(cals_server);
-    panic!();
 
-    //assert_eq!(cal_server, cal_local, "{:#?}\n{:#?}", cal_server, cal_local);
-
-    panic!("TODO: also check that the contents are expected!");
+    assert!(provider.server().has_same_contents_than(provider.local()).await.unwrap());
 
 }
 
