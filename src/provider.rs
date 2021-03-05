@@ -1,6 +1,8 @@
 //! This modules abstracts data sources and merges them in a single virtual one
 
-use std::{error::Error, marker::PhantomData};
+use std::error::Error;
+use std::collections::{HashSet, HashMap};
+use std::marker::PhantomData;
 
 use chrono::{DateTime, Utc};
 
@@ -63,8 +65,8 @@ where
         log::info!("Starting a sync. Last sync was at {:?}", last_sync);
         let cals_server = self.server.get_calendars_mut().await?;
 
-        for cal_server in cals_server {
-            let cal_local = match self.local.get_calendar_mut(cal_server.url().clone()).await {
+        for (id, cal_server) in cals_server {
+            let cal_local = match self.local.get_calendar_mut(id).await {
                 None => {
                     log::error!("TODO: implement here");
                     continue;
@@ -72,21 +74,16 @@ where
                 Some(cal) => cal,
             };
 
-            let server_del = match last_sync {
-                Some(_date) => cal_server.find_deletions(cal_local.get_item_ids()),
+            // Pull remote changes from the server
+            let mut tasks_id_to_remove_from_local = match last_sync {
                 None => Vec::new(),
-            };
-            let local_del = match last_sync {
-                Some(date) => cal_local.get_items_deleted_since(date),
-                None => Vec::new(),
+                Some(_date) => cal_server.find_deletions_from(cal_local.get_item_ids())
+                    .iter()
+                    .map(|id| id.clone())
+                    .collect()
             };
 
-            // Pull remote changes from the server
             let mut tasks_to_add_to_local = Vec::new();
-            let mut tasks_id_to_remove_from_local = Vec::new();
-            for deleted_id in server_del {
-                tasks_id_to_remove_from_local.push(deleted_id);
-            }
             let server_mod = cal_server.get_items_modified_since(last_sync, None);
             for (new_id, new_item) in &server_mod {
                 if server_mod.contains_key(new_id) {
@@ -101,9 +98,10 @@ where
 
 
             // Push local changes to the server
-            let local_mod = cal_local.get_items_modified_since(last_sync, None);
-
-            let mut tasks_to_add_to_server = Vec::new();
+            let local_del = match last_sync {
+                Some(date) => cal_local.get_items_deleted_since(date),
+                None => HashSet::new(),
+            };
             let mut tasks_id_to_remove_from_server = Vec::new();
             for deleted_id in local_del {
                 if server_mod.contains_key(&deleted_id) {
@@ -112,6 +110,9 @@ where
                 }
                 tasks_id_to_remove_from_server.push(deleted_id);
             }
+
+            let local_mod = cal_local.get_items_modified_since(last_sync, None);
+            let mut tasks_to_add_to_server = Vec::new();
             for (new_id, new_item) in &local_mod {
                 if server_mod.contains_key(new_id) {
                     log::warn!("Conflict for task {} ({}). Using the server version.", new_item.name(), new_id);

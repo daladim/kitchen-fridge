@@ -2,6 +2,7 @@
 
 use std::error::Error;
 use std::convert::TryFrom;
+use std::collections::HashMap;
 
 use reqwest::Method;
 use reqwest::header::CONTENT_TYPE;
@@ -10,6 +11,7 @@ use url::Url;
 
 use crate::utils::{find_elem, find_elems};
 use crate::calendar::cached_calendar::CachedCalendar;
+use crate::calendar::CalendarId;
 use crate::traits::PartialCalendar;
 
 
@@ -71,7 +73,7 @@ pub struct Client {
 
     principal: Option<Url>,
     calendar_home_set: Option<Url>,
-    calendars: Option<Vec<CachedCalendar>>,
+    calendars: Option<HashMap<CalendarId, CachedCalendar>>,
 }
 
 impl Client {
@@ -150,9 +152,9 @@ impl Client {
     }
 
     /// Return the list of calendars, or fetch from server if not known yet
-    pub async fn get_calendars(&mut self) -> Result<Vec<CachedCalendar>, Box<dyn Error>> {
+    pub async fn get_calendars(&mut self) -> Result<HashMap<CalendarId, CachedCalendar>, Box<dyn Error>> {
         if let Some(c) = &self.calendars {
-            return Ok(c.to_vec());
+            return Ok(c.clone());
         }
         let cal_home_set = self.get_cal_home_set().await?;
 
@@ -160,7 +162,7 @@ impl Client {
 
         let root: Element = text.parse().unwrap();
         let reps = find_elems(&root, "response");
-        let mut calendars = Vec::new();
+        let mut calendars = HashMap::new();
         for rep in reps {
             let display_name = find_elem(rep, "displayname").map(|e| e.text()).unwrap_or("<no name>".to_string());
             log::debug!("Considering calendar {}", display_name);
@@ -210,14 +212,14 @@ impl Client {
             };
             let this_calendar = CachedCalendar::new(display_name, this_calendar_url, supported_components);
             log::info!("Found calendar {}", this_calendar.name());
-            calendars.push(this_calendar);
+            calendars.insert(this_calendar.id().clone(), this_calendar);
         }
 
         self.calendars = Some(calendars.clone());
         Ok(calendars)
     }
 
-    pub async fn get_tasks(&mut self, calendar: &Url) -> Result<(), Box<dyn Error>> {
+    pub async fn get_tasks(&mut self, calendar: &CalendarId) -> Result<(), Box<dyn Error>> {
         let method = Method::from_bytes(b"REPORT")
             .expect("cannot create REPORT method.");
 

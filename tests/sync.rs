@@ -46,6 +46,8 @@ async fn populate_test_provider() -> Provider<Cache, CachedCalendar, Cache, Cach
     let mut server = Cache::new(&PathBuf::from(String::from("server.json")));
     let mut local = Cache::new(&PathBuf::from(String::from("local.json")));
 
+    let cal_id = Url::parse("http://todo.list/cal").unwrap();
+
     let task_a = Item::Task(Task::new("task A".into(), Utc.ymd(2000, 1, 1).and_hms(0, 0, 0)));
     let task_b = Item::Task(Task::new("task B".into(), Utc.ymd(2000, 1, 2).and_hms(0, 0, 0)));
     let task_c = Item::Task(Task::new("task C".into(), Utc.ymd(2000, 1, 3).and_hms(0, 0, 0)));
@@ -77,7 +79,7 @@ async fn populate_test_provider() -> Provider<Cache, CachedCalendar, Cache, Cach
 
     // Step 1
     // Build the calendar as it was at the time of the sync
-    let mut calendar = CachedCalendar::new("a list".into(), Url::parse("http://todo.list/cal").unwrap(), my_tasks::calendar::SupportedComponents::TODO);
+    let mut calendar = CachedCalendar::new("a list".into(), cal_id.clone(), my_tasks::calendar::SupportedComponents::TODO);
     calendar.add_item(task_a);
     calendar.add_item(task_b);
     calendar.add_item(task_c);
@@ -97,7 +99,7 @@ async fn populate_test_provider() -> Provider<Cache, CachedCalendar, Cache, Cach
 
     // Step 2
     // Edit the server calendar
-    let cal_server = &mut server.get_calendars_mut().await.unwrap()[0];
+    let cal_server = server.get_calendar_mut(cal_id.clone()).await.unwrap();
 
     cal_server.delete_item(&task_b_id);
 
@@ -124,7 +126,7 @@ async fn populate_test_provider() -> Provider<Cache, CachedCalendar, Cache, Cach
 
     // Step 3
     // Edit the local calendar
-    let cal_local = &mut local.get_calendars_mut().await.unwrap()[0];
+    let cal_local = local.get_calendar_mut(cal_id).await.unwrap();
 
     cal_local.delete_item(&task_c_id);
 

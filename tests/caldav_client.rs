@@ -42,12 +42,16 @@ async fn test_client() {
     let mut client = Client::new(URL, USERNAME, PASSWORD).unwrap();
     let calendars = client.get_calendars().await.unwrap();
 
+    let mut last_cal = None;
     println!("Calendars:");
     let _ = calendars.iter()
-        .map(|cal| println!("  {}\t{}", cal.name(), cal.url().as_str()))
+        .map(|(id, cal)| {
+            println!("  {}\t{}", cal.name(), id.as_str());
+            last_cal = Some(id);
+        })
         .collect::<()>();
 
-    let _ = client.get_tasks(&calendars[0].url()).await;
+    let _ = client.get_tasks(&last_cal.unwrap()).await;
 }
 
 #[tokio::test]

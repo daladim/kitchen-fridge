@@ -1,12 +1,12 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::collections::BTreeMap;
+use std::error::Error;
 
-use url::Url;
 use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
 
 use crate::traits::{PartialCalendar, CompleteCalendar};
-use crate::calendar::{SupportedComponents, SearchFilter};
+use crate::calendar::{CalendarId, SupportedComponents, SearchFilter};
 use crate::Item;
 use crate::item::ItemId;
 
@@ -15,19 +15,19 @@ use crate::item::ItemId;
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct CachedCalendar {
     name: String,
-    url: Url,
+    id: CalendarId,
     supported_components: SupportedComponents,
 
-    items: Vec<Item>,
+    items: HashMap<ItemId, Item>,
     deleted_items: BTreeMap<DateTime<Utc>, ItemId>,
 }
 
 impl CachedCalendar {
     /// Create a new calendar
-    pub fn new(name: String, url: Url, supported_components: SupportedComponents) -> Self {
+    pub fn new(name: String, id: CalendarId, supported_components: SupportedComponents) -> Self {
         Self {
-            name, url, supported_components,
-            items: Vec::new(),
+            name, id, supported_components,
+            items: HashMap::new(),
             deleted_items: BTreeMap::new(),
         }
     }
@@ -47,8 +47,8 @@ impl PartialCalendar for CachedCalendar {
         &self.name
     }
 
-    fn url(&self) -> &Url {
-        &self.url
+    fn id(&self) -> &CalendarId {
+        &self.id
     }
 
     fn supported_components(&self) -> SupportedComponents {
@@ -56,12 +56,15 @@ impl PartialCalendar for CachedCalendar {
     }
 
     fn add_item(&mut self, item: Item) {
-        self.items.push(item);
+        self.items.insert(item.id().clone(), item);
     }
 
-    fn delete_item(&mut self, item_id: &ItemId) {
-        self.items.retain(|i| i.id() != item_id);
+    fn delete_item(&mut self, item_id: &ItemId) -> Result<(), Box<dyn Error>> {
+        if let None = self.items.remove(item_id) {
+            return Err("This key does not exist.".into());
+        }
         self.deleted_items.insert(Utc::now(), item_id.clone());
+        Ok(())
     }
 
     fn get_items_modified_since(&self, since: Option<DateTime<Utc>>, filter: Option<SearchFilter>) -> HashMap<ItemId, &Item> {
@@ -69,7 +72,7 @@ impl PartialCalendar for CachedCalendar {
 
         let mut map = HashMap::new();
 
-        for item in &self.items {
+        for (_id, item) in &self.items {
             match since {
                 None => (),
                 Some(since) => if item.last_modified() < since {
@@ -92,28 +95,21 @@ impl PartialCalendar for CachedCalendar {
         map
     }
 
-    fn get_item_ids(&mut self) -> Vec<ItemId> {
-        self.items.iter()
-            .map(|item| item.id().clone())
-            .collect()
+    fn get_item_ids(&mut self) -> HashSet<ItemId> {
+        self.items.keys().cloned().collect()
     }
 
     fn get_item_by_id_mut(&mut self, id: &ItemId) -> Option<&mut Item> {
-        for item in &mut self.items {
-            if item.id() == id {
-                return Some(item);
-            }
-        }
-        return None;
+        self.items.get_mut(id)
     }
 }
 
 impl CompleteCalendar for CachedCalendar {
     /// Returns the items that have been deleted after `since`
-    fn get_items_deleted_since(&self, since: DateTime<Utc>) -> Vec<ItemId> {
+    fn get_items_deleted_since(&self, since: DateTime<Utc>) -> HashSet<ItemId> {
         self.deleted_items.range(since..)
-        .map(|(_key, value)| value.clone())
-        .collect()
+            .map(|(_key, id)| id.clone())
+            .collect()
     }
 
     /// Returns the list of items that this calendar contains

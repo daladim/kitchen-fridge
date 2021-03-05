@@ -61,3 +61,6 @@ impl Default for SearchFilter {
         SearchFilter::All
     }
 }
+
+
+pub type CalendarId = url::Url;

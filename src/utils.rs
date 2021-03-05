@@ -1,8 +1,11 @@
 ///! Some utility functions
 
+use std::collections::HashMap;
+
 use minidom::Element;
 
 use crate::traits::CompleteCalendar;
+use crate::calendar::CalendarId;
 
 /// Walks an XML tree and returns every element that has the given name
 pub fn find_elems<S: AsRef<str>>(root: &Element, searched_name: S) -> Vec<&Element> {
@@ -53,13 +56,13 @@ pub fn print_xml(element: &Element) {
 }
 
 /// A debug utility that pretty-prints calendars
-pub fn print_calendar_list<C: CompleteCalendar>(cals: &Vec<C>) {
-    for cal in cals {
-        println!("CAL {}", cal.url());
+pub fn print_calendar_list<C: CompleteCalendar>(cals: &HashMap<CalendarId, C>) {
+    for (id, cal) in cals {
+        println!("CAL {}", id);
         for (_, item) in cal.get_items() {
             let task = item.unwrap_task();
             let completion = if task.completed() {"✓"} else {" "};
-            println!("    {} {}", completion, task.name());
+            println!("    {} {}\t{}", completion, task.name(), task.id());
         }
     }
 }

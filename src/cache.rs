@@ -4,11 +4,11 @@ use std::path::PathBuf;
 use std::path::Path;
 use std::error::Error;
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::hash::Hash;
 
 use serde::{Deserialize, Serialize};
 use async_trait::async_trait;
-use url::Url;
 use chrono::{DateTime, Utc};
 
 use crate::traits::CalDavSource;
@@ -16,6 +16,7 @@ use crate::traits::SyncSlave;
 use crate::traits::PartialCalendar;
 use crate::traits::CompleteCalendar;
 use crate::calendar::cached_calendar::CachedCalendar;
+use crate::calendar::CalendarId;
 
 
 /// A CalDAV source that stores its item in a local file
@@ -27,7 +28,7 @@ pub struct Cache {
 
 #[derive(Default, Debug, PartialEq, Serialize, Deserialize)]
 struct CachedData {
-    calendars: Vec<CachedCalendar>,
+    calendars: HashMap<CalendarId, CachedCalendar>,
     last_sync: Option<DateTime<Utc>>,
 }
 
@@ -81,7 +82,7 @@ impl Cache {
 
 
     pub fn add_calendar(&mut self, calendar: CachedCalendar) {
-        self.data.calendars.push(calendar);
+        self.data.calendars.insert(calendar.id().clone(), calendar);
     }
 
     /// Compares two Caches to check they have the same current content
@@ -91,9 +92,16 @@ impl Cache {
         let calendars_l = self.get_calendars().await?;
         let calendars_r = other.get_calendars().await?;
 
-        for cal_l in calendars_l {
-            for cal_r in calendars_r {
-                if cal_l.url() == cal_r.url() {
+        if keys_are_the_same(&calendars_l, &calendars_r) == false {
+            return Ok(false);
+        }
+
+        for (id, cal_l) in calendars_l {
+            let cal_r = match calendars_r.get(id) {
+                Some(c) => c,
+                None => return Err("should not happen, we've just tested keys are the same".into()),
+            };
+
                     let items_l = cal_l.get_items();
                     let items_r = cal_r.get_items();
 
@@ -101,59 +109,52 @@ impl Cache {
                         return Ok(false);
 }
                     for (id_l, item_l) in items_l {
-                        let item_r = items_r.get(&id_l).unwrap();
+                let item_r = match items_r.get(&id_l) {
+                    Some(c) => c,
+                    None => return Err("should not happen, we've just tested keys are the same".into()),
+                };
                         //println!("  items {} {}", item_r.name(), item_l.name());
                         if &item_l != item_r {
                             return Ok(false);
                         }
                     }
-
-                    break;
                 }
-            }
-        }
-        // TODO: also check there is no missing calendar in one side or the other
-        // TODO: also check there is no missing task in either side of each calendar
         Ok(true)
     }
 }
 
 fn keys_are_the_same<T, U, V>(left: &HashMap<T, U>, right: &HashMap<T, V>) -> bool
 where
-    T: Hash + Eq,
+    T: Hash + Eq + Clone,
 {
-    left.len() == right.len()
-    && left.keys().all(|k| right.contains_key(k))
+    if left.len() != right.len() {
+        return false;
+    }
+
+    let keys_l: HashSet<T> = left.keys().cloned().collect();
+    let keys_r: HashSet<T> = right.keys().cloned().collect();
+    keys_l == keys_r
 }
 
 #[async_trait]
 impl CalDavSource<CachedCalendar> for Cache {
-    async fn get_calendars(&self) -> Result<&Vec<CachedCalendar>, Box<dyn Error>> {
+    async fn get_calendars(&self) -> Result<&HashMap<CalendarId, CachedCalendar>, Box<dyn Error>> {
         Ok(&self.data.calendars)
     }
 
-    async fn get_calendars_mut(&mut self) -> Result<Vec<&mut CachedCalendar>, Box<dyn Error>> {
-        Ok(
-            self.data.calendars.iter_mut()
-            .collect()
-        )
+    async fn get_calendars_mut(&mut self) -> Result<HashMap<CalendarId, &mut CachedCalendar>, Box<dyn Error>> {
+        let mut hm = HashMap::new();
+        for (id, val) in self.data.calendars.iter_mut() {
+            hm.insert(id.clone(), val);
     }
+        Ok(hm)
+            }
 
-    async fn get_calendar(&self, url: Url) -> Option<&CachedCalendar> {
-        for cal in &self.data.calendars {
-            if cal.url() == &url {
-                return Some(cal);
-            }
+    async fn get_calendar(&self, id: CalendarId) -> Option<&CachedCalendar> {
+        self.data.calendars.get(&id)
         }
-        return None;
-    }
-    async fn get_calendar_mut(&mut self, url: Url) -> Option<&mut CachedCalendar> {
-        for cal in &mut self.data.calendars {
-            if cal.url() == &url {
-                return Some(cal);
-            }
-        }
-        return None;
+    async fn get_calendar_mut(&mut self, id: CalendarId) -> Option<&mut CachedCalendar> {
+        self.data.calendars.get_mut(&id)
     }
 }
 
