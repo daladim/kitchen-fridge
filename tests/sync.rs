@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use std::sync::{Arc, Mutex};
 
 use chrono::{Utc, TimeZone};
 use url::Url;
@@ -20,10 +21,11 @@ async fn test_regular_sync() {
     let mut provider = populate_test_provider().await;
     provider.sync().await.unwrap();
 
+
     let cals_server = provider.server().get_calendars().await.unwrap();
+    my_tasks::utils::print_calendar_list(&cals_server);
     let cals_local = provider.local().get_calendars().await.unwrap();
-    my_tasks::utils::print_calendar_list(cals_local);
-    my_tasks::utils::print_calendar_list(cals_server);
+    my_tasks::utils::print_calendar_list(&cals_local);
 
     assert!(provider.server().has_same_contents_than(provider.local()).await.unwrap());
 
@@ -94,12 +96,13 @@ async fn populate_test_provider() -> Provider<Cache, CachedCalendar, Cache, Cach
     calendar.add_item(task_l);
     calendar.add_item(task_m);
 
-    server.add_calendar(calendar.clone());
-    local.add_calendar(calendar.clone());
+    server.add_calendar(Arc::new(Mutex::new(calendar.clone())));
+    local.add_calendar(Arc::new(Mutex::new(calendar.clone())));
 
     // Step 2
     // Edit the server calendar
-    let cal_server = server.get_calendar_mut(cal_id.clone()).await.unwrap();
+    let cal_server = server.get_calendar(cal_id.clone()).await.unwrap();
+    let mut cal_server = cal_server.lock().unwrap();
 
     cal_server.delete_item(&task_b_id);
 
@@ -126,7 +129,8 @@ async fn populate_test_provider() -> Provider<Cache, CachedCalendar, Cache, Cach
 
     // Step 3
     // Edit the local calendar
-    let cal_local = local.get_calendar_mut(cal_id).await.unwrap();
+    let cal_local = local.get_calendar(cal_id).await.unwrap();
+    let mut cal_local = cal_local.lock().unwrap();
 
     cal_local.delete_item(&task_c_id);
 

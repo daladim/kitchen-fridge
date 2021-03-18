@@ -1,5 +1,6 @@
 use std::error::Error;
 use std::collections::{HashMap, HashSet};
+use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
@@ -12,16 +13,9 @@ use crate::calendar::CalendarId;
 pub trait CalDavSource<T: PartialCalendar> {
     /// Returns the current calendars that this source contains
     /// This function may trigger an update (that can be a long process, or that can even fail, e.g. in case of a remote server)
-    async fn get_calendars(&self) -> Result<&HashMap<CalendarId, T>, Box<dyn Error>>;
-    /// Returns the current calendars that this source contains
-    /// This function may trigger an update (that can be a long process, or that can even fail, e.g. in case of a remote server)
-    async fn get_calendars_mut(&mut self) -> Result<HashMap<CalendarId, &mut T>, Box<dyn Error>>;
-
+    async fn get_calendars(&self) -> Result<HashMap<CalendarId, Arc<Mutex<T>>>, Box<dyn Error>>;
     /// Returns the calendar matching the ID
-    async fn get_calendar(&self, id: CalendarId) -> Option<&T>;
-    /// Returns the calendar matching the ID
-    async fn get_calendar_mut(&mut self, id: CalendarId) -> Option<&mut T>;
-
+    async fn get_calendar(&self, id: CalendarId) -> Option<Arc<Mutex<T>>>;
 }
 
 pub trait SyncSlave {

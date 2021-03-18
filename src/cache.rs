@@ -6,6 +6,7 @@ use std::error::Error;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::hash::Hash;
+use std::sync::{Arc, Mutex};
 
 use serde::{Deserialize, Serialize};
 use async_trait::async_trait;
@@ -28,7 +29,7 @@ pub struct Cache {
 
 #[derive(Default, Debug, PartialEq, Serialize, Deserialize)]
 struct CachedData {
-    calendars: HashMap<CalendarId, CachedCalendar>,
+    calendars: HashMap<CalendarId, Arc<Mutex<CachedCalendar>>>,
     last_sync: Option<DateTime<Utc>>,
 }
 
@@ -81,8 +82,9 @@ impl Cache {
     }
 
 
-    pub fn add_calendar(&mut self, calendar: CachedCalendar) {
-        self.data.calendars.insert(calendar.id().clone(), calendar);
+    pub fn add_calendar(&mut self, calendar: Arc<Mutex<CachedCalendar>>) {
+        let id = calendar.lock().unwrap().id().clone();
+        self.data.calendars.insert(id, calendar);
     }
 
     /// Compares two Caches to check they have the same current content
@@ -97,8 +99,9 @@ impl Cache {
         }
 
         for (id, cal_l) in calendars_l {
-            let cal_r = match calendars_r.get(id) {
-                Some(c) => c,
+            let cal_l = cal_l.lock().unwrap();
+            let cal_r = match calendars_r.get(&id) {
+                Some(c) => c.lock().unwrap(),
                 None => return Err("should not happen, we've just tested keys are the same".into()),
             };
 
@@ -138,23 +141,15 @@ where
 
 #[async_trait]
 impl CalDavSource<CachedCalendar> for Cache {
-    async fn get_calendars(&self) -> Result<&HashMap<CalendarId, CachedCalendar>, Box<dyn Error>> {
-        Ok(&self.data.calendars)
+    async fn get_calendars(&self) -> Result<HashMap<CalendarId, Arc<Mutex<CachedCalendar>>>, Box<dyn Error>> {
+        Ok(self.data.calendars.iter()
+            .map(|(id, cal)| (id.clone(), cal.clone()))
+            .collect()
+        )
     }
 
-    async fn get_calendars_mut(&mut self) -> Result<HashMap<CalendarId, &mut CachedCalendar>, Box<dyn Error>> {
-        let mut hm = HashMap::new();
-        for (id, val) in self.data.calendars.iter_mut() {
-            hm.insert(id.clone(), val);
-    }
-        Ok(hm)
-            }
-
-    async fn get_calendar(&self, id: CalendarId) -> Option<&CachedCalendar> {
-        self.data.calendars.get(&id)
-        }
-    async fn get_calendar_mut(&mut self, id: CalendarId) -> Option<&mut CachedCalendar> {
-        self.data.calendars.get_mut(&id)
+    async fn get_calendar(&self, id: CalendarId) -> Option<Arc<Mutex<CachedCalendar>>> {
+        self.data.calendars.get(&id).map(|arc| arc.clone())
     }
 }
 
@@ -184,7 +179,7 @@ mod tests {
         let cal1 = CachedCalendar::new("shopping list".to_string(),
                                 Url::parse("https://caldav.com/shopping").unwrap(),
                             SupportedComponents::TODO);
-        cache.add_calendar(cal1);
+        cache.add_calendar(Arc::new(Mutex::new(cal1)));
 
         cache.save_to_file();
 

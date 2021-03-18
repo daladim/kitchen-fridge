@@ -1,6 +1,7 @@
 ///! Some utility functions
 
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 
 use minidom::Element;
 
@@ -56,10 +57,13 @@ pub fn print_xml(element: &Element) {
 }
 
 /// A debug utility that pretty-prints calendars
-pub fn print_calendar_list<C: CompleteCalendar>(cals: &HashMap<CalendarId, C>) {
+pub fn print_calendar_list<C>(cals: &HashMap<CalendarId, Arc<Mutex<C>>>)
+where
+    C: CompleteCalendar,
+{
     for (id, cal) in cals {
         println!("CAL {}", id);
-        for (_, item) in cal.get_items() {
+        for (_, item) in cal.lock().unwrap().get_items() {
             let task = item.unwrap_task();
             let completion = if task.completed() {"✓"} else {" "};
             println!("    {} {}\t{}", completion, task.name(), task.id());

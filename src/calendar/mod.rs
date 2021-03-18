@@ -1,4 +1,5 @@
 pub mod cached_calendar;
+pub mod remote_calendar;
 
 use std::convert::TryFrom;
 use std::error::Error;

@@ -63,16 +63,19 @@ where
     pub async fn sync(&mut self) -> Result<(), Box<dyn Error>> {
         let last_sync = self.local.get_last_sync();
         log::info!("Starting a sync. Last sync was at {:?}", last_sync);
-        let cals_server = self.server.get_calendars_mut().await?;
+        let cals_server = self.server.get_calendars().await?;
 
-        for (id, cal_server) in cals_server {
-            let cal_local = match self.local.get_calendar_mut(id).await {
+        for (id, mut cal_server) in cals_server {
+            let mut cal_server = cal_server.lock().unwrap();
+
+            let cal_local = match self.local.get_calendar(id).await {
                 None => {
                     log::error!("TODO: implement here");
                     continue;
                 },
                 Some(cal) => cal,
             };
+            let mut cal_local = cal_local.lock().unwrap();
 
             // Pull remote changes from the server
             let mut tasks_id_to_remove_from_local = match last_sync {
@@ -93,7 +96,7 @@ where
                 tasks_to_add_to_local.push((*new_item).clone());
             }
             // Even in case of conflicts, "the server always wins", so it is safe to remove tasks from the local cache as soon as now
-            remove_from_calendar(&tasks_id_to_remove_from_local, cal_local);
+            remove_from_calendar(&tasks_id_to_remove_from_local, &mut *cal_local);
 
 
 
@@ -121,9 +124,9 @@ where
                 tasks_to_add_to_server.push((*new_item).clone());
             }
 
-            remove_from_calendar(&tasks_id_to_remove_from_server, cal_server);
-            move_to_calendar(&mut tasks_to_add_to_local, cal_local);
-            move_to_calendar(&mut tasks_to_add_to_server, cal_server);
+            remove_from_calendar(&tasks_id_to_remove_from_server, &mut *cal_server);
+            move_to_calendar(&mut tasks_to_add_to_local, &mut *cal_local);
+            move_to_calendar(&mut tasks_to_add_to_server, &mut *cal_server);
         }
 
         self.local.update_last_sync(None);
