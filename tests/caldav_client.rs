@@ -8,6 +8,7 @@ use url::Url;
 
 use my_tasks::client::Client;
 use my_tasks::traits::PartialCalendar;
+use my_tasks::traits::CalDavSource;
 
 use my_tasks::settings::URL;
 use my_tasks::settings::USERNAME;
@@ -39,19 +40,17 @@ static EXAMPLE_TASKS_BODY_LAST_MODIFIED: &str = r#"
 async fn test_client() {
     let _ = env_logger::builder().is_test(true).try_init();
 
-    let mut client = Client::new(URL, USERNAME, PASSWORD).unwrap();
+    let client = Client::new(URL, USERNAME, PASSWORD).unwrap();
     let calendars = client.get_calendars().await.unwrap();
 
     let mut last_cal = None;
     println!("Calendars:");
     let _ = calendars.iter()
         .map(|(id, cal)| {
-            println!("  {}\t{}", cal.name(), id.as_str());
+            println!("  {}\t{}", cal.lock().unwrap().name(), id.as_str());
             last_cal = Some(id);
         })
         .collect::<()>();
-
-    let _ = client.get_tasks(&last_cal.unwrap()).await;
 }
 
 #[tokio::test]
