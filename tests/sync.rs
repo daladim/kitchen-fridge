@@ -104,7 +104,7 @@ async fn populate_test_provider() -> Provider<Cache, CachedCalendar, Cache, Cach
     let cal_server = server.get_calendar(cal_id.clone()).await.unwrap();
     let mut cal_server = cal_server.lock().unwrap();
 
-    cal_server.delete_item(&task_b_id);
+    cal_server.delete_item(&task_b_id).unwrap();
 
     cal_server.get_item_by_id_mut(&task_e_id).unwrap().unwrap_task_mut()
         .set_name("E has been remotely renamed".into());
@@ -118,7 +118,7 @@ async fn populate_test_provider() -> Provider<Cache, CachedCalendar, Cache, Cach
     cal_server.get_item_by_id_mut(&task_i_id).unwrap().unwrap_task_mut()
         .set_name("I renamed in the server".into());
 
-    cal_server.delete_item(&task_j_id);
+    cal_server.delete_item(&task_j_id).unwrap();
 
     cal_server.get_item_by_id_mut(&task_k_id).unwrap().unwrap_task_mut()
         .set_completed(true);
@@ -132,7 +132,7 @@ async fn populate_test_provider() -> Provider<Cache, CachedCalendar, Cache, Cach
     let cal_local = local.get_calendar(cal_id).await.unwrap();
     let mut cal_local = cal_local.lock().unwrap();
 
-    cal_local.delete_item(&task_c_id);
+    cal_local.delete_item(&task_c_id).unwrap();
 
     cal_local.get_item_by_id_mut(&task_d_id).unwrap().unwrap_task_mut()
         .set_name("D has been locally renamed".into());
@@ -149,7 +149,7 @@ async fn populate_test_provider() -> Provider<Cache, CachedCalendar, Cache, Cach
     cal_local.get_item_by_id_mut(&task_j_id).unwrap().unwrap_task_mut()
         .set_completed(true);
 
-    cal_local.delete_item(&task_k_id);
+    cal_local.delete_item(&task_k_id).unwrap();
 
     let task_o = Item::Task(Task::new("task O (new from local)".into(), Utc::now()));
     cal_local.add_item(task_o);

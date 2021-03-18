@@ -1,7 +1,7 @@
 //! This modules abstracts data sources and merges them in a single virtual one
 
 use std::error::Error;
-use std::collections::{HashSet, HashMap};
+use std::collections::HashSet;
 use std::marker::PhantomData;
 
 use chrono::{DateTime, Utc};
@@ -65,7 +65,7 @@ where
         log::info!("Starting a sync. Last sync was at {:?}", last_sync);
         let cals_server = self.server.get_calendars().await?;
 
-        for (id, mut cal_server) in cals_server {
+        for (id, cal_server) in cals_server {
             let mut cal_server = cal_server.lock().unwrap();
 
             let cal_local = match self.local.get_calendar(id).await {
@@ -146,6 +146,8 @@ fn move_to_calendar<C: PartialCalendar>(items: &mut Vec<Item>, calendar: &mut C)
 fn remove_from_calendar<C: PartialCalendar>(ids: &Vec<ItemId>, calendar: &mut C) {
     for id in ids {
         log::info!("  Removing {:?} from local calendar", id);
-        calendar.delete_item(id);
+        if let Err(err) = calendar.delete_item(id) {
+            log::warn!("Unable to delete item {:?} from calendar: {}", id, err);
+        }
     }
 }

@@ -34,7 +34,7 @@ impl PartialCalendar for RemoteCalendar {
     }
 
     /// Returns the items that have been last-modified after `since`
-    fn get_items_modified_since(&self, since: Option<DateTime<Utc>>, filter: Option<crate::calendar::SearchFilter>)
+    fn get_items_modified_since(&self, _since: Option<DateTime<Utc>>, _filter: Option<crate::calendar::SearchFilter>)
         -> HashMap<ItemId, &Item>
     {
         log::error!("Not implemented");
@@ -48,18 +48,18 @@ impl PartialCalendar for RemoteCalendar {
     }
 
     /// Returns a particular item
-    fn get_item_by_id_mut(&mut self, id: &ItemId) -> Option<&mut Item> {
+    fn get_item_by_id_mut(&mut self, _id: &ItemId) -> Option<&mut Item> {
         log::error!("Not implemented");
         None
     }
 
     /// Add an item into this calendar
-    fn add_item(&mut self, item: Item) {
+    fn add_item(&mut self, _item: Item) {
         log::error!("Not implemented");
     }
 
     /// Remove an item from this calendar
-    fn delete_item(&mut self, item_id: &ItemId) -> Result<(), Box<dyn Error>> {
+    fn delete_item(&mut self, _item_id: &ItemId) -> Result<(), Box<dyn Error>> {
         log::error!("Not implemented");
         Ok(())
     }
