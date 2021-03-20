@@ -7,6 +7,7 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::hash::Hash;
 use std::sync::{Arc, Mutex};
+use std::ffi::OsStr;
 
 use serde::{Deserialize, Serialize};
 use async_trait::async_trait;
@@ -19,66 +20,102 @@ use crate::traits::CompleteCalendar;
 use crate::calendar::cached_calendar::CachedCalendar;
 use crate::calendar::CalendarId;
 
+const MAIN_FILE: &str = "data.json";
 
-/// A CalDAV source that stores its item in a local file
-#[derive(Debug, PartialEq)]
+/// A CalDAV source that stores its item in a local folder
+#[derive(Debug)]
 pub struct Cache {
-    backing_file: PathBuf,
+    backing_folder: PathBuf,
     data: CachedData,
 }
 
-#[derive(Default, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Debug, Serialize, Deserialize)]
 struct CachedData {
+    #[serde(skip)]
     calendars: HashMap<CalendarId, Arc<Mutex<CachedCalendar>>>,
     last_sync: Option<DateTime<Utc>>,
 }
 
 impl Cache {
-    /// Get the path to the cache file
-    pub fn cache_file() -> PathBuf {
-        return PathBuf::from(String::from("~/.config/my-tasks/cache.json"))
+    /// Get the path to the cache folder
+    pub fn cache_folder() -> PathBuf {
+        return PathBuf::from(String::from("~/.config/my-tasks/cache/"))
     }
 
-    /// Initialize a cache from the content of a valid backing file if it exists.
+    /// Initialize a cache from the content of a valid backing folder if it exists.
     /// Returns an error otherwise
-    pub fn from_file(path: &Path) -> Result<Self, Box<dyn Error>> {
-        let data = match std::fs::File::open(path) {
+    pub fn from_folder(folder: &Path) -> Result<Self, Box<dyn Error>> {
+        // Load shared data...
+        let main_file = folder.join(MAIN_FILE);
+        let mut data: CachedData = match std::fs::File::open(&main_file) {
             Err(err) => {
-                return Err(format!("Unable to open file {:?}: {}", path, err).into());
+                return Err(format!("Unable to open file {:?}: {}", main_file, err).into());
             },
             Ok(file) => serde_json::from_reader(file)?,
         };
 
+        // ...and every calendar
+        for entry in std::fs::read_dir(folder)? {
+            match entry {
+                Err(err) => {
+                    log::error!("Unable to read dir: {:?}", err);
+                    continue;
+                },
+                Ok(entry) => {
+                    let cal_path = entry.path();
+                    log::debug!("Considering {:?}", cal_path);
+                    if cal_path.extension() == Some(OsStr::new("cal")) {
+                        match Self::load_calendar(&cal_path) {
+                            Err(err) => {
+                                log::error!("Unable to load calendar {:?} from cache: {:?}", cal_path, err);
+                                continue;
+                            },
+                            Ok(cal) =>
+                                data.calendars.insert(cal.id().clone(), Arc::new(Mutex::new(cal))),
+                        };
+                    }
+                },
+            }
+        }
+
         Ok(Self{
-            backing_file: PathBuf::from(path),
+            backing_folder: PathBuf::from(folder),
             data,
         })
     }
 
+    fn load_calendar(path: &Path) -> Result<CachedCalendar, Box<dyn Error>> {
+        let file = std::fs::File::open(&path)?;
+        Ok(serde_json::from_reader(file)?)
+    }
+
     /// Initialize a cache with the default contents
-    pub fn new(path: &Path) -> Self {
+    pub fn new(folder_path: &Path) -> Self {
         Self{
-            backing_file: PathBuf::from(path),
+            backing_folder: PathBuf::from(folder_path),
             data: CachedData::default(),
         }
     }
 
-    /// Store the current Cache to its backing file
-    fn save_to_file(&mut self) {
-        // Save the contents to the file
-        let path = &self.backing_file;
-        let file = match std::fs::File::create(path) {
-            Err(err) => {
-                log::warn!("Unable to save file {:?}: {}", path, err);
-                return;
-            },
-            Ok(f) => f,
-        };
+    /// Store the current Cache to its backing folder
+    fn save_to_folder(&mut self) -> Result<(), std::io::Error> {
+        let folder = &self.backing_folder;
+        std::fs::create_dir_all(folder)?;
 
-        if let Err(err) = serde_json::to_writer(file, &self.data) {
-            log::warn!("Unable to serialize: {}", err);
-            return;
-        };
+        // Save the general data
+        let main_file_path = folder.join(MAIN_FILE);
+        let file = std::fs::File::create(&main_file_path)?;
+        serde_json::to_writer(file, &self.data)?;
+
+        // Save each calendar
+        for (cal_id, cal_mutex) in &self.data.calendars {
+            let file_name = sanitize_filename::sanitize(cal_id.as_str()) + ".cal";
+            let cal_file = folder.join(file_name);
+            let file = std::fs::File::create(&cal_file)?;
+            let cal = cal_mutex.lock().unwrap();
+            serde_json::to_writer(file, &*cal)?;
+        }
+        Ok(())
     }
 
 
@@ -95,6 +132,7 @@ impl Cache {
         let calendars_r = other.get_calendars().await?;
 
         if keys_are_the_same(&calendars_l, &calendars_r) == false {
+            log::debug!("Different keys for calendars");
             return Ok(false);
         }
 
@@ -109,6 +147,7 @@ impl Cache {
                     let items_r = cal_r.get_items();
 
                     if keys_are_the_same(&items_l, &items_r) == false {
+                log::debug!("Different keys for items");
                         return Ok(false);
 }
                     for (id_l, item_l) in items_l {
@@ -116,8 +155,8 @@ impl Cache {
                     Some(c) => c,
                     None => return Err("should not happen, we've just tested keys are the same".into()),
                 };
-                        //println!("  items {} {}", item_r.name(), item_l.name());
                         if &item_l != item_r {
+                    log::debug!("Different items");
                             return Ok(false);
                         }
                     }
@@ -170,9 +209,11 @@ mod tests {
     use url::Url;
     use crate::calendar::SupportedComponents;
 
-    #[test]
-    fn serde_cache() {
-        let cache_path = PathBuf::from(String::from("cache.json"));
+    #[tokio::test]
+    async fn serde_cache() {
+        let _ = env_logger::builder().is_test(true).try_init();
+
+        let cache_path = PathBuf::from(String::from("test_cache/"));
 
         let mut cache = Cache::new(&cache_path);
 
@@ -181,9 +222,14 @@ mod tests {
                             SupportedComponents::TODO);
         cache.add_calendar(Arc::new(Mutex::new(cal1)));
 
-        cache.save_to_file();
 
-        let retrieved_cache = Cache::from_file(&cache_path).unwrap();
-        assert_eq!(cache, retrieved_cache);
+        cache.save_to_folder().unwrap();
+
+        let retrieved_cache = Cache::from_folder(&cache_path).unwrap();
+        assert_eq!(cache.backing_folder, retrieved_cache.backing_folder);
+        assert_eq!(cache.data.last_sync, retrieved_cache.data.last_sync);
+        let test = cache.has_same_contents_than(&retrieved_cache).await;
+        println!("Equal? {:?}", test);
+        assert_eq!(test.unwrap(), true);
     }
 }

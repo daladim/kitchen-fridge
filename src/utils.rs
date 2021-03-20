@@ -7,6 +7,7 @@ use minidom::Element;
 
 use crate::traits::CompleteCalendar;
 use crate::calendar::CalendarId;
+use crate::Item;
 
 /// Walks an XML tree and returns every element that has the given name
 pub fn find_elems<S: AsRef<str>>(root: &Element, searched_name: S) -> Vec<&Element> {
@@ -64,9 +65,17 @@ where
     for (id, cal) in cals {
         println!("CAL {}", id);
         for (_, item) in cal.lock().unwrap().get_items() {
-            let task = item.unwrap_task();
+            print_task(item);
+        }
+    }
+}
+
+pub fn print_task(item: &Item) {
+    match item {
+        Item::Task(task) => {
             let completion = if task.completed() {"✓"} else {" "};
             println!("    {} {}\t{}", completion, task.name(), task.id());
-        }
+        },
+        _ => return,
     }
 }

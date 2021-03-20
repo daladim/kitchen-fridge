@@ -45,27 +45,6 @@ static CAL_BODY: &str = r#"
     </d:propfind>
 "#;
 
-static TASKS_BODY: &str = r#"
-    <C:calendar-query xmlns:C="urn:ietf:params:xml:ns:caldav">
-    <D:prop xmlns:D="DAV:">
-        <D:getetag/>
-        <C:calendar-data/>
-    </D:prop>
-    <C:filter>
-        <C:comp-filter name="VCALENDAR">
-        <C:comp-filter name="VTODO">
-            <C:prop-filter name="COMPLETED">
-            <C:is-not-defined/>
-            </C:prop-filter>
-            <C:prop-filter name="STATUS">
-            <C:text-match
-                negate-condition="yes">CANCELLED</C:text-match>
-            </C:prop-filter>
-        </C:comp-filter>
-        </C:comp-filter>
-    </C:filter>
-    </C:calendar-query>
-"#;
 
 
 /// A CalDAV source that fetches its data from a CalDAV server
@@ -226,79 +205,6 @@ impl Client {
 
 #[async_trait]
 impl CalDavSource<RemoteCalendar> for Client {
-    /// Return the list of calendars, or fetch from server if not known yet
-    /*
-    async fn get_calendars(&self) -> Result<&HashMap<CalendarId, RemoteCalendar>, Box<dyn Error>> {
-        let mut replies = self.cached_replies.lock().unwrap();
-
-        if let Some(c) = &replies.calendars {
-            return Ok(c);
-        }
-        let cal_home_set = self.get_cal_home_set().await?;
-
-        let text = self.sub_request(&cal_home_set, CAL_BODY.into(), 1).await?;
-
-        let root: Element = text.parse().unwrap();
-        let reps = find_elems(&root, "response");
-        let mut calendars = HashMap::new();
-        for rep in reps {
-            let display_name = find_elem(rep, "displayname").map(|e| e.text()).unwrap_or("<no name>".to_string());
-            log::debug!("Considering calendar {}", display_name);
-
-            // We filter out non-calendar items
-            let resource_types = match find_elem(rep, "resourcetype") {
-                None => continue,
-                Some(rt) => rt,
-            };
-            let mut found_calendar_type = false;
-            for resource_type in resource_types.children() {
-                if resource_type.name() == "calendar" {
-                    found_calendar_type = true;
-                    break;
-                }
-            }
-            if found_calendar_type == false {
-                continue;
-            }
-
-            // We filter out the root calendar collection, that has an empty supported-calendar-component-set
-            let el_supported_comps = match find_elem(rep, "supported-calendar-component-set") {
-                None => continue,
-                Some(comps) => comps,
-            };
-            if el_supported_comps.children().count() == 0 {
-                continue;
-            }
-
-            let calendar_href = match find_elem(rep, "href") {
-                None => {
-                    log::warn!("Calendar {} has no URL! Ignoring it.", display_name);
-                    continue;
-                },
-                Some(h) => h.text(),
-            };
-
-            let mut this_calendar_url = self.url.clone();
-            this_calendar_url.set_path(&calendar_href);
-
-            let supported_components = match crate::calendar::SupportedComponents::try_from(el_supported_comps.clone()) {
-                Err(err) => {
-                    log::warn!("Calendar {} has invalid supported components ({})! Ignoring it.", display_name, err);
-                    continue;
-                },
-                Ok(sc) => sc,
-            };
-            let this_calendar = RemoteCalendar::new(display_name, this_calendar_url, supported_components);
-            log::info!("Found calendar {}", this_calendar.name());
-            calendars.insert(this_calendar.id().clone(), this_calendar);
-        }
-
-        replies.calendars = Some(calendars);
-        Ok(&calendars)
-    }
-    */
-
-
     async fn get_calendars(&self) -> Result<HashMap<CalendarId, Arc<Mutex<RemoteCalendar>>>, Box<dyn Error>> {
         self.populate_calendars().await?;
 
@@ -318,6 +224,5 @@ impl CalDavSource<RemoteCalendar> for Client {
             .and_then(|cals| cals.get(&id))
             .map(|cal| cal.clone())
         }
-
 }
 
