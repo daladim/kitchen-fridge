@@ -23,8 +23,10 @@ async fn test_regular_sync() {
 
 
     let cals_server = provider.server().get_calendars().await.unwrap();
+    println!("----Server-------");
     my_tasks::utils::print_calendar_list(&cals_server);
     let cals_local = provider.local().get_calendars().await.unwrap();
+    println!("\n----Local-------");
     my_tasks::utils::print_calendar_list(&cals_local);
 
     assert!(provider.server().has_same_contents_than(provider.local()).await.unwrap());
@@ -34,11 +36,11 @@ async fn test_regular_sync() {
 /// Populate sources with the following:
 /// * At the last sync: both sources had A, B, C, D, E, F, G, H, I, J, K, L, M at last sync
 /// * Before the newer sync, this will be the content of the sources:
-///     * server: A,    C, D,  E', F',  G✓, H , I',      K✓, L, M, N
-///     * cache:  A, B,    D', E,  F'', G , H✓, I✓, J✓,     L, M,    O
+///     * server: A,    C, D,  E', F',  G✓, H , I',      K✓,    M, N
+///     * cache:  A, B,    D', E,  F'', G , H✓, I✓, J✓,        M,    O
 ///
 /// Hence, here is the expected result after the sync:
-///     * both:   A,       D', E', F',  G✓, H✓, I',      K✓, L, M, N, O
+///     * both:   A,       D', E', F',  G✓, H✓, I',      K✓,   M, N, O
 ///
 /// Notes:
 /// * X': name has been modified since the last sync
@@ -78,6 +80,7 @@ async fn populate_test_provider() -> Provider<Cache, CachedCalendar, Cache, Cach
     let task_i_id = task_i.id().clone();
     let task_j_id = task_j.id().clone();
     let task_k_id = task_k.id().clone();
+    let task_l_id = task_l.id().clone();
 
     // Step 1
     // Build the calendar as it was at the time of the sync
@@ -123,6 +126,8 @@ async fn populate_test_provider() -> Provider<Cache, CachedCalendar, Cache, Cach
     cal_server.get_item_by_id_mut(&task_k_id).unwrap().unwrap_task_mut()
         .set_completed(true);
 
+    cal_server.delete_item(&task_l_id).unwrap();
+
     let task_n = Item::Task(Task::new("task N (new from server)".into(), Utc::now()));
     cal_server.add_item(task_n);
 
@@ -150,6 +155,7 @@ async fn populate_test_provider() -> Provider<Cache, CachedCalendar, Cache, Cach
         .set_completed(true);
 
     cal_local.delete_item(&task_k_id).unwrap();
+    cal_local.delete_item(&task_l_id).unwrap();
 
     let task_o = Item::Task(Task::new("task O (new from local)".into(), Utc::now()));
     cal_local.add_item(task_o);
