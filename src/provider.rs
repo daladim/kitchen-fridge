@@ -58,13 +58,13 @@ where
 
     /// Performs a synchronisation between `local` and `server`.
     ///
-    /// This bidirectional sync applies additions/deleteions made on a source to the other source.
+    /// This bidirectional sync applies additions/deletions made on a source to the other source.
     /// In case of conflicts (the same item has been modified on both ends since the last sync, `server` always wins)
     pub async fn sync(&mut self) -> Result<(), Box<dyn Error>> {
         let last_sync = self.local.get_last_sync();
         log::info!("Starting a sync. Last sync was at {:?}", last_sync);
-        let cals_server = self.server.get_calendars().await?;
 
+        let cals_server = self.server.get_calendars().await?;
         for (id, cal_server) in cals_server {
             let mut cal_server = cal_server.lock().unwrap();
 
@@ -77,56 +77,64 @@ where
             };
             let mut cal_local = cal_local.lock().unwrap();
 
-            // Pull remote changes from the server
-            let mut tasks_id_to_remove_from_local = match last_sync {
-                None => Vec::new(),
-                Some(_date) => cal_server.find_deletions_from(cal_local.get_item_ids())
-                    .iter()
-                    .map(|id| id.clone())
-                    .collect()
-            };
-
-            let mut tasks_to_add_to_local = Vec::new();
-            let server_mod = cal_server.get_items_modified_since(last_sync, None);
-            for (new_id, new_item) in &server_mod {
-                if server_mod.contains_key(new_id) {
-                    log::warn!("Conflict for task {} ({}). Using the server version.", new_item.name(), new_id);
-                    tasks_id_to_remove_from_local.push(new_id.clone());
-                }
-                tasks_to_add_to_local.push((*new_item).clone());
-            }
-            // Even in case of conflicts, "the server always wins", so it is safe to remove tasks from the local cache as soon as now
-            remove_from_calendar(&tasks_id_to_remove_from_local, &mut *cal_local);
-
-
-
-            // Push local changes to the server
-            let local_del = match last_sync {
-                Some(date) => cal_local.get_items_deleted_since(date),
+            // Step 1 - "Server always wins", so a delteion from the server must be applied locally, even if it was locally modified.
+            let mut local_dels = match last_sync {
                 None => HashSet::new(),
+                Some(date) => cal_local.get_items_deleted_since(date),
             };
-            let mut tasks_id_to_remove_from_server = Vec::new();
-            for deleted_id in local_del {
-                if server_mod.contains_key(&deleted_id) {
-                    log::warn!("Conflict for task {}, that has been locally deleted and updated in the server. Using the server version.", deleted_id);
-                    continue;
+            if last_sync.is_some() {
+                let server_deletions = cal_server.find_deletions_from(cal_local.get_item_ids());
+                for server_del_id in server_deletions {
+                    // Even in case of conflicts, "the server always wins", so it is safe to remove tasks from the local cache as soon as now
+                    if let Err(err) = cal_local.delete_item(&server_del_id) {
+                        log::error!("Unable to remove local item {}: {}", server_del_id, err);
+                    }
+
+                    if local_dels.contains(&server_del_id) {
+                        local_dels.remove(&server_del_id);
                 }
-                tasks_id_to_remove_from_server.push(deleted_id);
+            }
             }
 
-            let local_mod = cal_local.get_items_modified_since(last_sync, None);
-            let mut tasks_to_add_to_server = Vec::new();
-            for (new_id, new_item) in &local_mod {
-                if server_mod.contains_key(new_id) {
-                    log::warn!("Conflict for task {} ({}). Using the server version.", new_item.name(), new_id);
-                    continue;
+            // Step 2 - Compare both changesets...
+            let server_mods = cal_server.get_items_modified_since(last_sync, None);
+            let mut local_mods = cal_local.get_items_modified_since(last_sync, None);
+
+            // ...import remote changes,...
+            let mut conflicting_tasks = Vec::new();
+            let mut tasks_to_add = Vec::new();
+            for (server_mod_id, server_mod) in server_mods {
+                if local_mods.contains_key(&server_mod_id) {
+                    log::warn!("Conflict for task {} (modified in both sources). Using the server version", server_mod_id);
+                    conflicting_tasks.push(server_mod_id.clone());
+                    local_mods.remove(&server_mod_id);
                 }
-                tasks_to_add_to_server.push((*new_item).clone());
+                if local_dels.contains(&server_mod_id) {
+                    log::warn!("Conflict for task {} (modified in the server, deleted locally). Reverting to the server version", server_mod_id);
+                    local_dels.remove(&server_mod_id);
+                }
+                tasks_to_add.push(server_mod.clone());
             }
 
-            remove_from_calendar(&tasks_id_to_remove_from_server, &mut *cal_server);
-            move_to_calendar(&mut tasks_to_add_to_local, &mut *cal_local);
-            move_to_calendar(&mut tasks_to_add_to_server, &mut *cal_server);
+            // ...upload local deletions,...
+            for local_del_id in local_dels {
+                if let Err(err) = cal_server.delete_item(&local_del_id) {
+                    log::error!("Unable to remove remote item {}: {}", local_del_id, err);
+                }
+            }
+
+            // ...and upload local changes
+            for (local_mod_id, local_mod) in local_mods {
+                // Conflicts are no longer in local_mods
+                if let Err(err) = cal_server.delete_item(&local_mod_id) {
+                    log::error!("Unable to remove remote item (before an update) {}: {}", local_mod_id, err);
+                }
+                // TODO: should I add a .update_item()?
+                cal_server.add_item(local_mod.clone());
+            }
+
+            remove_from_calendar(&conflicting_tasks, &mut (*cal_local));
+            move_to_calendar(&mut tasks_to_add, &mut (*cal_local));
         }
 
         self.local.update_last_sync(None);
@@ -139,13 +147,14 @@ where
 fn move_to_calendar<C: PartialCalendar>(items: &mut Vec<Item>, calendar: &mut C) {
     while items.len() > 0 {
         let item = items.remove(0);
+        log::warn!("Moving {} to calendar", item.name());
         calendar.add_item(item);
     }
 }
 
 fn remove_from_calendar<C: PartialCalendar>(ids: &Vec<ItemId>, calendar: &mut C) {
     for id in ids {
-        log::info!("  Removing {:?} from local calendar", id);
+        log::info!("  Removing {:?} from calendar", id);
         if let Err(err) = calendar.delete_item(id) {
             log::warn!("Unable to delete item {:?} from calendar: {}", id, err);
         }
