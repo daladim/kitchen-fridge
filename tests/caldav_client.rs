@@ -47,6 +47,11 @@ async fn show_calendars() {
     for (id, calendar) in calendars.iter() {
         let cal = calendar.lock().unwrap();
         println!("  {}\t{}", cal.name(), id.as_str());
+        println!("  IDs:");
+        for id in cal.get_item_ids().await.unwrap() {
+            println!("  * {}", id);
+        }
+
         println!("  Most recent changes:");
         for (_id, task) in cal.get_items_modified_since(None, None).await.unwrap() {
             my_tasks::utils::print_task(task);

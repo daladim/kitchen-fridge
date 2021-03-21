@@ -20,9 +20,9 @@ pub struct Task {
 
 impl Task {
     /// Create a new Task
-    pub fn new(name: String, last_modified: DateTime<Utc>) -> Self {
+    pub fn new(name: String, id: ItemId, last_modified: DateTime<Utc>) -> Self {
         Self {
-            id: ItemId::new(),
+            id,
             name,
             last_modified,
             completed: false,

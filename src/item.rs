@@ -1,7 +1,11 @@
 use std::fmt::{Display, Formatter};
+use std::str::FromStr;
 
 use serde::{Deserialize, Serialize};
 use chrono::{Utc, DateTime};
+use url::Url;
+
+use crate::resource::Resource;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum Item {
@@ -68,16 +72,37 @@ impl Item {
     }
 }
 
+
 #[derive(Clone, Debug, PartialEq, Hash, Serialize, Deserialize)]
 pub struct ItemId {
-    content: String,
+    content: Url,
 }
 impl ItemId{
-    pub fn new() -> Self {
-        let u = uuid::Uuid::new_v4().to_hyphenated().to_string();
+    /// Generate a random ItemId. This is only useful in tests
+    pub fn random() -> Self {
+        let random = uuid::Uuid::new_v4().to_hyphenated().to_string();
+        let s = format!("https://server.com/{}", random);
+        let u = s.parse().unwrap();
         Self { content:u }
     }
 }
+impl From<Url> for ItemId {
+    fn from(url: Url) -> Self {
+        Self { content: url }
+    }
+}
+impl From<&Resource> for ItemId {
+    fn from(resource: &Resource) -> Self {
+        Self { content: resource.url().clone() }
+    }
+}
+impl FromStr for ItemId {
+    type Err = url::ParseError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        s.parse()
+    }
+}
+
 impl Eq for ItemId {}
 impl Display for ItemId {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {

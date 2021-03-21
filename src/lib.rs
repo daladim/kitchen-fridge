@@ -14,6 +14,7 @@ pub mod calendar;
 pub use calendar::cached_calendar::CachedCalendar;
 mod item;
 pub use item::Item;
+pub use item::ItemId;
 mod task;
 pub use task::Task;
 mod event;
