@@ -26,3 +26,4 @@ pub mod cache;
 
 pub mod settings;
 pub mod utils;
+pub mod resource;

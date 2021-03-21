@@ -11,6 +11,7 @@ use reqwest::header::CONTENT_TYPE;
 use minidom::Element;
 use url::Url;
 
+use crate::resource::Resource;
 use crate::utils::{find_elem, find_elems};
 use crate::calendar::remote_calendar::RemoteCalendar;
 use crate::calendar::CalendarId;
@@ -49,9 +50,7 @@ static CAL_BODY: &str = r#"
 
 /// A CalDAV source that fetches its data from a CalDAV server
 pub struct Client {
-    url: Url,
-    username: String,
-    password: String,
+    resource: Resource,
 
     /// The interior mutable part of a Client.
     /// This data may be retrieved once and then cached
@@ -61,8 +60,8 @@ pub struct Client {
 
 #[derive(Default)]
 struct CachedReplies {
-    principal: Option<Url>,
-    calendar_home_set: Option<Url>,
+    principal: Option<Resource>,
+    calendar_home_set: Option<Resource>,
     calendars: Option<HashMap<CalendarId, Arc<Mutex<RemoteCalendar>>>>,
 }
 
@@ -72,22 +71,20 @@ impl Client {
         let url = Url::parse(url.as_ref())?;
 
         Ok(Self{
-            url,
-            username: username.to_string(),
-            password: password.to_string(),
+            resource: Resource::new(url, username.to_string(), password.to_string()),
             cached_replies: Mutex::new(CachedReplies::default()),
         })
     }
 
-    async fn sub_request(&self, url: &Url, body: String, depth: u32) -> Result<String, Box<dyn Error>> {
+    async fn sub_request(&self, resource: &Resource, body: String, depth: u32) -> Result<String, Box<dyn Error>> {
         let method = Method::from_bytes(b"PROPFIND")
             .expect("cannot create PROPFIND method.");
 
         let res = reqwest::Client::new()
-            .request(method, url.as_str())
+            .request(method, resource.url().clone())
             .header("Depth", depth)
             .header(CONTENT_TYPE, "application/xml")
-            .basic_auth(self.username.clone(), Some(self.password.clone()))
+            .basic_auth(resource.username(), Some(resource.password()))
             .body(body)
             .send()
             .await?;
@@ -95,8 +92,8 @@ impl Client {
         Ok(text)
     }
 
-    async fn sub_request_and_process(&self, url: &Url, body: String, items: &[&str]) -> Result<String, Box<dyn Error>> {
-        let text = self.sub_request(url, body, 0).await?;
+    async fn sub_request_and_process(&self, resource: &Resource, body: String, items: &[&str]) -> Result<String, Box<dyn Error>> {
+        let text = self.sub_request(resource, body, 0).await?;
 
         let mut current_element: &Element = &text.parse()?;
         for item in items {
@@ -109,13 +106,13 @@ impl Client {
     }
 
     /// Return the Principal URL, or fetch it from server if not known yet
-    async fn get_principal(&self) -> Result<Url, Box<dyn Error>> {
+    async fn get_principal(&self) -> Result<Resource, Box<dyn Error>> {
         if let Some(p) = &self.cached_replies.lock().unwrap().principal {
             return Ok(p.clone());
         }
 
-        let href = self.sub_request_and_process(&self.url, DAVCLIENT_BODY.into(), &["current-user-principal", "href"]).await?;
-        let principal_url = crate::utils::build_url(&self.url, &href);
+        let href = self.sub_request_and_process(&self.resource, DAVCLIENT_BODY.into(), &["current-user-principal", "href"]).await?;
+        let principal_url = self.resource.combine(&href);
         self.cached_replies.lock().unwrap().principal = Some(principal_url.clone());
         log::debug!("Principal URL is {}", href);
 
@@ -123,16 +120,16 @@ impl Client {
     }
 
     /// Return the Homeset URL, or fetch it from server if not known yet
-    async fn get_cal_home_set(&self) -> Result<Url, Box<dyn Error>> {
+    async fn get_cal_home_set(&self) -> Result<Resource, Box<dyn Error>> {
         if let Some(h) = &self.cached_replies.lock().unwrap().calendar_home_set {
             return Ok(h.clone());
         }
         let principal_url = self.get_principal().await?;
 
         let href = self.sub_request_and_process(&principal_url, HOMESET_BODY.into(), &["calendar-home-set", "href"]).await?;
-        let chs_url = crate::utils::build_url(&self.url, &href);
+        let chs_url = self.resource.combine(&href);
         self.cached_replies.lock().unwrap().calendar_home_set = Some(chs_url.clone());
-        log::debug!("Calendar home set URL is {:?}", chs_url.path());
+        log::debug!("Calendar home set URL is {:?}", href);
 
         Ok(chs_url)
     }
@@ -182,7 +179,7 @@ impl Client {
                 Some(h) => h.text(),
             };
 
-            let this_calendar_url = crate::utils::build_url(&self.url, &calendar_href);
+            let this_calendar_url = self.resource.combine(&calendar_href);
 
             let supported_components = match crate::calendar::SupportedComponents::try_from(el_supported_comps.clone()) {
                 Err(err) => {

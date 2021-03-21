@@ -46,13 +46,6 @@ pub fn find_elem<S: AsRef<str>>(root: &Element, searched_name: S) -> Option<&Ele
     None
 }
 
-/// Build a new Url by keeping the same scheme and server from `base` but changing the path part
-pub fn build_url(base: &Url, new_path: &str) -> Url {
-    let mut built = base.clone();
-    built.set_path(&new_path);
-    built
-}
-
 
 pub fn print_xml(element: &Element) {
     use std::io::Write;
