@@ -64,8 +64,13 @@ where
 {
     for (id, cal) in cals {
         println!("CAL {}", id);
-        for (_, item) in cal.lock().unwrap().get_items().await {
-            print_task(item);
+        match cal.lock().unwrap().get_items().await {
+            Err(_err) => continue,
+            Ok(map) => {
+                for (_, item) in map {
+                    print_task(item);
+                }
+            },
         }
     }
 }

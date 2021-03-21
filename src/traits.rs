@@ -42,7 +42,7 @@ pub trait PartialCalendar {
 
     /// Returns the items that have been last-modified after `since`
     async fn get_items_modified_since(&self, since: Option<DateTime<Utc>>, filter: Option<crate::calendar::SearchFilter>)
-        -> HashMap<ItemId, &Item>;
+        -> Result<HashMap<ItemId, &Item>, Box<dyn Error>>;
 
     /// Get the IDs of all current items in this calendar
     async fn get_item_ids(&mut self) -> HashSet<ItemId>;
@@ -82,9 +82,9 @@ pub trait CompleteCalendar : PartialCalendar {
     /// Returns the items that have been deleted after `since`
     ///
     /// See also [`PartialCalendar::get_items_deleted_since`]
-    async fn get_items_deleted_since(&self, since: DateTime<Utc>) -> HashSet<ItemId>;
+    async fn get_items_deleted_since(&self, since: DateTime<Utc>) -> Result<HashSet<ItemId>, Box<dyn Error>>;
 
     /// Returns the list of items that this calendar contains
-    async fn get_items(&self) -> HashMap<ItemId, &Item>;
+    async fn get_items(&self) -> Result<HashMap<ItemId, &Item>, Box<dyn Error>>;
 }
 

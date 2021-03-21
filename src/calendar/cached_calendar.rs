@@ -34,11 +34,11 @@ impl CachedCalendar {
     }
 
     /// Returns the list of tasks that this calendar contains
-    pub async fn get_tasks(&self) -> HashMap<ItemId, &Item> {
+    pub async fn get_tasks(&self) -> Result<HashMap<ItemId, &Item>, Box<dyn Error>> {
         self.get_tasks_modified_since(None).await
     }
     /// Returns the tasks that have been last-modified after `since`
-    pub async fn get_tasks_modified_since(&self, since: Option<DateTime<Utc>>) -> HashMap<ItemId, &Item> {
+    pub async fn get_tasks_modified_since(&self, since: Option<DateTime<Utc>>) -> Result<HashMap<ItemId, &Item>, Box<dyn Error>> {
         self.get_items_modified_since(since, Some(SearchFilter::Tasks)).await
     }
 }
@@ -69,7 +69,7 @@ impl PartialCalendar for CachedCalendar {
         Ok(())
     }
 
-    async fn get_items_modified_since(&self, since: Option<DateTime<Utc>>, filter: Option<SearchFilter>) -> HashMap<ItemId, &Item> {
+    async fn get_items_modified_since(&self, since: Option<DateTime<Utc>>, filter: Option<SearchFilter>) -> Result<HashMap<ItemId, &Item>, Box<dyn Error>> {
         let filter = filter.unwrap_or_default();
 
         let mut map = HashMap::new();
@@ -94,7 +94,7 @@ impl PartialCalendar for CachedCalendar {
             map.insert(item.id().clone(), item);
         }
 
-        map
+        Ok(map)
     }
 
     async fn get_item_ids(&mut self) -> HashSet<ItemId> {
@@ -109,14 +109,14 @@ impl PartialCalendar for CachedCalendar {
 #[async_trait]
 impl CompleteCalendar for CachedCalendar {
     /// Returns the items that have been deleted after `since`
-    async fn get_items_deleted_since(&self, since: DateTime<Utc>) -> HashSet<ItemId> {
-        self.deleted_items.range(since..)
+    async fn get_items_deleted_since(&self, since: DateTime<Utc>) -> Result<HashSet<ItemId>, Box<dyn Error>> {
+        Ok(self.deleted_items.range(since..)
             .map(|(_key, id)| id.clone())
-            .collect()
+            .collect())
     }
 
     /// Returns the list of items that this calendar contains
-    async fn get_items(&self) -> HashMap<ItemId, &Item> {
+    async fn get_items(&self) -> Result<HashMap<ItemId, &Item>, Box<dyn Error>> {
         self.get_items_modified_since(None, None).await
     }
 
