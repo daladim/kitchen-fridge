@@ -4,7 +4,6 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 use minidom::Element;
-use url::Url;
 
 use crate::traits::CompleteCalendar;
 use crate::calendar::CalendarId;

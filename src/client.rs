@@ -6,7 +6,6 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
-use reqwest::Method;
 use reqwest::header::CONTENT_TYPE;
 use minidom::Element;
 use url::Url;
@@ -48,6 +47,48 @@ static CAL_BODY: &str = r#"
 
 
 
+pub async fn sub_request(resource: &Resource, method: &str, body: String, depth: u32) -> Result<String, Box<dyn Error>> {
+    let method = method.parse()
+        .expect("invalid method name");
+
+    let res = reqwest::Client::new()
+        .request(method, resource.url().clone())
+        .header("Depth", depth)
+        .header(CONTENT_TYPE, "application/xml")
+        .basic_auth(resource.username(), Some(resource.password()))
+        .body(body)
+        .send()
+        .await?;
+
+    let text = res.text().await?;
+    Ok(text)
+}
+
+pub async fn sub_request_and_extract_elem(resource: &Resource, body: String, items: &[&str]) -> Result<String, Box<dyn Error>> {
+    let text = sub_request(resource, "PROPFIND", body, 0).await?;
+
+    let mut current_element: &Element = &text.parse()?;
+    for item in items {
+        current_element = match find_elem(&current_element, item) {
+            Some(elem) => elem,
+            None => return Err(format!("missing element {}", item).into()),
+        }
+    }
+    Ok(current_element.text())
+}
+
+pub async fn sub_request_and_extract_elems(resource: &Resource, method: &str, body: String, item: &str) -> Result<Vec<Element>, Box<dyn Error>> {
+    let text = sub_request(resource, method, body, 1).await?;
+
+    let element: &Element = &text.parse()?;
+    Ok(find_elems(&element, item)
+        .iter()
+        .map(|elem| (*elem).clone())
+        .collect()
+    )
+}
+
+
 /// A CalDAV source that fetches its data from a CalDAV server
 pub struct Client {
     resource: Resource,
@@ -76,42 +117,13 @@ impl Client {
         })
     }
 
-    async fn sub_request(&self, resource: &Resource, body: String, depth: u32) -> Result<String, Box<dyn Error>> {
-        let method = Method::from_bytes(b"PROPFIND")
-            .expect("cannot create PROPFIND method.");
-
-        let res = reqwest::Client::new()
-            .request(method, resource.url().clone())
-            .header("Depth", depth)
-            .header(CONTENT_TYPE, "application/xml")
-            .basic_auth(resource.username(), Some(resource.password()))
-            .body(body)
-            .send()
-            .await?;
-        let text = res.text().await?;
-        Ok(text)
-    }
-
-    async fn sub_request_and_process(&self, resource: &Resource, body: String, items: &[&str]) -> Result<String, Box<dyn Error>> {
-        let text = self.sub_request(resource, body, 0).await?;
-
-        let mut current_element: &Element = &text.parse()?;
-        for item in items {
-            current_element = match find_elem(&current_element, item) {
-                Some(elem) => elem,
-                None => return Err(format!("missing element {}", item).into()),
-            }
-        }
-        Ok(current_element.text())
-    }
-
     /// Return the Principal URL, or fetch it from server if not known yet
     async fn get_principal(&self) -> Result<Resource, Box<dyn Error>> {
         if let Some(p) = &self.cached_replies.lock().unwrap().principal {
             return Ok(p.clone());
         }
 
-        let href = self.sub_request_and_process(&self.resource, DAVCLIENT_BODY.into(), &["current-user-principal", "href"]).await?;
+        let href = sub_request_and_extract_elem(&self.resource, DAVCLIENT_BODY.into(), &["current-user-principal", "href"]).await?;
         let principal_url = self.resource.combine(&href);
         self.cached_replies.lock().unwrap().principal = Some(principal_url.clone());
         log::debug!("Principal URL is {}", href);
@@ -126,7 +138,7 @@ impl Client {
         }
         let principal_url = self.get_principal().await?;
 
-        let href = self.sub_request_and_process(&principal_url, HOMESET_BODY.into(), &["calendar-home-set", "href"]).await?;
+        let href = sub_request_and_extract_elem(&principal_url, HOMESET_BODY.into(), &["calendar-home-set", "href"]).await?;
         let chs_url = self.resource.combine(&href);
         self.cached_replies.lock().unwrap().calendar_home_set = Some(chs_url.clone());
         log::debug!("Calendar home set URL is {:?}", href);
@@ -137,17 +149,14 @@ impl Client {
     async fn populate_calendars(&self) -> Result<(), Box<dyn Error>> {
         let cal_home_set = self.get_cal_home_set().await?;
 
-        let text = self.sub_request(&cal_home_set, CAL_BODY.into(), 1).await?;
-
-        let root: Element = text.parse()?;
-        let reps = find_elems(&root, "response");
+        let reps = sub_request_and_extract_elems(&cal_home_set, "PROPFIND", CAL_BODY.to_string(), "response").await?;
         let mut calendars = HashMap::new();
         for rep in reps {
-            let display_name = find_elem(rep, "displayname").map(|e| e.text()).unwrap_or("<no name>".to_string());
+            let display_name = find_elem(&rep, "displayname").map(|e| e.text()).unwrap_or("<no name>".to_string());
             log::debug!("Considering calendar {}", display_name);
 
             // We filter out non-calendar items
-            let resource_types = match find_elem(rep, "resourcetype") {
+            let resource_types = match find_elem(&rep, "resourcetype") {
                 None => continue,
                 Some(rt) => rt,
             };
@@ -163,7 +172,7 @@ impl Client {
             }
 
             // We filter out the root calendar collection, that has an empty supported-calendar-component-set
-            let el_supported_comps = match find_elem(rep, "supported-calendar-component-set") {
+            let el_supported_comps = match find_elem(&rep, "supported-calendar-component-set") {
                 None => continue,
                 Some(comps) => comps,
             };
@@ -171,7 +180,7 @@ impl Client {
                 continue;
             }
 
-            let calendar_href = match find_elem(rep, "href") {
+            let calendar_href = match find_elem(&rep, "href") {
                 None => {
                     log::warn!("Calendar {} has no URL! Ignoring it.", display_name);
                     continue;
