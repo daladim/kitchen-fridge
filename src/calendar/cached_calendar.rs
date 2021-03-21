@@ -97,8 +97,8 @@ impl PartialCalendar for CachedCalendar {
         Ok(map)
     }
 
-    async fn get_item_ids(&mut self) -> HashSet<ItemId> {
-        self.items.keys().cloned().collect()
+    async fn get_item_ids(&self) -> Result<HashSet<ItemId>, Box<dyn Error>> {
+        Ok(self.items.keys().cloned().collect())
     }
 
     async fn get_item_by_id_mut<'a>(&'a mut self, id: &ItemId) -> Option<&'a mut Item> {

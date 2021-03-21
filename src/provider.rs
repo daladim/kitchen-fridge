@@ -83,7 +83,7 @@ where
                 Some(date) => cal_local.get_items_deleted_since(date).await?,
             };
             if last_sync.is_some() {
-                let server_deletions = cal_server.find_deletions_from(cal_local.get_item_ids().await).await;
+                let server_deletions = cal_server.find_deletions_from(cal_local.get_item_ids().await?).await?;
                 for server_del_id in server_deletions {
                     // Even in case of conflicts, "the server always wins", so it is safe to remove tasks from the local cache as soon as now
                     if let Err(err) = cal_local.delete_item(&server_del_id).await {

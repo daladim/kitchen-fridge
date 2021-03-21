@@ -45,7 +45,7 @@ pub trait PartialCalendar {
         -> Result<HashMap<ItemId, &Item>, Box<dyn Error>>;
 
     /// Get the IDs of all current items in this calendar
-    async fn get_item_ids(&mut self) -> HashSet<ItemId>;
+    async fn get_item_ids(&self) -> Result<HashSet<ItemId>, Box<dyn Error>>;
 
     /// Returns a particular item
     async fn get_item_by_id_mut<'a>(&'a mut self, id: &ItemId) -> Option<&'a mut Item>;
@@ -68,9 +68,9 @@ pub trait PartialCalendar {
     }
 
     /// Finds the IDs of the items that are missing compared to a reference set
-    async fn find_deletions_from(&mut self, reference_set: HashSet<ItemId>) -> HashSet<ItemId> {
-        let current_items = self.get_item_ids().await;
-        reference_set.difference(&current_items).map(|id| id.clone()).collect()
+    async fn find_deletions_from(&self, reference_set: HashSet<ItemId>) -> Result<HashSet<ItemId>, Box<dyn Error>> {
+        let current_items = self.get_item_ids().await?;
+        Ok(reference_set.difference(&current_items).map(|id| id.clone()).collect())
     }
 }
 
