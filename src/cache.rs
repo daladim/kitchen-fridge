@@ -143,8 +143,8 @@ impl Cache {
                 None => return Err("should not happen, we've just tested keys are the same".into()),
             };
 
-                    let items_l = cal_l.get_items();
-                    let items_r = cal_r.get_items();
+            let items_l = cal_l.get_items().await;
+            let items_r = cal_r.get_items().await;
 
                     if keys_are_the_same(&items_l, &items_r) == false {
                 log::debug!("Different keys for items");

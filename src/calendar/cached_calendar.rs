@@ -4,6 +4,7 @@ use std::error::Error;
 
 use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
+use async_trait::async_trait;
 
 use crate::traits::{PartialCalendar, CompleteCalendar};
 use crate::calendar::{CalendarId, SupportedComponents, SearchFilter};
@@ -33,15 +34,16 @@ impl CachedCalendar {
     }
 
     /// Returns the list of tasks that this calendar contains
-    pub fn get_tasks(&self) -> HashMap<ItemId, &Item> {
-        self.get_tasks_modified_since(None)
+    pub async fn get_tasks(&self) -> HashMap<ItemId, &Item> {
+        self.get_tasks_modified_since(None).await
     }
     /// Returns the tasks that have been last-modified after `since`
-    pub fn get_tasks_modified_since(&self, since: Option<DateTime<Utc>>) -> HashMap<ItemId, &Item> {
-        self.get_items_modified_since(since, Some(SearchFilter::Tasks))
+    pub async fn get_tasks_modified_since(&self, since: Option<DateTime<Utc>>) -> HashMap<ItemId, &Item> {
+        self.get_items_modified_since(since, Some(SearchFilter::Tasks)).await
     }
 }
 
+#[async_trait]
 impl PartialCalendar for CachedCalendar {
     fn name(&self) -> &str {
         &self.name
@@ -67,7 +69,7 @@ impl PartialCalendar for CachedCalendar {
         Ok(())
     }
 
-    fn get_items_modified_since(&self, since: Option<DateTime<Utc>>, filter: Option<SearchFilter>) -> HashMap<ItemId, &Item> {
+    async fn get_items_modified_since(&self, since: Option<DateTime<Utc>>, filter: Option<SearchFilter>) -> HashMap<ItemId, &Item> {
         let filter = filter.unwrap_or_default();
 
         let mut map = HashMap::new();
@@ -104,17 +106,18 @@ impl PartialCalendar for CachedCalendar {
     }
 }
 
+#[async_trait]
 impl CompleteCalendar for CachedCalendar {
     /// Returns the items that have been deleted after `since`
-    fn get_items_deleted_since(&self, since: DateTime<Utc>) -> HashSet<ItemId> {
+    async fn get_items_deleted_since(&self, since: DateTime<Utc>) -> HashSet<ItemId> {
         self.deleted_items.range(since..)
             .map(|(_key, id)| id.clone())
             .collect()
     }
 
     /// Returns the list of items that this calendar contains
-    fn get_items(&self) -> HashMap<ItemId, &Item> {
-        self.get_items_modified_since(None, None)
+    async fn get_items(&self) -> HashMap<ItemId, &Item> {
+        self.get_items_modified_since(None, None).await
     }
 
 }

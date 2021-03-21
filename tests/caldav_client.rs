@@ -37,20 +37,21 @@ static EXAMPLE_TASKS_BODY_LAST_MODIFIED: &str = r#"
 "#;
 
 #[tokio::test]
-async fn test_client() {
+async fn show_calendars() {
     let _ = env_logger::builder().is_test(true).try_init();
 
     let client = Client::new(URL, USERNAME, PASSWORD).unwrap();
     let calendars = client.get_calendars().await.unwrap();
 
-    let mut last_cal = None;
     println!("Calendars:");
-    let _ = calendars.iter()
-        .map(|(id, cal)| {
-            println!("  {}\t{}", cal.lock().unwrap().name(), id.as_str());
-            last_cal = Some(id);
-        })
-        .collect::<()>();
+    for (id, calendar) in calendars.iter() {
+        let cal = calendar.lock().unwrap();
+        println!("  {}\t{}", cal.name(), id.as_str());
+        println!("  Most recent changes:");
+        for (_id, task) in cal.get_items_modified_since(None, None).await {
+            my_tasks::utils::print_task(task);
+        }
+    }
 }
 
 #[tokio::test]

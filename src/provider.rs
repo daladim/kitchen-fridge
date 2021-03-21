@@ -80,7 +80,7 @@ where
             // Step 1 - "Server always wins", so a delteion from the server must be applied locally, even if it was locally modified.
             let mut local_dels = match last_sync {
                 None => HashSet::new(),
-                Some(date) => cal_local.get_items_deleted_since(date),
+                Some(date) => cal_local.get_items_deleted_since(date).await,
             };
             if last_sync.is_some() {
                 let server_deletions = cal_server.find_deletions_from(cal_local.get_item_ids());
@@ -97,8 +97,8 @@ where
             }
 
             // Step 2 - Compare both changesets...
-            let server_mods = cal_server.get_items_modified_since(last_sync, None);
-            let mut local_mods = cal_local.get_items_modified_since(last_sync, None);
+            let server_mods = cal_server.get_items_modified_since(last_sync, None).await;
+            let mut local_mods = cal_local.get_items_modified_since(last_sync, None).await;
 
             // ...import remote changes,...
             let mut conflicting_tasks = Vec::new();

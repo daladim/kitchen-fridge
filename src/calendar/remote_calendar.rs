@@ -3,6 +3,7 @@ use std::error::Error;
 
 use url::Url;
 use chrono::{DateTime, Utc};
+use async_trait::async_trait;
 
 use crate::traits::PartialCalendar;
 use crate::calendar::SupportedComponents;
@@ -26,6 +27,7 @@ impl RemoteCalendar {
     }
 }
 
+#[async_trait]
 impl PartialCalendar for RemoteCalendar {
     fn name(&self) -> &str { &self.name }
     fn id(&self) -> &CalendarId { &self.url }
@@ -34,7 +36,7 @@ impl PartialCalendar for RemoteCalendar {
     }
 
     /// Returns the items that have been last-modified after `since`
-    fn get_items_modified_since(&self, _since: Option<DateTime<Utc>>, _filter: Option<crate::calendar::SearchFilter>)
+    async fn get_items_modified_since(&self, since: Option<DateTime<Utc>>, _filter: Option<crate::calendar::SearchFilter>)
         -> HashMap<ItemId, &Item>
     {
         log::error!("Not implemented");

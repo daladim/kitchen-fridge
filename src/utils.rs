@@ -58,13 +58,13 @@ pub fn print_xml(element: &Element) {
 }
 
 /// A debug utility that pretty-prints calendars
-pub fn print_calendar_list<C>(cals: &HashMap<CalendarId, Arc<Mutex<C>>>)
+pub async fn print_calendar_list<C>(cals: &HashMap<CalendarId, Arc<Mutex<C>>>)
 where
     C: CompleteCalendar,
 {
     for (id, cal) in cals {
         println!("CAL {}", id);
-        for (_, item) in cal.lock().unwrap().get_items() {
+        for (_, item) in cal.lock().unwrap().get_items().await {
             print_task(item);
         }
     }

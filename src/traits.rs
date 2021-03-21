@@ -29,6 +29,7 @@ pub trait SyncSlave {
 /// A calendar we have a partial knowledge of.
 ///
 /// Usually, this is a calendar from a remote source, that is synced to a CompleteCalendar
+#[async_trait]
 pub trait PartialCalendar {
     /// Returns the calendar name
     fn name(&self) -> &str;
@@ -40,7 +41,7 @@ pub trait PartialCalendar {
     fn supported_components(&self) -> crate::calendar::SupportedComponents;
 
     /// Returns the items that have been last-modified after `since`
-    fn get_items_modified_since(&self, since: Option<DateTime<Utc>>, filter: Option<crate::calendar::SearchFilter>)
+    async fn get_items_modified_since(&self, since: Option<DateTime<Utc>>, filter: Option<crate::calendar::SearchFilter>)
         -> HashMap<ItemId, &Item>;
 
     /// Get the IDs of all current items in this calendar
@@ -76,13 +77,14 @@ pub trait PartialCalendar {
 /// A calendar we always know everything about.
 ///
 /// Usually, this is a calendar fully stored on a local disk
+#[async_trait]
 pub trait CompleteCalendar : PartialCalendar {
     /// Returns the items that have been deleted after `since`
     ///
     /// See also [`PartialCalendar::get_items_deleted_since`]
-    fn get_items_deleted_since(&self, since: DateTime<Utc>) -> HashSet<ItemId>;
+    async fn get_items_deleted_since(&self, since: DateTime<Utc>) -> HashSet<ItemId>;
 
     /// Returns the list of items that this calendar contains
-    fn get_items(&self) -> HashMap<ItemId, &Item>;
+    async fn get_items(&self) -> HashMap<ItemId, &Item>;
 }
 

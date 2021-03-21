@@ -24,10 +24,10 @@ async fn test_regular_sync() {
 
     let cals_server = provider.server().get_calendars().await.unwrap();
     println!("----Server-------");
-    my_tasks::utils::print_calendar_list(&cals_server);
+    my_tasks::utils::print_calendar_list(&cals_server).await;
     let cals_local = provider.local().get_calendars().await.unwrap();
     println!("\n----Local-------");
-    my_tasks::utils::print_calendar_list(&cals_local);
+    my_tasks::utils::print_calendar_list(&cals_local).await;
 
     assert!(provider.server().has_same_contents_than(provider.local()).await.unwrap());
 
