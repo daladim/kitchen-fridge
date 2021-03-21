@@ -104,7 +104,7 @@ async fn populate_test_provider() -> Provider<Cache, CachedCalendar, Cache, Cach
 
     // Step 2
     // Edit the server calendar
-    let cal_server = server.get_calendar(cal_id.clone()).await.unwrap();
+    let cal_server = server.get_calendar(&cal_id).await.unwrap();
     let mut cal_server = cal_server.lock().unwrap();
 
     cal_server.delete_item(&task_b_id).await.unwrap();
@@ -134,7 +134,7 @@ async fn populate_test_provider() -> Provider<Cache, CachedCalendar, Cache, Cach
 
     // Step 3
     // Edit the local calendar
-    let cal_local = local.get_calendar(cal_id).await.unwrap();
+    let cal_local = local.get_calendar(&cal_id).await.unwrap();
     let mut cal_local = cal_local.lock().unwrap();
 
     cal_local.delete_item(&task_c_id).await.unwrap();

@@ -68,7 +68,7 @@ where
         for (id, cal_server) in cals_server {
             let mut cal_server = cal_server.lock().unwrap();
 
-            let cal_local = match self.local.get_calendar(id).await {
+            let cal_local = match self.local.get_calendar(&id).await {
                 None => {
                     log::error!("TODO: implement here");
                     continue;

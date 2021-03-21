@@ -187,8 +187,8 @@ impl CalDavSource<CachedCalendar> for Cache {
         )
     }
 
-    async fn get_calendar(&self, id: CalendarId) -> Option<Arc<Mutex<CachedCalendar>>> {
-        self.data.calendars.get(&id).map(|arc| arc.clone())
+    async fn get_calendar(&self, id: &CalendarId) -> Option<Arc<Mutex<CachedCalendar>>> {
+        self.data.calendars.get(id).map(|arc| arc.clone())
     }
 }
 

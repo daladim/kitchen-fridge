@@ -220,11 +220,11 @@ impl CalDavSource<RemoteCalendar> for Client {
     }
 
 
-    async fn get_calendar(&self, id: CalendarId) -> Option<Arc<Mutex<RemoteCalendar>>> {
+    async fn get_calendar(&self, id: &CalendarId) -> Option<Arc<Mutex<RemoteCalendar>>> {
         self.cached_replies.lock().unwrap()
             .calendars
             .as_ref()
-            .and_then(|cals| cals.get(&id))
+            .and_then(|cals| cals.get(id))
             .map(|cal| cal.clone())
         }
 }

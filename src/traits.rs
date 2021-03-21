@@ -15,7 +15,7 @@ pub trait CalDavSource<T: PartialCalendar> {
     /// This function may trigger an update (that can be a long process, or that can even fail, e.g. in case of a remote server)
     async fn get_calendars(&self) -> Result<HashMap<CalendarId, Arc<Mutex<T>>>, Box<dyn Error>>;
     /// Returns the calendar matching the ID
-    async fn get_calendar(&self, id: CalendarId) -> Option<Arc<Mutex<T>>>;
+    async fn get_calendar(&self, id: &CalendarId) -> Option<Arc<Mutex<T>>>;
 }
 
 pub trait SyncSlave {
