@@ -98,9 +98,12 @@ impl Client {
     async fn sub_request_and_process(&self, url: &Url, body: String, items: &[&str]) -> Result<String, Box<dyn Error>> {
         let text = self.sub_request(url, body, 0).await?;
 
-        let mut current_element: &Element = &text.parse().unwrap();
+        let mut current_element: &Element = &text.parse()?;
         for item in items {
-                current_element = find_elem(&current_element, item).unwrap();
+            current_element = match find_elem(&current_element, item) {
+                Some(elem) => elem,
+                None => return Err(format!("missing element {}", item).into()),
+            }
         }
         Ok(current_element.text())
     }
@@ -141,7 +144,7 @@ impl Client {
 
         let text = self.sub_request(&cal_home_set, CAL_BODY.into(), 1).await?;
 
-        let root: Element = text.parse().unwrap();
+        let root: Element = text.parse()?;
         let reps = find_elems(&root, "response");
         let mut calendars = HashMap::new();
         for rep in reps {
