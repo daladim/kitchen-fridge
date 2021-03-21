@@ -57,11 +57,11 @@ impl PartialCalendar for CachedCalendar {
         self.supported_components
     }
 
-    fn add_item(&mut self, item: Item) {
+    async fn add_item(&mut self, item: Item) {
         self.items.insert(item.id().clone(), item);
     }
 
-    fn delete_item(&mut self, item_id: &ItemId) -> Result<(), Box<dyn Error>> {
+    async fn delete_item(&mut self, item_id: &ItemId) -> Result<(), Box<dyn Error>> {
         if let None = self.items.remove(item_id) {
             return Err("This key does not exist.".into());
         }
@@ -97,11 +97,11 @@ impl PartialCalendar for CachedCalendar {
         map
     }
 
-    fn get_item_ids(&mut self) -> HashSet<ItemId> {
+    async fn get_item_ids(&mut self) -> HashSet<ItemId> {
         self.items.keys().cloned().collect()
     }
 
-    fn get_item_by_id_mut(&mut self, id: &ItemId) -> Option<&mut Item> {
+    async fn get_item_by_id_mut<'a>(&'a mut self, id: &ItemId) -> Option<&'a mut Item> {
         self.items.get_mut(id)
     }
 }

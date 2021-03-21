@@ -45,16 +45,16 @@ pub trait PartialCalendar {
         -> HashMap<ItemId, &Item>;
 
     /// Get the IDs of all current items in this calendar
-    fn get_item_ids(&mut self) -> HashSet<ItemId>;
+    async fn get_item_ids(&mut self) -> HashSet<ItemId>;
 
     /// Returns a particular item
-    fn get_item_by_id_mut(&mut self, id: &ItemId) -> Option<&mut Item>;
+    async fn get_item_by_id_mut<'a>(&'a mut self, id: &ItemId) -> Option<&'a mut Item>;
 
     /// Add an item into this calendar
-    fn add_item(&mut self, item: Item);
+    async fn add_item(&mut self, item: Item);
 
     /// Remove an item from this calendar
-    fn delete_item(&mut self, item_id: &ItemId) -> Result<(), Box<dyn Error>>;
+    async fn delete_item(&mut self, item_id: &ItemId) -> Result<(), Box<dyn Error>>;
 
 
     /// Returns whether this calDAV calendar supports to-do items
@@ -68,8 +68,8 @@ pub trait PartialCalendar {
     }
 
     /// Finds the IDs of the items that are missing compared to a reference set
-    fn find_deletions_from(&mut self, reference_set: HashSet<ItemId>) -> HashSet<ItemId> {
-        let current_items = self.get_item_ids();
+    async fn find_deletions_from(&mut self, reference_set: HashSet<ItemId>) -> HashSet<ItemId> {
+        let current_items = self.get_item_ids().await;
         reference_set.difference(&current_items).map(|id| id.clone()).collect()
     }
 }

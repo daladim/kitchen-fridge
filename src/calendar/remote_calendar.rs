@@ -44,24 +44,24 @@ impl PartialCalendar for RemoteCalendar {
     }
 
     /// Get the IDs of all current items in this calendar
-    fn get_item_ids(&mut self) -> HashSet<ItemId> {
+    async fn get_item_ids(&mut self) -> HashSet<ItemId> {
         log::error!("Not implemented");
         HashSet::new()
     }
 
     /// Returns a particular item
-    fn get_item_by_id_mut(&mut self, _id: &ItemId) -> Option<&mut Item> {
+    async fn get_item_by_id_mut<'a>(&'a mut self, _id: &ItemId) -> Option<&'a mut Item> {
         log::error!("Not implemented");
         None
     }
 
     /// Add an item into this calendar
-    fn add_item(&mut self, _item: Item) {
+    async fn add_item(&mut self, _item: Item) {
         log::error!("Not implemented");
     }
 
     /// Remove an item from this calendar
-    fn delete_item(&mut self, _item_id: &ItemId) -> Result<(), Box<dyn Error>> {
+    async fn delete_item(&mut self, _item_id: &ItemId) -> Result<(), Box<dyn Error>> {
         log::error!("Not implemented");
         Ok(())
     }

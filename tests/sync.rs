@@ -85,19 +85,19 @@ async fn populate_test_provider() -> Provider<Cache, CachedCalendar, Cache, Cach
     // Step 1
     // Build the calendar as it was at the time of the sync
     let mut calendar = CachedCalendar::new("a list".into(), cal_id.clone(), my_tasks::calendar::SupportedComponents::TODO);
-    calendar.add_item(task_a);
-    calendar.add_item(task_b);
-    calendar.add_item(task_c);
-    calendar.add_item(task_d);
-    calendar.add_item(task_e);
-    calendar.add_item(task_f);
-    calendar.add_item(task_g);
-    calendar.add_item(task_h);
-    calendar.add_item(task_i);
-    calendar.add_item(task_j);
-    calendar.add_item(task_k);
-    calendar.add_item(task_l);
-    calendar.add_item(task_m);
+    calendar.add_item(task_a).await;
+    calendar.add_item(task_b).await;
+    calendar.add_item(task_c).await;
+    calendar.add_item(task_d).await;
+    calendar.add_item(task_e).await;
+    calendar.add_item(task_f).await;
+    calendar.add_item(task_g).await;
+    calendar.add_item(task_h).await;
+    calendar.add_item(task_i).await;
+    calendar.add_item(task_j).await;
+    calendar.add_item(task_k).await;
+    calendar.add_item(task_l).await;
+    calendar.add_item(task_m).await;
 
     server.add_calendar(Arc::new(Mutex::new(calendar.clone())));
     local.add_calendar(Arc::new(Mutex::new(calendar.clone())));
@@ -107,29 +107,29 @@ async fn populate_test_provider() -> Provider<Cache, CachedCalendar, Cache, Cach
     let cal_server = server.get_calendar(cal_id.clone()).await.unwrap();
     let mut cal_server = cal_server.lock().unwrap();
 
-    cal_server.delete_item(&task_b_id).unwrap();
+    cal_server.delete_item(&task_b_id).await.unwrap();
 
-    cal_server.get_item_by_id_mut(&task_e_id).unwrap().unwrap_task_mut()
+    cal_server.get_item_by_id_mut(&task_e_id).await.unwrap().unwrap_task_mut()
         .set_name("E has been remotely renamed".into());
 
-    cal_server.get_item_by_id_mut(&task_f_id).unwrap().unwrap_task_mut()
+    cal_server.get_item_by_id_mut(&task_f_id).await.unwrap().unwrap_task_mut()
         .set_name("F renamed in the server".into());
 
-    cal_server.get_item_by_id_mut(&task_g_id).unwrap().unwrap_task_mut()
+    cal_server.get_item_by_id_mut(&task_g_id).await.unwrap().unwrap_task_mut()
         .set_completed(true);
 
-    cal_server.get_item_by_id_mut(&task_i_id).unwrap().unwrap_task_mut()
+    cal_server.get_item_by_id_mut(&task_i_id).await.unwrap().unwrap_task_mut()
         .set_name("I renamed in the server".into());
 
-    cal_server.delete_item(&task_j_id).unwrap();
+    cal_server.delete_item(&task_j_id).await.unwrap();
 
-    cal_server.get_item_by_id_mut(&task_k_id).unwrap().unwrap_task_mut()
+    cal_server.get_item_by_id_mut(&task_k_id).await.unwrap().unwrap_task_mut()
         .set_completed(true);
 
-    cal_server.delete_item(&task_l_id).unwrap();
+    cal_server.delete_item(&task_l_id).await.unwrap();
 
     let task_n = Item::Task(Task::new("task N (new from server)".into(), Utc::now()));
-    cal_server.add_item(task_n);
+    cal_server.add_item(task_n).await;
 
 
     // Step 3
@@ -137,28 +137,28 @@ async fn populate_test_provider() -> Provider<Cache, CachedCalendar, Cache, Cach
     let cal_local = local.get_calendar(cal_id).await.unwrap();
     let mut cal_local = cal_local.lock().unwrap();
 
-    cal_local.delete_item(&task_c_id).unwrap();
+    cal_local.delete_item(&task_c_id).await.unwrap();
 
-    cal_local.get_item_by_id_mut(&task_d_id).unwrap().unwrap_task_mut()
+    cal_local.get_item_by_id_mut(&task_d_id).await.unwrap().unwrap_task_mut()
         .set_name("D has been locally renamed".into());
 
-    cal_local.get_item_by_id_mut(&task_f_id).unwrap().unwrap_task_mut()
+    cal_local.get_item_by_id_mut(&task_f_id).await.unwrap().unwrap_task_mut()
         .set_name("F renamed locally as well!".into());
 
-    cal_local.get_item_by_id_mut(&task_h_id).unwrap().unwrap_task_mut()
+    cal_local.get_item_by_id_mut(&task_h_id).await.unwrap().unwrap_task_mut()
         .set_completed(true);
 
-    cal_local.get_item_by_id_mut(&task_i_id).unwrap().unwrap_task_mut()
+    cal_local.get_item_by_id_mut(&task_i_id).await.unwrap().unwrap_task_mut()
         .set_completed(true);
 
-    cal_local.get_item_by_id_mut(&task_j_id).unwrap().unwrap_task_mut()
+    cal_local.get_item_by_id_mut(&task_j_id).await.unwrap().unwrap_task_mut()
         .set_completed(true);
 
-    cal_local.delete_item(&task_k_id).unwrap();
-    cal_local.delete_item(&task_l_id).unwrap();
+    cal_local.delete_item(&task_k_id).await.unwrap();
+    cal_local.delete_item(&task_l_id).await.unwrap();
 
     let task_o = Item::Task(Task::new("task O (new from local)".into(), Utc::now()));
-    cal_local.add_item(task_o);
+    cal_local.add_item(task_o).await;
 
     Provider::new(server, local)
 }
