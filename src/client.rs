@@ -115,8 +115,7 @@ impl Client {
         }
 
         let href = self.sub_request_and_process(&self.url, DAVCLIENT_BODY.into(), &["current-user-principal", "href"]).await?;
-        let mut principal_url = self.url.clone();
-        principal_url.set_path(&href);
+        let principal_url = crate::utils::build_url(&self.url, &href);
         self.cached_replies.lock().unwrap().principal = Some(principal_url.clone());
         log::debug!("Principal URL is {}", href);
 
@@ -131,8 +130,7 @@ impl Client {
         let principal_url = self.get_principal().await?;
 
         let href = self.sub_request_and_process(&principal_url, HOMESET_BODY.into(), &["calendar-home-set", "href"]).await?;
-        let mut chs_url = self.url.clone();
-        chs_url.set_path(&href);
+        let chs_url = crate::utils::build_url(&self.url, &href);
         self.cached_replies.lock().unwrap().calendar_home_set = Some(chs_url.clone());
         log::debug!("Calendar home set URL is {:?}", chs_url.path());
 
@@ -184,8 +182,7 @@ impl Client {
                 Some(h) => h.text(),
             };
 
-            let mut this_calendar_url = self.url.clone();
-            this_calendar_url.set_path(&calendar_href);
+            let this_calendar_url = crate::utils::build_url(&self.url, &calendar_href);
 
             let supported_components = match crate::calendar::SupportedComponents::try_from(el_supported_comps.clone()) {
                 Err(err) => {
