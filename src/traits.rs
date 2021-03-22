@@ -3,7 +3,6 @@ use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
-use chrono::{DateTime, Utc};
 
 use crate::item::Item;
 use crate::item::ItemId;
@@ -79,15 +78,6 @@ pub trait PartialCalendar {
 /// Usually, this is a calendar fully stored on a local disk
 #[async_trait]
 pub trait CompleteCalendar : PartialCalendar {
-    /// Returns the items that have been deleted after `since`
-    ///
-    /// See also [`PartialCalendar::get_items_deleted_since`]
-    async fn get_items_deleted_since(&self, since: DateTime<Utc>) -> Result<HashSet<ItemId>, Box<dyn Error>>;
-
-   /// Returns the items that have been last-modified after `since`
-    async fn get_items_modified_since(&self, since: Option<DateTime<Utc>>, filter: Option<crate::calendar::SearchFilter>)
-        -> Result<HashMap<ItemId, &Item>, Box<dyn Error>>;
-
     /// Returns the list of items that this calendar contains
     async fn get_items(&self) -> Result<HashMap<ItemId, &Item>, Box<dyn Error>>;
 }

@@ -1,7 +1,6 @@
 //! Calendar events
 
 use serde::{Deserialize, Serialize};
-use chrono::{Utc, DateTime};
 
 use crate::item::ItemId;
 use crate::item::SyncStatus;
@@ -12,7 +11,6 @@ use crate::item::SyncStatus;
 pub struct Event {
     id: ItemId,
     name: String,
-    last_modified: DateTime<Utc>,
     sync_status: SyncStatus,
 }
 
@@ -23,10 +21,6 @@ impl Event {
 
     pub fn name(&self) -> &str {
         &self.name
-    }
-
-    pub fn last_modified(&self) -> DateTime<Utc> {
-        self.last_modified
     }
 
     pub fn sync_status(&self) -> &SyncStatus {

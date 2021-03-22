@@ -2,7 +2,6 @@ use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
 use serde::{Deserialize, Serialize};
-use chrono::{Utc, DateTime};
 use url::Url;
 
 use crate::resource::Resource;
@@ -27,13 +26,6 @@ impl Item {
         match self {
             Item::Event(e) => e.name(),
             Item::Task(t) => t.name(),
-        }
-    }
-
-    pub fn last_modified(&self) -> DateTime<Utc> {
-        match self {
-            Item::Event(e) => e.last_modified(),
-            Item::Task(t) => t.last_modified(),
         }
     }
 

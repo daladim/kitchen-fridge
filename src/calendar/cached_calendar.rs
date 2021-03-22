@@ -33,15 +33,6 @@ impl CachedCalendar {
             deleted_items: BTreeMap::new(),
         }
     }
-
-    /// Returns the list of tasks that this calendar contains
-    pub async fn get_tasks(&self) -> Result<HashMap<ItemId, &Item>, Box<dyn Error>> {
-        self.get_tasks_modified_since(None).await
-    }
-    /// Returns the tasks that have been last-modified after `since`
-    pub async fn get_tasks_modified_since(&self, since: Option<DateTime<Utc>>) -> Result<HashMap<ItemId, &Item>, Box<dyn Error>> {
-        self.get_items_modified_since(since, Some(SearchFilter::Tasks)).await
-    }
 }
 
 #[async_trait]
@@ -106,43 +97,11 @@ impl PartialCalendar for CachedCalendar {
 
 #[async_trait]
 impl CompleteCalendar for CachedCalendar {
-    /// Returns the items that have been deleted after `since`
-    async fn get_items_deleted_since(&self, since: DateTime<Utc>) -> Result<HashSet<ItemId>, Box<dyn Error>> {
-        Ok(self.deleted_items.range(since..)
-            .map(|(_key, id)| id.clone())
-            .collect())
-    }
-
     /// Returns the list of items that this calendar contains
     async fn get_items(&self) -> Result<HashMap<ItemId, &Item>, Box<dyn Error>> {
-        self.get_items_modified_since(None, None).await
-    }
-
-    async fn get_items_modified_since(&self, since: Option<DateTime<Utc>>, filter: Option<SearchFilter>) -> Result<HashMap<ItemId, &Item>, Box<dyn Error>> {
-        let filter = filter.unwrap_or_default();
-
-        let mut map = HashMap::new();
-
-        for (_id, item) in &self.items {
-            match since {
-                None => (),
-                Some(since) => if item.last_modified() < since {
-                    continue;
-                },
-            }
-
-            match filter {
-                SearchFilter::Tasks => {
-                    if item.is_task() == false {
-                        continue;
-                    }
-                },
-                _ => (),
-            }
-
-            map.insert(item.id().clone(), item);
-        }
-
-        Ok(map)
+        Ok(self.items.iter()
+            .map(|(id, item)| (id.clone(), item))
+            .collect()
+        )
     }
 }
