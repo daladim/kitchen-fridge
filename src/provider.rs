@@ -11,17 +11,16 @@ use crate::traits::PartialCalendar;
 use crate::Item;
 use crate::item::ItemId;
 
-
 /// A data source that combines two `CalDavSources` (usually a server and a local cache), which is able to sync both sources.
-pub struct Provider<L, T, S, U>
+pub struct Provider<L, T, R, U>
 where
     L: CalDavSource<T>,
     T: CompleteCalendar,
-    S: CalDavSource<U>,
+    R: CalDavSource<U>,
     U: PartialCalendar + Sync + Send,
 {
-    /// The remote server
-    server: S,
+    /// The remote source (usually a server)
+    remote: R,
     /// The local cache
     local: L,
 
@@ -29,25 +28,25 @@ where
     phantom_u: PhantomData<U>,
 }
 
-impl<L, T, S, U> Provider<L, T, S, U>
+impl<L, T, R, U> Provider<L, T, R, U>
 where
     L: CalDavSource<T>,
     T: CompleteCalendar,
-    S: CalDavSource<U>,
+    R: CalDavSource<U>,
     U: PartialCalendar + Sync + Send,
 {
     /// Create a provider.
     ///
-    /// `server` is usually a [`Client`](crate::client::Client), `local` is usually a [`Cache`](crate::cache::Cache).
-    /// However, both can be interchangeable. The only difference is that `server` always wins in case of a sync conflict
-    pub fn new(server: S, local: L) -> Self {
-        Self { server, local,
+    /// `remote` is usually a [`Client`](crate::client::Client), `local` is usually a [`Cache`](crate::cache::Cache).
+    /// However, both can be interchangeable. The only difference is that `remote` always wins in case of a sync conflict
+    pub fn new(remote: R, local: L) -> Self {
+        Self { remote, local,
             phantom_t: PhantomData, phantom_u: PhantomData,
         }
     }
 
     /// Returns the data source described as the `server`
-    pub fn server(&self) -> &S { &self.server }
+    pub fn remote(&self) -> &R { &self.remote }
     /// Returns the data source described as the `local`
     pub fn local(&self)  -> &L { &self.local }
 
@@ -58,9 +57,9 @@ where
     pub async fn sync(&mut self) -> Result<(), Box<dyn Error>> {
         log::info!("Starting a sync.");
 
-        let cals_server = self.server.get_calendars().await?;
-        for (id, cal_server) in cals_server {
-            let mut cal_server = cal_server.lock().unwrap();
+        let cals_remote = self.remote.get_calendars().await?;
+        for (id, cal_remote) in cals_remote {
+            let mut cal_remote = cal_remote.lock().unwrap();
 
             let cal_local = match self.local.get_calendar(&id).await {
                 None => {
