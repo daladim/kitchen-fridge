@@ -11,7 +11,6 @@ use std::ffi::OsStr;
 
 use serde::{Deserialize, Serialize};
 use async_trait::async_trait;
-use chrono::{DateTime, Utc};
 
 use crate::traits::CalDavSource;
 use crate::traits::PartialCalendar;
@@ -32,7 +31,6 @@ pub struct Cache {
 struct CachedData {
     #[serde(skip)]
     calendars: HashMap<CalendarId, Arc<Mutex<CachedCalendar>>>,
-    last_sync: Option<DateTime<Utc>>,
 }
 
 impl Cache {
@@ -216,7 +214,6 @@ mod tests {
 
         let retrieved_cache = Cache::from_folder(&cache_path).unwrap();
         assert_eq!(cache.backing_folder, retrieved_cache.backing_folder);
-        assert_eq!(cache.data.last_sync, retrieved_cache.data.last_sync);
         let test = cache.has_same_contents_than(&retrieved_cache).await;
         println!("Equal? {:?}", test);
         assert_eq!(test.unwrap(), true);
