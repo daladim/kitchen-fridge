@@ -70,15 +70,37 @@ impl PartialCalendar for CachedCalendar {
         Ok(())
     }
 
+    #[cfg(not(feature = "mock_version_tag"))]
+    #[allow(unreachable_code)]
     async fn get_item_version_tags(&self) -> Result<HashMap<ItemId, VersionTag>, Box<dyn Error>> {
-        Ok(self.items.iter()
-            .map(|(id, item)| (id.clone(), item.version_tag().clone()))
-            .collect()
-        )
+        panic!("This function only makes sense in remote calendars and in mocked calendars");
+        Err("This function only makes sense in remote calendars and in mocked calendars".into())
+    }
+    #[cfg(feature = "mock_version_tag")]
+    async fn get_item_version_tags(&self) -> Result<HashMap<ItemId, VersionTag>, Box<dyn Error>> {
+        use crate::item::SyncStatus;
+
+        let mut result = HashMap::new();
+
+        for (id, item) in &self.items {
+            let vt = match item.sync_status() {
+                SyncStatus::Synced(vt) => vt.clone(),
+                _ => {
+                    panic!("Mock calendars must contain only SyncStatus::Synced. Got {:?}", item);
+                }
+            };
+            result.insert(id.clone(), vt);
+        }
+
+        Ok(result)
     }
 
     async fn get_item_by_id_mut<'a>(&'a mut self, id: &ItemId) -> Option<&'a mut Item> {
         self.items.get_mut(id)
+    }
+
+    async fn get_item_by_id<'a>(&'a self, id: &ItemId) -> Option<&'a Item> {
+        self.items.get(id)
     }
 }
 

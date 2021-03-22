@@ -1,7 +1,6 @@
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
 
-use chrono::{DateTime, Utc};
 use async_trait::async_trait;
 
 use crate::traits::PartialCalendar;
@@ -85,6 +84,12 @@ impl PartialCalendar for RemoteCalendar {
         log::error!("Not implemented");
         None
     }
+
+    async fn get_item_by_id<'a>(&'a self, id: &ItemId) -> Option<&'a Item> {
+        log::error!("Not implemented");
+        None
+    }
+
 
     /// Add an item into this calendar
     async fn add_item(&mut self, _item: Item) {

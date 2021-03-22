@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use chrono::{Utc, DateTime};
 
 use crate::item::ItemId;
-use crate::item::VersionTag;
+use crate::item::SyncStatus;
 
 /// TODO: implement Event one day.
 /// This crate currently only supports tasks, not calendar events.
@@ -13,7 +13,7 @@ pub struct Event {
     id: ItemId,
     name: String,
     last_modified: DateTime<Utc>,
-    version_tag: VersionTag,
+    sync_status: SyncStatus,
 }
 
 impl Event {
@@ -29,7 +29,10 @@ impl Event {
         self.last_modified
     }
 
-    pub fn version_tag(&self) -> &VersionTag {
-        &self.version_tag
+    pub fn sync_status(&self) -> &SyncStatus {
+        &self.sync_status
+    }
+    pub fn set_sync_status(&mut self, new_status: SyncStatus) {
+        self.sync_status = new_status;
     }
 }

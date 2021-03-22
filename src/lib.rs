@@ -16,6 +16,7 @@ mod item;
 pub use item::Item;
 pub use item::ItemId;
 pub use item::VersionTag;
+pub use item::SyncStatus;
 mod task;
 pub use task::Task;
 mod event;

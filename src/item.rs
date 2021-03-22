@@ -37,10 +37,16 @@ impl Item {
         }
     }
 
-    pub fn version_tag(&self) -> &VersionTag {
+    pub fn sync_status(&self) -> &SyncStatus {
         match self {
-            Item::Event(e) => e.version_tag(),
-            Item::Task(t) => t.version_tag(),
+            Item::Event(e) => e.sync_status(),
+            Item::Task(t) => t.sync_status(),
+        }
+    }
+    pub fn set_sync_status(&mut self, new_status: SyncStatus) {
+        match self {
+            Item::Event(e) => e.set_sync_status(new_status),
+            Item::Task(t) => t.set_sync_status(new_status),
         }
     }
 
@@ -87,7 +93,7 @@ pub struct ItemId {
     content: Url,
 }
 impl ItemId{
-    /// Generate a random ItemId. This is only useful in tests
+    /// Generate a random ItemId. This should only be useful in tests
     pub fn random() -> Self {
         let random = uuid::Uuid::new_v4().to_hyphenated().to_string();
         let s = format!("https://server.com/{}", random);
@@ -133,9 +139,32 @@ impl From<String> for VersionTag {
 }
 
 impl VersionTag {
-    /// Generate a random VesionTag. This is only useful in tests
+    /// Generate a random VesionTag
+    #[cfg(feature = "mock_version_tag")]
     pub fn random() -> Self {
         let random = uuid::Uuid::new_v4().to_hyphenated().to_string();
         Self { tag: random }
+    }
+}
+
+
+
+/// Desribes whether this item has been synced already, or modified since the last time it was synced
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub enum SyncStatus {
+    /// This item has ben locally created, and never synced yet
+    NotSynced,
+    /// At the time this item has ben synced, it has a given version tag, and has not been locally modified since then
+    Synced(VersionTag),
+    /// This item has been synced when it had a given version tag, and has been locally modified since then.
+    LocallyModified(VersionTag),
+    /// This item has been synced when it had a given version tag, and has been locally deleted since then.
+    LocallyDeleted(VersionTag),
+}
+impl SyncStatus {
+    /// Generate a random SyncStatus::Synced
+    #[cfg(feature = "mock_version_tag")]
+    pub fn random_synced() -> Self {
+        Self::Synced(VersionTag::random())
     }
 }
