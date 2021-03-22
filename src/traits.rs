@@ -7,6 +7,7 @@ use chrono::{DateTime, Utc};
 
 use crate::item::Item;
 use crate::item::ItemId;
+use crate::item::VersionTag;
 use crate::calendar::CalendarId;
 
 #[async_trait]
@@ -16,14 +17,6 @@ pub trait CalDavSource<T: PartialCalendar> {
     async fn get_calendars(&self) -> Result<HashMap<CalendarId, Arc<Mutex<T>>>, Box<dyn Error>>;
     /// Returns the calendar matching the ID
     async fn get_calendar(&self, id: &CalendarId) -> Option<Arc<Mutex<T>>>;
-}
-
-pub trait SyncSlave {
-    /// Returns the last time this source successfully synced from a master source (e.g. from a server)
-    /// (or None in case it has never been synchronized)
-    fn get_last_sync(&self) -> Option<DateTime<Utc>>;
-    /// Update the last sync timestamp to now, or to a custom time in case `timepoint` is `Some`
-    fn update_last_sync(&mut self, timepoint: Option<DateTime<Utc>>);
 }
 
 /// A calendar we have a partial knowledge of.
@@ -40,12 +33,8 @@ pub trait PartialCalendar {
     /// Returns the supported kinds of components for this calendar
     fn supported_components(&self) -> crate::calendar::SupportedComponents;
 
-    /// Returns the items that have been last-modified after `since`
-    async fn get_items_modified_since(&self, since: Option<DateTime<Utc>>, filter: Option<crate::calendar::SearchFilter>)
-        -> Result<HashMap<ItemId, &Item>, Box<dyn Error>>;
-
-    /// Get the IDs of all current items in this calendar
-    async fn get_item_ids(&self) -> Result<HashSet<ItemId>, Box<dyn Error>>;
+    /// Get the IDs and the version tags of every item in this calendar
+    async fn get_item_version_tags(&self) -> Result<HashMap<ItemId, VersionTag>, Box<dyn Error>>;
 
     /// Returns a particular item
     async fn get_item_by_id_mut<'a>(&'a mut self, id: &ItemId) -> Option<&'a mut Item>;
@@ -67,6 +56,14 @@ pub trait PartialCalendar {
         self.supported_components().contains(crate::calendar::SupportedComponents::EVENT)
     }
 
+    /// Get the IDs of all current items in this calendar
+    async fn get_item_ids(&self) -> Result<HashSet<ItemId>, Box<dyn Error>> {
+        let items = self.get_item_version_tags().await?;
+        Ok(items.iter()
+            .map(|(id, _tag)| id.clone())
+            .collect())
+    }
+
     /// Finds the IDs of the items that are missing compared to a reference set
     async fn find_deletions_from(&self, reference_set: HashSet<ItemId>) -> Result<HashSet<ItemId>, Box<dyn Error>> {
         let current_items = self.get_item_ids().await?;
@@ -83,6 +80,10 @@ pub trait CompleteCalendar : PartialCalendar {
     ///
     /// See also [`PartialCalendar::get_items_deleted_since`]
     async fn get_items_deleted_since(&self, since: DateTime<Utc>) -> Result<HashSet<ItemId>, Box<dyn Error>>;
+
+   /// Returns the items that have been last-modified after `since`
+    async fn get_items_modified_since(&self, since: Option<DateTime<Utc>>, filter: Option<crate::calendar::SearchFilter>)
+        -> Result<HashMap<ItemId, &Item>, Box<dyn Error>>;
 
     /// Returns the list of items that this calendar contains
     async fn get_items(&self) -> Result<HashMap<ItemId, &Item>, Box<dyn Error>>;

@@ -4,11 +4,12 @@ use std::sync::{Arc, Mutex};
 use chrono::{Utc, TimeZone};
 use url::Url;
 
-use my_tasks::traits::{CalDavSource, SyncSlave};
+use my_tasks::traits::CalDavSource;
 use my_tasks::traits::PartialCalendar;
 use my_tasks::cache::Cache;
 use my_tasks::Item;
 use my_tasks::ItemId;
+use my_tasks::VersionTag;
 use my_tasks::Task;
 use my_tasks::calendar::cached_calendar::CachedCalendar;
 use my_tasks::Provider;
@@ -53,23 +54,23 @@ async fn populate_test_provider() -> Provider<Cache, CachedCalendar, Cache, Cach
 
     let cal_id = Url::parse("http://todo.list/cal").unwrap();
 
-    let task_a = Item::Task(Task::new("task A".into(), ItemId::random(), Utc.ymd(2000, 1, 1).and_hms(0, 0, 0)));
-    let task_b = Item::Task(Task::new("task B".into(), ItemId::random(), Utc.ymd(2000, 1, 2).and_hms(0, 0, 0)));
-    let task_c = Item::Task(Task::new("task C".into(), ItemId::random(), Utc.ymd(2000, 1, 3).and_hms(0, 0, 0)));
-    let task_d = Item::Task(Task::new("task D".into(), ItemId::random(), Utc.ymd(2000, 1, 4).and_hms(0, 0, 0)));
-    let task_e = Item::Task(Task::new("task E".into(), ItemId::random(), Utc.ymd(2000, 1, 5).and_hms(0, 0, 0)));
-    let task_f = Item::Task(Task::new("task F".into(), ItemId::random(), Utc.ymd(2000, 1, 6).and_hms(0, 0, 0)));
-    let task_g = Item::Task(Task::new("task G".into(), ItemId::random(), Utc.ymd(2000, 1, 7).and_hms(0, 0, 0)));
-    let task_h = Item::Task(Task::new("task H".into(), ItemId::random(), Utc.ymd(2000, 1, 8).and_hms(0, 0, 0)));
-    let task_i = Item::Task(Task::new("task I".into(), ItemId::random(), Utc.ymd(2000, 1, 9).and_hms(0, 0, 0)));
-    let task_j = Item::Task(Task::new("task J".into(), ItemId::random(), Utc.ymd(2000, 1, 10).and_hms(0, 0, 0)));
-    let task_k = Item::Task(Task::new("task K".into(), ItemId::random(), Utc.ymd(2000, 1, 11).and_hms(0, 0, 0)));
-    let task_l = Item::Task(Task::new("task L".into(), ItemId::random(), Utc.ymd(2000, 1, 12).and_hms(0, 0, 0)));
-    let task_m = Item::Task(Task::new("task M".into(), ItemId::random(), Utc.ymd(2000, 1, 12).and_hms(0, 0, 0)));
+    let task_a = Item::Task(Task::new("task A".into(), ItemId::random(), Utc.ymd(2000, 1, 1).and_hms(0, 0, 0), VersionTag::random()));
+    let task_b = Item::Task(Task::new("task B".into(), ItemId::random(), Utc.ymd(2000, 1, 2).and_hms(0, 0, 0), VersionTag::random()));
+    let task_c = Item::Task(Task::new("task C".into(), ItemId::random(), Utc.ymd(2000, 1, 3).and_hms(0, 0, 0), VersionTag::random()));
+    let task_d = Item::Task(Task::new("task D".into(), ItemId::random(), Utc.ymd(2000, 1, 4).and_hms(0, 0, 0), VersionTag::random()));
+    let task_e = Item::Task(Task::new("task E".into(), ItemId::random(), Utc.ymd(2000, 1, 5).and_hms(0, 0, 0), VersionTag::random()));
+    let task_f = Item::Task(Task::new("task F".into(), ItemId::random(), Utc.ymd(2000, 1, 6).and_hms(0, 0, 0), VersionTag::random()));
+    let task_g = Item::Task(Task::new("task G".into(), ItemId::random(), Utc.ymd(2000, 1, 7).and_hms(0, 0, 0), VersionTag::random()));
+    let task_h = Item::Task(Task::new("task H".into(), ItemId::random(), Utc.ymd(2000, 1, 8).and_hms(0, 0, 0), VersionTag::random()));
+    let task_i = Item::Task(Task::new("task I".into(), ItemId::random(), Utc.ymd(2000, 1, 9).and_hms(0, 0, 0), VersionTag::random()));
+    let task_j = Item::Task(Task::new("task J".into(), ItemId::random(), Utc.ymd(2000, 1, 10).and_hms(0, 0, 0), VersionTag::random()));
+    let task_k = Item::Task(Task::new("task K".into(), ItemId::random(), Utc.ymd(2000, 1, 11).and_hms(0, 0, 0), VersionTag::random()));
+    let task_l = Item::Task(Task::new("task L".into(), ItemId::random(), Utc.ymd(2000, 1, 12).and_hms(0, 0, 0), VersionTag::random()));
+    let task_m = Item::Task(Task::new("task M".into(), ItemId::random(), Utc.ymd(2000, 1, 12).and_hms(0, 0, 0), VersionTag::random()));
 
-    let last_sync = task_m.last_modified();
-    local.update_last_sync(Some(last_sync));
-    assert!(last_sync < Utc::now());
+    // let last_sync = task_m.last_modified();
+    // local.update_last_sync(Some(last_sync));
+    // assert!(last_sync < Utc::now());
 
     let task_b_id = task_b.id().clone();
     let task_c_id = task_c.id().clone();
@@ -129,7 +130,7 @@ async fn populate_test_provider() -> Provider<Cache, CachedCalendar, Cache, Cach
 
     cal_server.delete_item(&task_l_id).await.unwrap();
 
-    let task_n = Item::Task(Task::new("task N (new from server)".into(), ItemId::random(), Utc::now()));
+    let task_n = Item::Task(Task::new("task N (new from server)".into(), ItemId::random(), Utc::now(), VersionTag::random()));
     cal_server.add_item(task_n).await;
 
 
@@ -158,7 +159,7 @@ async fn populate_test_provider() -> Provider<Cache, CachedCalendar, Cache, Cach
     cal_local.delete_item(&task_k_id).await.unwrap();
     cal_local.delete_item(&task_l_id).await.unwrap();
 
-    let task_o = Item::Task(Task::new("task O (new from local)".into(), ItemId::random(), Utc::now()));
+    let task_o = Item::Task(Task::new("task O (new from local)".into(), ItemId::random(), Utc::now(), VersionTag::random()));
     cal_local.add_item(task_o).await;
 
     Provider::new(server, local)

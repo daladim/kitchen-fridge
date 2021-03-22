@@ -2,6 +2,7 @@ use chrono::{Utc, DateTime};
 use serde::{Deserialize, Serialize};
 
 use crate::item::ItemId;
+use crate::item::VersionTag;
 
 /// A to-do task
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -11,6 +12,8 @@ pub struct Task {
 
     /// The last modification date of this task
     last_modified: DateTime<Utc>,
+    /// The version tag of this item
+    version_tag: VersionTag,
 
     /// The display name of the task
     name: String,
@@ -20,11 +23,12 @@ pub struct Task {
 
 impl Task {
     /// Create a new Task
-    pub fn new(name: String, id: ItemId, last_modified: DateTime<Utc>) -> Self {
+    pub fn new(name: String, id: ItemId, last_modified: DateTime<Utc>, version_tag: VersionTag) -> Self {
         Self {
             id,
             name,
             last_modified,
+            version_tag,
             completed: false,
         }
     }
@@ -33,6 +37,7 @@ impl Task {
     pub fn name(&self) -> &str      { &self.name        }
     pub fn completed(&self) -> bool { self.completed    }
     pub fn last_modified(&self) -> DateTime<Utc> { self.last_modified }
+    pub fn version_tag(&self) -> &VersionTag     { &self.version_tag  }
 
     fn update_last_modified(&mut self) {
         self.last_modified = Utc::now();

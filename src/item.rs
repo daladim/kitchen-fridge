@@ -7,6 +7,8 @@ use url::Url;
 
 use crate::resource::Resource;
 
+
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum Item {
     Event(crate::event::Event),
@@ -32,6 +34,13 @@ impl Item {
         match self {
             Item::Event(e) => e.last_modified(),
             Item::Task(t) => t.last_modified(),
+        }
+    }
+
+    pub fn version_tag(&self) -> &VersionTag {
+        match self {
+            Item::Event(e) => e.version_tag(),
+            Item::Task(t) => t.version_tag(),
         }
     }
 
@@ -107,5 +116,26 @@ impl Eq for ItemId {}
 impl Display for ItemId {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
         write!(f, "{}", self.content)
+    }
+}
+
+
+/// A VersionTag is basically a CalDAV `ctag` or `etag`. Whenever it changes, this means the data has changed.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct VersionTag {
+    tag: String
+}
+
+impl From<String> for VersionTag {
+    fn from(tag: String) -> VersionTag {
+        Self { tag }
+    }
+}
+
+impl VersionTag {
+    /// Generate a random VesionTag. This is only useful in tests
+    pub fn random() -> Self {
+        let random = uuid::Uuid::new_v4().to_hyphenated().to_string();
+        Self { tag: random }
     }
 }

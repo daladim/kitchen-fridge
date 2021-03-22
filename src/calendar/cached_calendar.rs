@@ -10,6 +10,7 @@ use crate::traits::{PartialCalendar, CompleteCalendar};
 use crate::calendar::{CalendarId, SupportedComponents, SearchFilter};
 use crate::Item;
 use crate::item::ItemId;
+use crate::item::VersionTag;
 
 
 /// A calendar used by the [`cache`](crate::cache) module
@@ -69,6 +70,32 @@ impl PartialCalendar for CachedCalendar {
         Ok(())
     }
 
+    async fn get_item_version_tags(&self) -> Result<HashMap<ItemId, VersionTag>, Box<dyn Error>> {
+        Ok(self.items.iter()
+            .map(|(id, item)| (id.clone(), item.version_tag().clone()))
+            .collect()
+        )
+    }
+
+    async fn get_item_by_id_mut<'a>(&'a mut self, id: &ItemId) -> Option<&'a mut Item> {
+        self.items.get_mut(id)
+    }
+}
+
+#[async_trait]
+impl CompleteCalendar for CachedCalendar {
+    /// Returns the items that have been deleted after `since`
+    async fn get_items_deleted_since(&self, since: DateTime<Utc>) -> Result<HashSet<ItemId>, Box<dyn Error>> {
+        Ok(self.deleted_items.range(since..)
+            .map(|(_key, id)| id.clone())
+            .collect())
+    }
+
+    /// Returns the list of items that this calendar contains
+    async fn get_items(&self) -> Result<HashMap<ItemId, &Item>, Box<dyn Error>> {
+        self.get_items_modified_since(None, None).await
+    }
+
     async fn get_items_modified_since(&self, since: Option<DateTime<Utc>>, filter: Option<SearchFilter>) -> Result<HashMap<ItemId, &Item>, Box<dyn Error>> {
         let filter = filter.unwrap_or_default();
 
@@ -96,28 +123,4 @@ impl PartialCalendar for CachedCalendar {
 
         Ok(map)
     }
-
-    async fn get_item_ids(&self) -> Result<HashSet<ItemId>, Box<dyn Error>> {
-        Ok(self.items.keys().cloned().collect())
-    }
-
-    async fn get_item_by_id_mut<'a>(&'a mut self, id: &ItemId) -> Option<&'a mut Item> {
-        self.items.get_mut(id)
-    }
-}
-
-#[async_trait]
-impl CompleteCalendar for CachedCalendar {
-    /// Returns the items that have been deleted after `since`
-    async fn get_items_deleted_since(&self, since: DateTime<Utc>) -> Result<HashSet<ItemId>, Box<dyn Error>> {
-        Ok(self.deleted_items.range(since..)
-            .map(|(_key, id)| id.clone())
-            .collect())
-    }
-
-    /// Returns the list of items that this calendar contains
-    async fn get_items(&self) -> Result<HashMap<ItemId, &Item>, Box<dyn Error>> {
-        self.get_items_modified_since(None, None).await
-    }
-
 }

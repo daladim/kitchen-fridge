@@ -7,8 +7,9 @@ use async_trait::async_trait;
 use crate::traits::PartialCalendar;
 use crate::calendar::SupportedComponents;
 use crate::calendar::CalendarId;
-use crate::item::ItemId;
 use crate::item::Item;
+use crate::item::ItemId;
+use crate::item::VersionTag;
 use crate::resource::Resource;
 
 static TASKS_BODY: &str = r#"
@@ -51,14 +52,6 @@ impl PartialCalendar for RemoteCalendar {
         self.supported_components
     }
 
-    /// Returns the items that have been last-modified after `since`
-    async fn get_items_modified_since(&self, since: Option<DateTime<Utc>>, _filter: Option<crate::calendar::SearchFilter>)
-        -> Result<HashMap<ItemId, &Item>, Box<dyn Error>>
-    {
-        log::error!("Not implemented");
-        Ok(HashMap::new())
-    }
-
     /// Get the IDs of all current items in this calendar
     async fn get_item_ids(&self) -> Result<HashSet<ItemId>, Box<dyn Error>> {
         let responses = crate::client::sub_request_and_extract_elems(&self.resource, "REPORT", TASKS_BODY.to_string(), "response").await?;
@@ -80,6 +73,11 @@ impl PartialCalendar for RemoteCalendar {
         }
 
         Ok(item_ids)
+    }
+
+    async fn get_item_version_tags(&self) -> Result<HashMap<ItemId, VersionTag>, Box<dyn Error>> {
+        log::error!("Not implemented");
+        Ok(HashMap::new())
     }
 
     /// Returns a particular item

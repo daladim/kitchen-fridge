@@ -53,9 +53,9 @@ async fn show_calendars() {
         }
 
         println!("  Most recent changes:");
-        for (_id, task) in cal.get_items_modified_since(None, None).await.unwrap() {
-            my_tasks::utils::print_task(task);
-        }
+        // for (_id, task) in cal.get_item_version_tags(None, None).await.unwrap() {
+        //     my_tasks::utils::print_task(task);
+        // }
     }
 }
 

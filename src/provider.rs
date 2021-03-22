@@ -7,7 +7,6 @@ use std::marker::PhantomData;
 use chrono::{DateTime, Utc};
 
 use crate::traits::{CalDavSource, CompleteCalendar};
-use crate::traits::SyncSlave;
 use crate::traits::PartialCalendar;
 use crate::Item;
 use crate::item::ItemId;
@@ -16,7 +15,7 @@ use crate::item::ItemId;
 /// A data source that combines two `CalDavSources` (usually a server and a local cache), which is able to sync both sources.
 pub struct Provider<L, T, S, U>
 where
-    L: CalDavSource<T> + SyncSlave,
+    L: CalDavSource<T>,
     T: CompleteCalendar,
     S: CalDavSource<U>,
     U: PartialCalendar + Sync + Send,
@@ -32,7 +31,7 @@ where
 
 impl<L, T, S, U> Provider<L, T, S, U>
 where
-    L: CalDavSource<T> + SyncSlave,
+    L: CalDavSource<T>,
     T: CompleteCalendar,
     S: CalDavSource<U>,
     U: PartialCalendar + Sync + Send,
@@ -51,19 +50,14 @@ where
     pub fn server(&self) -> &S { &self.server }
     /// Returns the data source described as the `local`
     pub fn local(&self)  -> &L { &self.local }
-    /// Returns the last time the `local` source has been synced
-    pub fn last_sync_timestamp(&self) -> Option<DateTime<Utc>> {
-        self.local.get_last_sync()
-    }
 
     /// Performs a synchronisation between `local` and `server`.
     ///
     /// This bidirectional sync applies additions/deletions made on a source to the other source.
     /// In case of conflicts (the same item has been modified on both ends since the last sync, `server` always wins)
     pub async fn sync(&mut self) -> Result<(), Box<dyn Error>> {
-        let last_sync = self.local.get_last_sync();
-        log::info!("Starting a sync. Last sync was at {:?}", last_sync);
-
+        log::info!("Starting a sync.");
+/*
         let cals_server = self.server.get_calendars().await?;
         for (id, cal_server) in cals_server {
             let mut cal_server = cal_server.lock().unwrap();
@@ -77,8 +71,8 @@ where
             };
             let mut cal_local = cal_local.lock().unwrap();
 
-            // Step 1 - "Server always wins", so a delteion from the server must be applied locally, even if it was locally modified.
-            let mut local_dels = match last_sync {
+            // Step 1 - "Server always wins", so a deletion from the server must be applied locally, even if it was locally modified.
+            let mut local_dels = match cal_local.get_last_sync() {
                 None => HashSet::new(),
                 Some(date) => cal_local.get_items_deleted_since(date).await?,
             };
@@ -138,7 +132,7 @@ where
         }
 
         self.local.update_last_sync(None);
-
+*/
         Ok(())
     }
 }

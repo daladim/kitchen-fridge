@@ -14,7 +14,6 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 
 use crate::traits::CalDavSource;
-use crate::traits::SyncSlave;
 use crate::traits::PartialCalendar;
 use crate::traits::CompleteCalendar;
 use crate::calendar::cached_calendar::CachedCalendar;
@@ -189,16 +188,6 @@ impl CalDavSource<CachedCalendar> for Cache {
 
     async fn get_calendar(&self, id: &CalendarId) -> Option<Arc<Mutex<CachedCalendar>>> {
         self.data.calendars.get(id).map(|arc| arc.clone())
-    }
-}
-
-impl SyncSlave for Cache {
-    fn get_last_sync(&self) -> Option<DateTime<Utc>> {
-        self.data.last_sync
-    }
-
-    fn update_last_sync(&mut self, timepoint: Option<DateTime<Utc>>) {
-        self.data.last_sync = Some(timepoint.unwrap_or_else(|| Utc::now()));
     }
 }
 
