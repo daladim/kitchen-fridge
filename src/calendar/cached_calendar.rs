@@ -3,7 +3,6 @@ use std::collections::BTreeMap;
 use std::error::Error;
 
 use serde::{Deserialize, Serialize};
-use chrono::{DateTime, Utc};
 use async_trait::async_trait;
 
 use crate::traits::{PartialCalendar, CompleteCalendar};
@@ -21,7 +20,6 @@ pub struct CachedCalendar {
     supported_components: SupportedComponents,
 
     items: HashMap<ItemId, Item>,
-    deleted_items: BTreeMap<DateTime<Utc>, ItemId>,
 }
 
 impl CachedCalendar {
@@ -30,7 +28,6 @@ impl CachedCalendar {
         Self {
             name, id, supported_components,
             items: HashMap::new(),
-            deleted_items: BTreeMap::new(),
         }
     }
 }
@@ -57,7 +54,6 @@ impl PartialCalendar for CachedCalendar {
         if let None = self.items.remove(item_id) {
             return Err("This key does not exist.".into());
         }
-        self.deleted_items.insert(Utc::now(), item_id.clone());
         Ok(())
     }
 
