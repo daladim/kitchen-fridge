@@ -84,19 +84,19 @@ async fn populate_test_provider() -> Provider<Cache, CachedCalendar, Cache, Cach
     // Step 1
     // Build the calendar as it was at the time of the sync
     let mut calendar = CachedCalendar::new("a list".into(), cal_id.clone(), my_tasks::calendar::SupportedComponents::TODO);
-    calendar.add_item(task_a).await;
-    calendar.add_item(task_b).await;
-    calendar.add_item(task_c).await;
-    calendar.add_item(task_d).await;
-    calendar.add_item(task_e).await;
-    calendar.add_item(task_f).await;
-    calendar.add_item(task_g).await;
-    calendar.add_item(task_h).await;
-    calendar.add_item(task_i).await;
-    calendar.add_item(task_j).await;
-    calendar.add_item(task_k).await;
-    calendar.add_item(task_l).await;
-    calendar.add_item(task_m).await;
+    calendar.add_item(task_a).await.unwrap();
+    calendar.add_item(task_b).await.unwrap();
+    calendar.add_item(task_c).await.unwrap();
+    calendar.add_item(task_d).await.unwrap();
+    calendar.add_item(task_e).await.unwrap();
+    calendar.add_item(task_f).await.unwrap();
+    calendar.add_item(task_g).await.unwrap();
+    calendar.add_item(task_h).await.unwrap();
+    calendar.add_item(task_i).await.unwrap();
+    calendar.add_item(task_j).await.unwrap();
+    calendar.add_item(task_k).await.unwrap();
+    calendar.add_item(task_l).await.unwrap();
+    calendar.add_item(task_m).await.unwrap();
 
     server.add_calendar(Arc::new(Mutex::new(calendar.clone())));
     local.add_calendar(Arc::new(Mutex::new(calendar.clone())));
@@ -128,7 +128,7 @@ async fn populate_test_provider() -> Provider<Cache, CachedCalendar, Cache, Cach
     cal_server.delete_item(&task_l_id).await.unwrap();
 
     let task_n = Item::Task(Task::new("task N (new from server)".into(), ItemId::random(), SyncStatus::random_synced()));
-    cal_server.add_item(task_n).await;
+    cal_server.add_item(task_n).await.unwrap();
 
 
     // Step 3
@@ -157,7 +157,7 @@ async fn populate_test_provider() -> Provider<Cache, CachedCalendar, Cache, Cach
     cal_local.mark_for_deletion(&task_l_id).await.unwrap();
 
     let task_o = Item::Task(Task::new("task O (new from local)".into(), ItemId::random(), SyncStatus::NotSynced));
-    cal_local.add_item(task_o).await;
+    cal_local.add_item(task_o).await.unwrap();
 
     Provider::new(server, local)
 }

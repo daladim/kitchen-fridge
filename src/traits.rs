@@ -42,7 +42,7 @@ pub trait PartialCalendar {
     async fn get_item_by_id<'a>(&'a self, id: &ItemId) -> Option<&'a Item>;
 
     /// Add an item into this calendar
-    async fn add_item(&mut self, item: Item);
+    async fn add_item(&mut self, item: Item) -> Result<(), Box<dyn Error>>;
 
     /// Remove an item from this calendar
     async fn delete_item(&mut self, item_id: &ItemId) -> Result<(), Box<dyn Error>>;

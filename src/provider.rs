@@ -166,7 +166,11 @@ where
                         log::error!("Inconsistency: new item {} has vanished from the remote end", id_add);
                         continue;
                     },
-                    Some(new_item) => cal_local.add_item(new_item.clone()).await,
+                    Some(new_item) => {
+                        if let Err(err) = cal_local.add_item(new_item.clone()).await {
+                            log::error!("Not able to add item {} to local calendar: {}", id_add, err);
+                        }
+                    },
                 }
             }
 
@@ -180,7 +184,9 @@ where
                         if let Err(err) = cal_local.delete_item(&id_change).await {
                             log::error!("Unable to delete item {} from local calendar: {}", id_change, err);
                         }
-                        cal_local.add_item(item.clone());
+                        if let Err(err) = cal_local.add_item(item.clone()).await {
+                            log::error!("Unable to add item {} to local calendar: {}", id_change, err);
+                        }
                     },
                 }
             }
@@ -192,7 +198,11 @@ where
                         log::error!("Inconsistency: created item {} has been marked for upload but is locally missing", id_add);
                         continue;
                     },
-                    Some(item) => cal_remote.add_item(item.clone()),
+                    Some(item) => {
+                        if let Err(err) = cal_remote.add_item(item.clone()).await {
+                            log::error!("Unable to add item {} to remote calendar: {}", id_add, err);
+                        }
+                    }
                 };
             }
 
@@ -206,7 +216,9 @@ where
                         if let Err(err) = cal_remote.delete_item(&id_change).await {
                             log::error!("Unable to delete item {} from remote calendar: {}", id_change, err);
                         }
-                        cal_remote.add_item(item.clone());
+                        if let Err(err) = cal_remote.add_item(item.clone()).await {
+                            log::error!("Unable to add item {} to remote calendar: {}", id_change, err);
+                        }
                     }
                 };
             }

@@ -72,8 +72,9 @@ impl PartialCalendar for CachedCalendar {
         self.supported_components
     }
 
-    async fn add_item(&mut self, item: Item) {
+    async fn add_item(&mut self, item: Item) -> Result<(), Box<dyn Error>> {
         self.items.insert(item.id().clone(), item);
+        Ok(())
     }
 
     async fn delete_item(&mut self, item_id: &ItemId) -> Result<(), Box<dyn Error>> {
