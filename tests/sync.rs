@@ -136,7 +136,7 @@ async fn populate_test_provider() -> Provider<Cache, CachedCalendar, Cache, Cach
     let cal_local = local.get_calendar(&cal_id).await.unwrap();
     let mut cal_local = cal_local.lock().unwrap();
 
-    cal_local.delete_item(&task_c_id).await.unwrap();
+    cal_local.mark_for_deletion(&task_c_id).await.unwrap();
 
     cal_local.get_item_by_id_mut(&task_d_id).await.unwrap().unwrap_task_mut()
         .set_name("D has been locally renamed".into());
@@ -153,8 +153,8 @@ async fn populate_test_provider() -> Provider<Cache, CachedCalendar, Cache, Cach
     cal_local.get_item_by_id_mut(&task_j_id).await.unwrap().unwrap_task_mut()
         .set_completed(true);
 
-    cal_local.delete_item(&task_k_id).await.unwrap();
-    cal_local.delete_item(&task_l_id).await.unwrap();
+    cal_local.mark_for_deletion(&task_k_id).await.unwrap();
+    cal_local.mark_for_deletion(&task_l_id).await.unwrap();
 
     let task_o = Item::Task(Task::new("task O (new from local)".into(), ItemId::random(), SyncStatus::NotSynced));
     cal_local.add_item(task_o).await;

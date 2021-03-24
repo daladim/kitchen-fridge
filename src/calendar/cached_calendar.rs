@@ -1,12 +1,11 @@
 use std::collections::{HashMap, HashSet};
-use std::collections::BTreeMap;
 use std::error::Error;
 
 use serde::{Deserialize, Serialize};
 use async_trait::async_trait;
 
-use crate::traits::{PartialCalendar, CompleteCalendar};
-use crate::calendar::{CalendarId, SupportedComponents, SearchFilter};
+use crate::{SyncStatus, traits::{PartialCalendar, CompleteCalendar}};
+use crate::calendar::{CalendarId, SupportedComponents};
 use crate::Item;
 use crate::item::ItemId;
 use crate::item::VersionTag;
@@ -28,6 +27,33 @@ impl CachedCalendar {
         Self {
             name, id, supported_components,
             items: HashMap::new(),
+        }
+    }
+
+    pub async fn mark_for_deletion(&mut self, item_id: &ItemId) -> Result<(), Box<dyn Error>> {
+        match self.items.get_mut(item_id) {
+            None => Err("no item for this key".into()),
+            Some(item) => {
+                match item.sync_status() {
+                    SyncStatus::Synced(prev_ss) => {
+                        let prev_ss = prev_ss.clone();
+                        item.set_sync_status( SyncStatus::LocallyDeleted(prev_ss));
+                    },
+                    SyncStatus::LocallyModified(prev_ss) => {
+                        let prev_ss = prev_ss.clone();
+                        item.set_sync_status( SyncStatus::LocallyDeleted(prev_ss));
+                    },
+                    SyncStatus::LocallyDeleted(prev_ss) => {
+                        let prev_ss = prev_ss.clone();
+                        item.set_sync_status( SyncStatus::LocallyDeleted(prev_ss));
+                    },
+                    SyncStatus::NotSynced => {
+                        // This was never synced to the server, we can safely delete it as soon as now
+                        self.items.remove(item_id);
+                    },
+                };
+                Ok(())
+            }
         }
     }
 }
@@ -81,6 +107,16 @@ impl PartialCalendar for CachedCalendar {
 
         Ok(result)
     }
+
+    // This reimplements the trait method to avoid resorting to `get_item_version_tags`
+    // (this is thus slighlty faster, but also avoids an unnecessary iteration over SyncStatus that might panic for some mocked values if feature `mock_version_tag` is set)
+    async fn get_item_ids(&self) -> Result<HashSet<ItemId>, Box<dyn Error>> {
+        Ok(self.items.iter()
+            .map(|(id, _)| id.clone())
+            .collect()
+        )
+    }
+
 
     async fn get_item_by_id_mut<'a>(&'a mut self, id: &ItemId) -> Option<&'a mut Item> {
         self.items.get_mut(id)
