@@ -59,7 +59,6 @@ impl BaseCalendar for CachedCalendar {
 #[async_trait]
 impl CompleteCalendar for CachedCalendar {
     async fn get_item_ids(&self) -> Result<HashSet<ItemId>, Box<dyn Error>> {
-        eprintln!("Overridden implem");
         Ok(self.items.iter()
             .map(|(id, _)| id.clone())
             .collect()
