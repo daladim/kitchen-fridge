@@ -6,6 +6,7 @@ use std::sync::{Arc, Mutex};
 use minidom::Element;
 
 use crate::traits::CompleteCalendar;
+use crate::traits::DavCalendar;
 use crate::calendar::CalendarId;
 use crate::Item;
 use crate::item::SyncStatus;
@@ -71,6 +72,24 @@ where
             Ok(map) => {
                 for (_, item) in map {
                     print_task(item);
+                }
+            },
+        }
+    }
+}
+
+/// A debug utility that pretty-prints calendars
+pub async fn print_dav_calendar_list<C>(cals: &HashMap<CalendarId, Arc<Mutex<C>>>)
+where
+    C: DavCalendar,
+{
+    for (id, cal) in cals {
+        println!("CAL {}", id);
+        match cal.lock().unwrap().get_item_version_tags().await {
+            Err(_err) => continue,
+            Ok(map) => {
+                for (id, version_tag) in map {
+                    println!("    * {} (version {:?})", id, version_tag);
                 }
             },
         }
