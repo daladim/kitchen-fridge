@@ -132,7 +132,7 @@ impl From<String> for VersionTag {
 
 impl VersionTag {
     /// Generate a random VesionTag
-    #[cfg(feature = "mock_version_tag")]
+    #[cfg(feature = "local_calendar_mocks_remote_calendars")]
     pub fn random() -> Self {
         let random = uuid::Uuid::new_v4().to_hyphenated().to_string();
         Self { tag: random }
@@ -146,7 +146,8 @@ impl VersionTag {
 pub enum SyncStatus {
     /// This item has ben locally created, and never synced yet
     NotSynced,
-    /// At the time this item has ben synced, it has a given version tag, and has not been locally modified since then
+    /// At the time this item has ben synced, it has a given version tag, and has not been locally modified since then.
+    /// Note: in integration tests, in case we are mocking a remote calendar by a local calendar, this is the only valid variant (remote calendars make no distinction between all these variants)
     Synced(VersionTag),
     /// This item has been synced when it had a given version tag, and has been locally modified since then.
     LocallyModified(VersionTag),
@@ -155,7 +156,7 @@ pub enum SyncStatus {
 }
 impl SyncStatus {
     /// Generate a random SyncStatus::Synced
-    #[cfg(feature = "mock_version_tag")]
+    #[cfg(feature = "local_calendar_mocks_remote_calendars")]
     pub fn random_synced() -> Self {
         Self::Synced(VersionTag::random())
     }

@@ -15,7 +15,7 @@ use crate::utils::{find_elem, find_elems};
 use crate::calendar::remote_calendar::RemoteCalendar;
 use crate::calendar::CalendarId;
 use crate::traits::CalDavSource;
-use crate::traits::PartialCalendar;
+use crate::traits::BaseCalendar;
 
 
 static DAVCLIENT_BODY: &str = r#"

@@ -1,9 +1,10 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::error::Error;
 
 use async_trait::async_trait;
 
-use crate::traits::PartialCalendar;
+use crate::traits::BaseCalendar;
+use crate::traits::DavCalendar;
 use crate::calendar::SupportedComponents;
 use crate::calendar::CalendarId;
 use crate::item::Item;
@@ -44,63 +45,34 @@ impl RemoteCalendar {
 }
 
 #[async_trait]
-impl PartialCalendar for RemoteCalendar {
+impl BaseCalendar for RemoteCalendar {
     fn name(&self) -> &str { &self.name }
     fn id(&self) -> &CalendarId { &self.resource.url() }
     fn supported_components(&self) -> crate::calendar::SupportedComponents {
         self.supported_components
     }
 
-    /// Get the IDs of all current items in this calendar
-    async fn get_item_ids(&self) -> Result<HashSet<ItemId>, Box<dyn Error>> {
-        let responses = crate::client::sub_request_and_extract_elems(&self.resource, "REPORT", TASKS_BODY.to_string(), "response").await?;
-
-        let mut item_ids = HashSet::new();
-        for response in responses {
-            let item_url = crate::utils::find_elem(&response, "href")
-                .map(|elem| self.resource.combine(&elem.text()));
-
-            match item_url {
-                None => {
-                    log::warn!("Unable to extract HREF");
-                    continue;
-                },
-                Some(resource) => {
-                    item_ids.insert(ItemId::from(&resource));
-                },
-            };
-        }
-
-        Ok(item_ids)
-    }
-
-    async fn get_item_version_tags(&self) -> Result<HashMap<ItemId, VersionTag>, Box<dyn Error>> {
-        log::error!("Not implemented");
-        Ok(HashMap::new())
-    }
-
-    /// Returns a particular item
-    async fn get_item_by_id_mut<'a>(&'a mut self, _id: &ItemId) -> Option<&'a mut Item> {
-        log::error!("Not implemented");
-        None
+    /// Add an item into this calendar
+    async fn add_item(&mut self, _item: Item) -> Result<(), Box<dyn Error>> {
+        Err("Not implemented".into())
     }
 
     async fn get_item_by_id<'a>(&'a self, id: &ItemId) -> Option<&'a Item> {
         log::error!("Not implemented");
         None
     }
+}
 
-
-    /// Add an item into this calendar
-    async fn add_item(&mut self, _item: Item) -> Result<(), Box<dyn Error>> {
-        Err("Not implemented".into())
+#[async_trait]
+impl DavCalendar for RemoteCalendar {
+    async fn get_item_version_tags(&self) -> Result<HashMap<ItemId, VersionTag>, Box<dyn Error>> {
+        log::error!("Not implemented");
+        Ok(HashMap::new())
     }
 
-    /// Remove an item from this calendar
     async fn delete_item(&mut self, _item_id: &ItemId) -> Result<(), Box<dyn Error>> {
         log::error!("Not implemented");
         Ok(())
     }
-
 }
 

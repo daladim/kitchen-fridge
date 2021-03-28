@@ -4,8 +4,8 @@ use std::error::Error;
 use std::collections::HashSet;
 use std::marker::PhantomData;
 
-use crate::traits::{CalDavSource, CompleteCalendar};
-use crate::traits::PartialCalendar;
+use crate::traits::{CalDavSource, DavCalendar};
+use crate::traits::CompleteCalendar;
 use crate::item::SyncStatus;
 
 /// A data source that combines two `CalDavSources` (usually a server and a local cache), which is able to sync both sources.
@@ -14,7 +14,7 @@ where
     L: CalDavSource<T>,
     T: CompleteCalendar + Sync + Send,
     R: CalDavSource<U>,
-    U: PartialCalendar + Sync + Send,
+    U: DavCalendar + Sync + Send,
 {
     /// The remote source (usually a server)
     remote: R,
@@ -30,7 +30,7 @@ where
     L: CalDavSource<T>,
     T: CompleteCalendar + Sync + Send,
     R: CalDavSource<U>,
-    U: PartialCalendar + Sync + Send,
+    U: DavCalendar + Sync + Send,
 {
     /// Create a provider.
     ///
@@ -155,7 +155,7 @@ where
             }
 
             for id_del in remote_del {
-                if let Err(err) = cal_local.delete_item(&id_del).await {
+                if let Err(err) = cal_local.immediately_delete_item(&id_del).await {
                     log::warn!("Unable to delete local item {}: {}", id_del, err);
                 }
             }

@@ -6,7 +6,9 @@ use std::sync::{Arc, Mutex};
 use url::Url;
 
 use my_tasks::traits::CalDavSource;
-use my_tasks::traits::PartialCalendar;
+use my_tasks::traits::BaseCalendar;
+use my_tasks::traits::CompleteCalendar;
+use my_tasks::traits::DavCalendar;
 use my_tasks::cache::Cache;
 use my_tasks::Item;
 use my_tasks::ItemId;
@@ -109,21 +111,21 @@ async fn populate_test_provider() -> Provider<Cache, CachedCalendar, Cache, Cach
     cal_server.delete_item(&task_b_id).await.unwrap();
 
     cal_server.get_item_by_id_mut(&task_e_id).await.unwrap().unwrap_task_mut()
-        .set_name("E has been remotely renamed".into());
+        .mock_remote_calendar_set_name("E has been remotely renamed".into());
 
     cal_server.get_item_by_id_mut(&task_f_id).await.unwrap().unwrap_task_mut()
-        .set_name("F renamed in the server".into());
+        .mock_remote_calendar_set_name("F renamed in the server".into());
 
     cal_server.get_item_by_id_mut(&task_g_id).await.unwrap().unwrap_task_mut()
-        .set_completed(true);
+        .mock_remote_calendar_set_completed(true);
 
     cal_server.get_item_by_id_mut(&task_i_id).await.unwrap().unwrap_task_mut()
-        .set_name("I renamed in the server".into());
+        .mock_remote_calendar_set_name("I renamed in the server".into());
 
     cal_server.delete_item(&task_j_id).await.unwrap();
 
     cal_server.get_item_by_id_mut(&task_k_id).await.unwrap().unwrap_task_mut()
-        .set_completed(true);
+        .mock_remote_calendar_set_completed(true);
 
     cal_server.delete_item(&task_l_id).await.unwrap();
 

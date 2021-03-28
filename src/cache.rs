@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 use async_trait::async_trait;
 
 use crate::traits::CalDavSource;
-use crate::traits::PartialCalendar;
+use crate::traits::BaseCalendar;
 use crate::traits::CompleteCalendar;
 use crate::calendar::cached_calendar::CachedCalendar;
 use crate::calendar::CalendarId;
@@ -143,21 +143,21 @@ impl Cache {
             let items_l = cal_l.get_items().await?;
             let items_r = cal_r.get_items().await?;
 
-                    if keys_are_the_same(&items_l, &items_r) == false {
+            if keys_are_the_same(&items_l, &items_r) == false {
                 log::debug!("Different keys for items");
-                        return Ok(false);
-}
-                    for (id_l, item_l) in items_l {
+                return Ok(false);
+            }
+            for (id_l, item_l) in items_l {
                 let item_r = match items_r.get(&id_l) {
                     Some(c) => c,
                     None => return Err("should not happen, we've just tested keys are the same".into()),
                 };
-                        if &item_l != item_r {
+                if &item_l != item_r {
                     log::debug!("Different items");
-                            return Ok(false);
-                        }
-                    }
+                    return Ok(false);
                 }
+            }
+        }
         Ok(true)
     }
 }
@@ -208,7 +208,6 @@ mod tests {
                                 Url::parse("https://caldav.com/shopping").unwrap(),
                             SupportedComponents::TODO);
         cache.add_calendar(Arc::new(Mutex::new(cal1)));
-
 
         cache.save_to_folder().unwrap();
 

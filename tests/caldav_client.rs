@@ -7,7 +7,8 @@ use minidom::Element;
 use url::Url;
 
 use my_tasks::client::Client;
-use my_tasks::traits::PartialCalendar;
+use my_tasks::traits::BaseCalendar;
+use my_tasks::traits::DavCalendar;
 use my_tasks::traits::CalDavSource;
 
 use my_tasks::settings::URL;
