@@ -8,6 +8,7 @@ use minidom::Element;
 use crate::traits::CompleteCalendar;
 use crate::calendar::CalendarId;
 use crate::Item;
+use crate::item::SyncStatus;
 
 /// Walks an XML tree and returns every element that has the given name
 pub fn find_elems<S: AsRef<str>>(root: &Element, searched_name: S) -> Vec<&Element> {
@@ -79,8 +80,18 @@ where
 pub fn print_task(item: &Item) {
     match item {
         Item::Task(task) => {
-            let completion = if task.completed() {"✓"} else {" "};
-            println!("    {} {}\t{}", completion, task.name(), task.id());
+            let mut status = String::new();
+            if task.completed() {
+                status += "✓";
+            } else {
+                status += " ";
+            }
+            match task.sync_status() {
+                SyncStatus::LocallyModified(_) => { status += "~"; },
+                SyncStatus::LocallyDeleted(_) =>  { status += "x"; },
+                _ => (),
+            }
+            println!("    {} {}\t{}", status, task.name(), task.id());
         },
         _ => return,
     }
