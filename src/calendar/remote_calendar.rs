@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::error::Error;
 
 use async_trait::async_trait;
+use reqwest::header::CONTENT_TYPE;
 
 use crate::traits::BaseCalendar;
 use crate::traits::DavCalendar;
@@ -10,6 +11,7 @@ use crate::calendar::CalendarId;
 use crate::item::Item;
 use crate::item::ItemId;
 use crate::item::VersionTag;
+use crate::item::SyncStatus;
 use crate::resource::Resource;
 
 static TASKS_BODY: &str = r#"
@@ -33,7 +35,7 @@ static TASKS_BODY: &str = r#"
 pub struct RemoteCalendar {
     name: String,
     resource: Resource,
-    supported_components: SupportedComponents
+    supported_components: SupportedComponents,
 }
 
 impl RemoteCalendar {
@@ -55,11 +57,6 @@ impl BaseCalendar for RemoteCalendar {
     /// Add an item into this calendar
     async fn add_item(&mut self, _item: Item) -> Result<(), Box<dyn Error>> {
         Err("Not implemented".into())
-    }
-
-    async fn get_item_by_id<'a>(&'a self, id: &ItemId) -> Option<&'a Item> {
-        log::error!("Not implemented");
-        None
     }
 }
 
@@ -96,6 +93,20 @@ impl DavCalendar for RemoteCalendar {
         }
 
         Ok(items)
+    }
+
+    async fn get_item_by_id(&self, id: &ItemId) -> Result<Option<Item>, Box<dyn Error>> {
+        let res = reqwest::Client::new()
+            .get(id.as_url().clone())
+            .header(CONTENT_TYPE, "text/calendar")
+            .basic_auth(self.resource.username(), Some(self.resource.password()))
+            .send()
+            .await?;
+
+        let text = res.text().await?;
+
+        let item = crate::ical::parse(&text, id.clone(), SyncStatus::Synced())?;
+        Ok(Some(item))
     }
 
     async fn delete_item(&mut self, _item_id: &ItemId) -> Result<(), Box<dyn Error>> {

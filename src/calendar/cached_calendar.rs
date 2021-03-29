@@ -50,10 +50,6 @@ impl BaseCalendar for CachedCalendar {
         self.items.insert(item.id().clone(), item);
         Ok(())
     }
-
-    async fn get_item_by_id<'a>(&'a self, id: &ItemId) -> Option<&'a Item> {
-        self.items.get(id)
-    }
 }
 
 #[async_trait]
@@ -70,6 +66,10 @@ impl CompleteCalendar for CachedCalendar {
             .map(|(id, item)| (id.clone(), item))
             .collect()
         )
+    }
+
+    async fn get_item_by_id_ref<'a>(&'a self, id: &ItemId) -> Option<&'a Item> {
+        self.items.get(id)
     }
 
     async fn get_item_by_id_mut<'a>(&'a mut self, id: &ItemId) -> Option<&'a mut Item> {

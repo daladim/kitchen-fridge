@@ -80,7 +80,7 @@ where
             let mut local_items_to_handle = cal_local.get_item_ids().await?;
             for (id, remote_tag) in remote_items {
                 log::trace!("* Considering remote item {}...", id);
-                match cal_local.get_item_by_id(&id).await {
+                match cal_local.get_item_by_id_ref(&id).await {
                     None => {
                         // This was created on the remote
                         log::debug!("*   {} is a remote addition", id);
@@ -133,13 +133,14 @@ where
             // Also iterate on the local tasks that are not on the remote
             for id in local_items_to_handle {
                 log::trace!("# Considering local item {}...", id);
-                let local_item = match cal_local.get_item_by_id(&id).await {
+                let local_item = match cal_local.get_item_by_id_ref(&id).await {
                     None => {
                         log::error!("Inconsistent state: missing task {} from the local tasks", id);
                         continue;
                     },
                     Some(item) => item,
                 };
+
                 match local_item.sync_status() {
                     SyncStatus::Synced(_) => {
                         // This item has been removed from the remote
@@ -160,8 +161,8 @@ where
                         log::info!("Conflict: item {} has been deleted from the server and locally modified. Deleting the local copy", id);
                         remote_del.insert(id);
                     },
-                    }
                 }
+            }
 
 
             // Step 2 - commit changes
@@ -169,7 +170,7 @@ where
                 log::debug!("> Pushing local deletion {} to the server", id_del);
                 match cal_remote.delete_item(&id_del).await {
                     Err(err) => {
-                    log::warn!("Unable to delete remote item {}: {}", id_del, err);
+                        log::warn!("Unable to delete remote item {}: {}", id_del, err);
                     },
                     Ok(()) => {
                         // Change the local copy from "marked to deletion" to "actually deleted"
@@ -190,14 +191,20 @@ where
             for id_add in remote_additions {
                 log::debug!("> Applying remote addition {} locally", id_add);
                 match cal_remote.get_item_by_id(&id_add).await {
-                    None => {
-                        log::error!("Inconsistency: new item {} has vanished from the remote end", id_add);
+                    Err(err) => {
+                        log::warn!("Unable to get remote item {}: {}. Skipping it.", id, err);
                         continue;
                     },
-                    Some(new_item) => {
-                        if let Err(err) = cal_local.add_item(new_item.clone()).await {
-                            log::error!("Not able to add item {} to local calendar: {}", id_add, err);
-                        }
+                    Ok(item) => match item {
+                        None => {
+                            log::error!("Inconsistency: new item {} has vanished from the remote end", id_add);
+                            continue;
+                        },
+                        Some(new_item) => {
+                            if let Err(err) = cal_local.add_item(new_item.clone()).await {
+                                log::error!("Not able to add item {} to local calendar: {}", id_add, err);
+                            }
+                        },
                     },
                 }
             }
@@ -205,25 +212,31 @@ where
             for id_change in remote_changes {
                 log::debug!("> Applying remote change {} locally", id_change);
                 match cal_remote.get_item_by_id(&id_change).await {
-                    None => {
-                        log::error!("Inconsistency: modified item {} has vanished from the remote end", id_change);
+                    Err(err) => {
+                        log::warn!("Unable to get remote item {}: {}. Skippin it", id, err);
                         continue;
                     },
-                    Some(item) => {
-                        if let Err(err) = cal_local.immediately_delete_item(&id_change).await {
-                            log::error!("Unable to delete item {} from local calendar: {}", id_change, err);
-                        }
-                        if let Err(err) = cal_local.add_item(item.clone()).await {
-                            log::error!("Unable to add item {} to local calendar: {}", id_change, err);
-                        }
-                    },
+                    Ok(item) => match item {
+                        None => {
+                            log::error!("Inconsistency: modified item {} has vanished from the remote end", id_change);
+                            continue;
+                        },
+                        Some(item) => {
+                            if let Err(err) = cal_local.immediately_delete_item(&id_change).await {
+                                log::error!("Unable to delete item {} from local calendar: {}", id_change, err);
+                            }
+                            if let Err(err) = cal_local.add_item(item.clone()).await {
+                                log::error!("Unable to add item {} to local calendar: {}", id_change, err);
+                            }
+                        },
+                    }
                 }
             }
 
 
             for id_add in local_additions {
                 log::debug!("> Pushing local addition {} to the server", id_add);
-                match cal_local.get_item_by_id(&id_add).await {
+                match cal_local.get_item_by_id_ref(&id_add).await {
                     None => {
                         log::error!("Inconsistency: created item {} has been marked for upload but is locally missing", id_add);
                         continue;
@@ -232,13 +245,13 @@ where
                         if let Err(err) = cal_remote.add_item(item.clone()).await {
                             log::error!("Unable to add item {} to remote calendar: {}", id_add, err);
                         }
-                    }
+                    },
                 };
             }
 
             for id_change in local_changes {
                 log::debug!("> Pushing local change {} to the server", id_change);
-                match cal_local.get_item_by_id(&id_change).await {
+                match cal_local.get_item_by_id_ref(&id_change).await {
                     None => {
                         log::error!("Inconsistency: modified item {} has been marked for upload but is locally missing", id_change);
                         continue;

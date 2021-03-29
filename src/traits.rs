@@ -33,10 +33,6 @@ pub trait BaseCalendar {
     /// Add an item into this calendar
     async fn add_item(&mut self, item: Item) -> Result<(), Box<dyn Error>>;
 
-    /// Returns a particular item
-    async fn get_item_by_id<'a>(&'a self, id: &ItemId) -> Option<&'a Item>;
-
-
     /// Returns whether this calDAV calendar supports to-do items
     fn supports_todo(&self) -> bool {
         self.supported_components().contains(crate::calendar::SupportedComponents::TODO)
@@ -65,6 +61,9 @@ pub trait DavCalendar : BaseCalendar {
             .map(|(id, _tag)| id.clone())
             .collect())
     }
+
+    /// Returns a particular item
+    async fn get_item_by_id(&self, id: &ItemId) -> Result<Option<Item>, Box<dyn Error>>;
 }
 
 
@@ -78,6 +77,9 @@ pub trait CompleteCalendar : BaseCalendar {
 
     /// Returns all items that this calendar contains
     async fn get_items(&self) -> Result<HashMap<ItemId, &Item>, Box<dyn Error>>;
+
+    /// Returns a particular item
+    async fn get_item_by_id_ref<'a>(&'a self, id: &ItemId) -> Option<&'a Item>;
 
     /// Returns a particular item
     async fn get_item_by_id_mut<'a>(&'a mut self, id: &ItemId) -> Option<&'a mut Item>;
