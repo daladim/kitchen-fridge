@@ -26,6 +26,7 @@ pub use provider::Provider;
 
 pub mod client;
 pub mod cache;
+pub mod ical;
 
 pub mod settings;
 pub mod utils;
