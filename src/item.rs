@@ -94,6 +94,10 @@ impl ItemId{
         let u = s.parse().unwrap();
         Self { content:u }
     }
+
+    pub fn as_url(&self) -> &Url {
+        &self.content
+    }
 }
 impl From<Url> for ItemId {
     fn from(url: Url) -> Self {

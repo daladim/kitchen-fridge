@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::error::Error;
+use std::sync::Mutex;
 
 use async_trait::async_trait;
 use reqwest::header::CONTENT_TYPE;
@@ -31,19 +32,23 @@ static TASKS_BODY: &str = r#"
 
 
 /// A CalDAV calendar created by a [`Client`](crate::client::Client).
-#[derive(Clone)]
 pub struct RemoteCalendar {
     name: String,
     resource: Resource,
     supported_components: SupportedComponents,
+
+    cached_version_tags: Mutex<Option<HashMap<ItemId, VersionTag>>>,
 }
 
 impl RemoteCalendar {
     pub fn new(name: String, resource: Resource, supported_components: SupportedComponents) -> Self {
         Self {
             name, resource, supported_components,
+            cached_version_tags: Mutex::new(None),
         }
     }
+
+
 }
 
 #[async_trait]
@@ -63,6 +68,11 @@ impl BaseCalendar for RemoteCalendar {
 #[async_trait]
 impl DavCalendar for RemoteCalendar {
     async fn get_item_version_tags(&self) -> Result<HashMap<ItemId, VersionTag>, Box<dyn Error>> {
+        if let Some(map) = &*self.cached_version_tags.lock().unwrap() {
+            log::debug!("Version tags are already cached.");
+            return Ok(map.clone());
+        };
+
         let responses = crate::client::sub_request_and_extract_elems(&self.resource, "REPORT", TASKS_BODY.to_string(), "response").await?;
 
         let mut items = HashMap::new();
@@ -92,6 +102,8 @@ impl DavCalendar for RemoteCalendar {
             items.insert(item_id, version_tag);
         }
 
+        // Note: the mutex cannot be locked during this whole async function, but it can safely be re-entrant (this will just waste an unnecessary request)
+        *self.cached_version_tags.lock().unwrap() = Some(items.clone());
         Ok(items)
     }
 
@@ -105,7 +117,14 @@ impl DavCalendar for RemoteCalendar {
 
         let text = res.text().await?;
 
-        let item = crate::ical::parse(&text, id.clone(), SyncStatus::Synced())?;
+        // This is supposed to be cached
+        let version_tags = self.get_item_version_tags().await?;
+        let vt = match version_tags.get(id) {
+            None => return Err(format!("Inconsistent data: {} has no version tag", id).into()),
+            Some(vt) => vt,
+        };
+
+        let item = crate::ical::parse(&text, id.clone(), SyncStatus::Synced(vt.clone()))?;
         Ok(Some(item))
     }
 
