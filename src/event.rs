@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::item::ItemId;
 use crate::item::SyncStatus;
+use crate::item::VersionTag;
 
 /// TODO: implement Event one day.
 /// This crate currently only supports tasks, not calendar events.
@@ -15,6 +16,18 @@ pub struct Event {
 }
 
 impl Event {
+    pub fn new() -> Self {
+        let version_tag = VersionTag::from(String::from("not-implemented"));
+        let sync_status = SyncStatus::Synced(version_tag);
+        let id: ItemId = "http://not.imp/lemented".parse().unwrap();
+
+        Self {
+            id,
+            name: String::from("Events are not supported (yet?)"),
+            sync_status
+        }
+    }
+
     pub fn id(&self) -> &ItemId {
         &self.id
     }
