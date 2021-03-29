@@ -1,3 +1,5 @@
+// TODO: move Event and Task to nest them in crate::items::calendar::Calendar?
+
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
@@ -106,7 +108,8 @@ impl From<&Resource> for ItemId {
 impl FromStr for ItemId {
     type Err = url::ParseError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        s.parse()
+        let u: Url = s.parse()?;
+        Ok(Self::from(u))
     }
 }
 
