@@ -66,8 +66,36 @@ impl BaseCalendar for RemoteCalendar {
 #[async_trait]
 impl DavCalendar for RemoteCalendar {
     async fn get_item_version_tags(&self) -> Result<HashMap<ItemId, VersionTag>, Box<dyn Error>> {
-        log::error!("Not implemented");
-        Ok(HashMap::new())
+        let responses = crate::client::sub_request_and_extract_elems(&self.resource, "REPORT", TASKS_BODY.to_string(), "response").await?;
+
+        let mut items = HashMap::new();
+        for response in responses {
+            let item_url = crate::utils::find_elem(&response, "href")
+                .map(|elem| self.resource.combine(&elem.text()));
+            let item_id = match item_url {
+                None => {
+                    log::warn!("Unable to extract HREF");
+                    continue;
+                },
+                Some(resource) => {
+                    ItemId::from(&resource)
+                },
+            };
+
+            let version_tag = match crate::utils::find_elem(&response, "getetag") {
+                None => {
+                    log::warn!("Unable to extract ETAG for item {}, ignoring it", item_id);
+                    continue;
+                },
+                Some(etag) => {
+                    VersionTag::from(etag.text())
+                }
+            };
+
+            items.insert(item_id, version_tag);
+        }
+
+        Ok(items)
     }
 
     async fn delete_item(&mut self, _item_id: &ItemId) -> Result<(), Box<dyn Error>> {
