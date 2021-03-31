@@ -7,8 +7,6 @@ use minidom::Element;
 use url::Url;
 
 use my_tasks::client::Client;
-use my_tasks::traits::BaseCalendar;
-use my_tasks::traits::DavCalendar;
 use my_tasks::traits::CalDavSource;
 
 use my_tasks::settings::URL;
@@ -16,6 +14,9 @@ use my_tasks::settings::USERNAME;
 use my_tasks::settings::PASSWORD;
 use my_tasks::settings::EXAMPLE_TASK_URL;
 use my_tasks::settings::EXAMPLE_CALENDAR_URL;
+use my_tasks::ItemId;
+use my_tasks::traits::DavCalendar;
+
 
 static EXAMPLE_TASKS_BODY_LAST_MODIFIED: &str = r#"
 <C:calendar-query xmlns:D="DAV:"
@@ -45,19 +46,8 @@ async fn show_calendars() {
     let calendars = client.get_calendars().await.unwrap();
 
     println!("Calendars:");
-    for (id, calendar) in calendars.iter() {
-        let cal = calendar.lock().unwrap();
-        println!("  {}\t{}", cal.name(), id.as_str());
-        println!("  IDs:");
-        for id in cal.get_item_ids().await.unwrap() {
-            println!("  * {}", id);
-        }
+    my_tasks::utils::print_dav_calendar_list(&calendars).await;
 
-        println!("  Most recent changes:");
-        // for (_id, task) in cal.get_item_version_tags(None, None).await.unwrap() {
-        //     my_tasks::utils::print_task(task);
-        // }
-    }
 }
 
 #[tokio::test]
@@ -104,3 +94,12 @@ async fn last_modified() {
     let el: Element = res.text().await.unwrap().parse().unwrap();
     my_tasks::utils::print_xml(&el);
 }
+
+
+
+
+//
+//
+// TODO: test w/ wrong creds
+// TODO: test withou connection
+//

@@ -24,14 +24,21 @@ async fn test_regular_sync() {
     let _ = env_logger::builder().is_test(true).try_init();
 
     let mut provider = populate_test_provider().await;
+    let cals_server = provider.remote().get_calendars().await.unwrap();
+    println!("----Server, before sync-------");
+    my_tasks::utils::print_calendar_list(&cals_server).await;
+    let cals_local = provider.local().get_calendars().await.unwrap();
+    println!("\n----Local, before sync-------");
+    my_tasks::utils::print_calendar_list(&cals_local).await;
+
     provider.sync().await.unwrap();
 
 
     let cals_server = provider.remote().get_calendars().await.unwrap();
-    println!("----Server-------");
+    println!("----Server, after sync-------");
     my_tasks::utils::print_calendar_list(&cals_server).await;
     let cals_local = provider.local().get_calendars().await.unwrap();
-    println!("\n----Local-------");
+    println!("\n----Local, after sync-------");
     my_tasks::utils::print_calendar_list(&cals_local).await;
 
     assert!(provider.remote().has_same_contents_than(provider.local()).await.unwrap());
