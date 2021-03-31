@@ -116,11 +116,6 @@ impl Cache {
     }
 
 
-    pub fn add_calendar(&mut self, calendar: Arc<Mutex<CachedCalendar>>) {
-        let id = calendar.lock().unwrap().id().clone();
-        self.data.calendars.insert(id, calendar);
-    }
-
     /// Compares two Caches to check they have the same current content
     ///
     /// This is not a complete equality test: some attributes (last sync date, deleted items...) may differ
@@ -187,6 +182,15 @@ impl CalDavSource<CachedCalendar> for Cache {
     async fn get_calendar(&self, id: &CalendarId) -> Option<Arc<Mutex<CachedCalendar>>> {
         self.data.calendars.get(id).map(|arc| arc.clone())
     }
+
+    async fn insert_calendar(&mut self, new_calendar: CachedCalendar) -> Result<(), Box<dyn Error>> {
+        let id = new_calendar.id().clone();
+        log::debug!("Inserting local calendar {}", id);
+        match self.data.calendars.insert(id, Arc::new(Mutex::new(new_calendar))) {
+            Some(_) => Err("Attempt to insert calendar failed: there is alredy such a calendar.".into()),
+            None => Ok(()) ,
+        }
+    }
 }
 
 #[cfg(test)]
@@ -207,7 +211,8 @@ mod tests {
         let cal1 = CachedCalendar::new("shopping list".to_string(),
                                 Url::parse("https://caldav.com/shopping").unwrap(),
                             SupportedComponents::TODO);
-        cache.add_calendar(Arc::new(Mutex::new(cal1)));
+        cache.insert_calendar(cal1).await.unwrap();
+
 
         cache.save_to_folder().unwrap();
 

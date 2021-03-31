@@ -8,6 +8,7 @@ use crate::item::Item;
 use crate::item::ItemId;
 use crate::item::VersionTag;
 use crate::calendar::CalendarId;
+use crate::calendar::SupportedComponents;
 
 #[async_trait]
 pub trait CalDavSource<T: BaseCalendar> {
@@ -16,6 +17,8 @@ pub trait CalDavSource<T: BaseCalendar> {
     async fn get_calendars(&self) -> Result<HashMap<CalendarId, Arc<Mutex<T>>>, Box<dyn Error>>;
     /// Returns the calendar matching the ID
     async fn get_calendar(&self, id: &CalendarId) -> Option<Arc<Mutex<T>>>;
+    /// Insert a calendar if it did not exist
+    async fn insert_calendar(&mut self, new_calendar: T) -> Result<(), Box<dyn Error>>;
 }
 
 /// This trait contains functions that are common to all calendars
@@ -72,6 +75,8 @@ pub trait DavCalendar : BaseCalendar {
 /// Usually, these are local calendars fully backed by a local folder
 #[async_trait]
 pub trait CompleteCalendar : BaseCalendar {
+    fn new(name: String, id: CalendarId, supported_components: SupportedComponents) -> Self;
+
     /// Get the IDs of all current items in this calendar
     async fn get_item_ids(&self) -> Result<HashSet<ItemId>, Box<dyn Error>>;
 

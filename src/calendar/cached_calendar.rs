@@ -21,16 +21,6 @@ pub struct CachedCalendar {
     items: HashMap<ItemId, Item>,
 }
 
-impl CachedCalendar {
-    /// Create a new calendar
-    pub fn new(name: String, id: CalendarId, supported_components: SupportedComponents) -> Self {
-        Self {
-            name, id, supported_components,
-            items: HashMap::new(),
-        }
-    }
-}
-
 #[async_trait]
 impl BaseCalendar for CachedCalendar {
     fn name(&self) -> &str {
@@ -54,6 +44,13 @@ impl BaseCalendar for CachedCalendar {
 
 #[async_trait]
 impl CompleteCalendar for CachedCalendar {
+    fn new(name: String, id: CalendarId, supported_components: SupportedComponents) -> Self {
+        Self {
+            name, id, supported_components,
+            items: HashMap::new(),
+        }
+    }
+
     async fn get_item_ids(&self) -> Result<HashSet<ItemId>, Box<dyn Error>> {
         Ok(self.items.iter()
             .map(|(id, _)| id.clone())

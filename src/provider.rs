@@ -7,6 +7,7 @@ use std::marker::PhantomData;
 use crate::traits::{CalDavSource, DavCalendar};
 use crate::traits::CompleteCalendar;
 use crate::item::SyncStatus;
+use crate::calendar::SupportedComponents;
 
 /// A data source that combines two `CalDavSources` (usually a server and a local cache), which is able to sync both sources.
 pub struct Provider<L, T, R, U>
@@ -58,13 +59,21 @@ where
         for (id, cal_remote) in cals_remote {
             let mut cal_remote = cal_remote.lock().unwrap();
 
-            let cal_local = match self.local.get_calendar(&id).await {
-                None => {
-                    log::error!("TODO: implement here");
+            let cal_local = loop {
+                if let Some(cal) = self.local.get_calendar(&id).await {
+                    break cal;
+                }
+
+                // This calendar does not exist locally yet, let's add it
+                log::error!("TODO: what name/SP should we choose?");
+                let new_calendar = T::new(String::from("new calendar"), id.clone(), SupportedComponents::TODO);
+
+                if let Err(err) = self.local.insert_calendar(new_calendar).await {
+                    log::warn!("Unable to create local calendar {}: {}. Skipping it.", id, err);
                     continue;
-                },
-                Some(cal) => cal,
+                }
             };
+
             let mut cal_local = cal_local.lock().unwrap();
 
             // Step 1 - find the differences

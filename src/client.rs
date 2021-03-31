@@ -230,5 +230,9 @@ impl CalDavSource<RemoteCalendar> for Client {
             .and_then(|cals| cals.get(id))
             .map(|cal| cal.clone())
         }
+
+    async fn insert_calendar(&mut self, new_calendar: RemoteCalendar) -> Result<(), Box<dyn Error>> {
+        Err("Not implemented".into())
+    }
 }
 
