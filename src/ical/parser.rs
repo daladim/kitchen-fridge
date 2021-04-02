@@ -29,10 +29,20 @@ pub fn parse(content: &str, item_id: ItemId, sync_status: SyncStatus) -> Result<
 
         CurrentType::Todo(todo) => {
             let mut name = None;
+            let mut completed = false;
             for prop in &todo.properties {
                 if prop.name == "SUMMARY" {
                     name = prop.value.clone();
-                    break;
+                }
+                if prop.name == "STATUS" {
+                    // Possible values:
+                    //   "NEEDS-ACTION" ;Indicates to-do needs action.
+                    //   "COMPLETED"    ;Indicates to-do completed.
+                    //   "IN-PROCESS"   ;Indicates to-do in process of.
+                    //   "CANCELLED"    ;Indicates to-do was cancelled.
+                    if prop.value.as_ref().map(|s| s.as_str()) == Some("COMPLETED") {
+                        completed = true;
+                    }
                 }
             }
             let name = match name {
@@ -40,7 +50,7 @@ pub fn parse(content: &str, item_id: ItemId, sync_status: SyncStatus) -> Result<
                 None => return Err(format!("Missing name for item {}", item_id).into()),
             };
 
-            Item::Task(Task::new(name, item_id, sync_status))
+            Item::Task(Task::new(name, item_id, sync_status, completed))
         },
     };
 
@@ -98,6 +108,22 @@ END:VTODO
 END:VCALENDAR
 "#;
 
+    const EXAMPLE_ICAL_COMPLETED: &str = r#"BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Nextcloud Tasks v0.13.6
+BEGIN:VTODO
+UID:0633de27-8c32-42be-bcb8-63bc879c6185
+CREATED:20210321T001600
+LAST-MODIFIED:20210402T081557
+DTSTAMP:20210402T081557
+SUMMARY:Clean up your room or Mom will be angry
+PERCENT-COMPLETE:100
+COMPLETED:20210402T081557
+STATUS:COMPLETED
+END:VTODO
+END:VCALENDAR
+"#;
+
     const EXAMPLE_MULTIPLE_ICAL: &str = r#"BEGIN:VCALENDAR
 VERSION:2.0
 PRODID:-//Nextcloud Tasks v0.13.6
@@ -136,6 +162,18 @@ END:VCALENDAR
         assert_eq!(task.id(), &item_id);
         assert_eq!(task.completed(), false);
         assert_eq!(task.sync_status(), &sync_status);
+    }
+
+    #[test]
+    fn test_ical_completion_parsing() {
+        let version_tag = VersionTag::from(String::from("test-tag"));
+        let sync_status = SyncStatus::Synced(version_tag);
+        let item_id: ItemId = "http://some.id/for/testing".parse().unwrap();
+
+        let item = parse(EXAMPLE_ICAL_COMPLETED, item_id.clone(), sync_status.clone()).unwrap();
+        let task = item.unwrap_task();
+
+        assert_eq!(task.completed(), true);
     }
 
     #[test]

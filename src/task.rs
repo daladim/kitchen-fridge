@@ -20,12 +20,12 @@ pub struct Task {
 
 impl Task {
     /// Create a new Task
-    pub fn new(name: String, id: ItemId, sync_status: SyncStatus) -> Self {
+    pub fn new(name: String, id: ItemId, sync_status: SyncStatus, completed: bool) -> Self {
         Self {
             id,
             name,
             sync_status,
-            completed: false,
+            completed,
         }
     }
 
@@ -66,8 +66,6 @@ impl Task {
 
     /// Set the completion status
     pub fn set_completed(&mut self, new_value: bool) {
-        // TODO: either require a reference to the DataSource, so that it is aware
-        //       or change a flag here, and the DataSource will be able to check the flags of all its content (but then the Calendar should only give a reference/Arc, not a clone)
         self.update_sync_status();
         self.completed = new_value;
     }
