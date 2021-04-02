@@ -137,6 +137,10 @@ impl DavCalendar for CachedCalendar {
         Ok(result)
     }
 
+    async fn get_item_by_id(&self, id: &ItemId) -> Result<Option<Item>, Box<dyn Error>> {
+        Ok(self.items.get(id).cloned())
+    }
+
     async fn delete_item(&mut self, item_id: &ItemId) -> Result<(), Box<dyn Error>> {
         self.immediately_delete_item(item_id).await
     }

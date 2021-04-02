@@ -54,6 +54,9 @@ pub trait DavCalendar : BaseCalendar {
     /// Get the IDs and the version tags of every item in this calendar
     async fn get_item_version_tags(&self) -> Result<HashMap<ItemId, VersionTag>, Box<dyn Error>>;
 
+    /// Returns a particular item
+    async fn get_item_by_id(&self, id: &ItemId) -> Result<Option<Item>, Box<dyn Error>>;
+
     /// Delete an item
     async fn delete_item(&mut self, item_id: &ItemId) -> Result<(), Box<dyn Error>>;
 
@@ -64,9 +67,6 @@ pub trait DavCalendar : BaseCalendar {
             .map(|(id, _tag)| id.clone())
             .collect())
     }
-
-    /// Returns a particular item
-    async fn get_item_by_id(&self, id: &ItemId) -> Result<Option<Item>, Box<dyn Error>>;
 }
 
 
