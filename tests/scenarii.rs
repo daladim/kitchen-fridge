@@ -74,7 +74,293 @@ pub struct ItemScenario {
 pub fn basic_scenarii() -> Vec<ItemScenario> {
     let mut tasks = Vec::new();
 
+    let main_cal = CalendarId::from("https://some.calend.ar/main/".parse().unwrap());
 
+    tasks.push(
+        ItemScenario {
+            id: ItemId::random(),
+            before_sync: LocatedState::BothSynced( ItemState{
+                calendar: main_cal.clone(),
+                name: String::from("Task A"),
+                completed: false,
+            }),
+            local_changes_to_apply: Vec::new(),
+            remote_changes_to_apply: Vec::new(),
+            after_sync: LocatedState::BothSynced( ItemState{
+                calendar: main_cal.clone(),
+                name: String::from("Task A"),
+                completed: false,
+            }),
+        }
+    );
+
+    tasks.push(
+        ItemScenario {
+            id: ItemId::random(),
+            before_sync: LocatedState::BothSynced( ItemState{
+                calendar: main_cal.clone(),
+                name: String::from("Task B"),
+                completed: false,
+            }),
+            local_changes_to_apply: Vec::new(),
+            remote_changes_to_apply: vec![ChangeToApply::Remove],
+            after_sync: LocatedState::None,
+        }
+    );
+
+    tasks.push(
+        ItemScenario {
+            id: ItemId::random(),
+            before_sync: LocatedState::BothSynced( ItemState{
+                calendar: main_cal.clone(),
+                name: String::from("Task C"),
+                completed: false,
+            }),
+            local_changes_to_apply: vec![ChangeToApply::Remove],
+            remote_changes_to_apply: Vec::new(),
+            after_sync: LocatedState::None,
+        }
+    );
+
+    tasks.push(
+        ItemScenario {
+            id: ItemId::random(),
+            before_sync: LocatedState::BothSynced( ItemState{
+                calendar: main_cal.clone(),
+                name: String::from("Task D"),
+                completed: false,
+            }),
+            local_changes_to_apply: vec![ChangeToApply::Rename(String::from("Task D, locally renamed"))],
+            remote_changes_to_apply: Vec::new(),
+            after_sync: LocatedState::BothSynced( ItemState{
+                calendar: main_cal.clone(),
+                name: String::from("Task D, locally renamed"),
+                completed: false,
+            }),
+        }
+    );
+
+    tasks.push(
+        ItemScenario {
+            id: ItemId::random(),
+            before_sync: LocatedState::BothSynced( ItemState{
+                calendar: main_cal.clone(),
+                name: String::from("Task E"),
+                completed: false,
+            }),
+            local_changes_to_apply: Vec::new(),
+            remote_changes_to_apply: vec![ChangeToApply::Rename(String::from("Task E, remotely renamed"))],
+            after_sync: LocatedState::BothSynced( ItemState{
+                calendar: main_cal.clone(),
+                name: String::from("Task E, remotely renamed"),
+                completed: false,
+            }),
+        }
+    );
+
+    tasks.push(
+        ItemScenario {
+            id: ItemId::random(),
+            before_sync: LocatedState::BothSynced( ItemState{
+                calendar: main_cal.clone(),
+                name: String::from("Task F"),
+                completed: false,
+            }),
+            local_changes_to_apply: vec![ChangeToApply::Rename(String::from("Task F, locally renamed"))],
+            remote_changes_to_apply: vec![ChangeToApply::Rename(String::from("Task F, remotely renamed"))],
+            // Conflict: the server wins
+            after_sync: LocatedState::BothSynced( ItemState{
+                calendar: main_cal.clone(),
+                name: String::from("Task F, remotely renamed"),
+                completed: false,
+            }),
+        }
+    );
+
+    tasks.push(
+        ItemScenario {
+            id: ItemId::random(),
+            before_sync: LocatedState::BothSynced( ItemState{
+                calendar: main_cal.clone(),
+                name: String::from("Task G"),
+                completed: false,
+            }),
+            local_changes_to_apply: Vec::new(),
+            remote_changes_to_apply: vec![ChangeToApply::SetCompletion(true)],
+            after_sync: LocatedState::BothSynced( ItemState{
+                calendar: main_cal.clone(),
+                name: String::from("Task G"),
+                completed: true,
+            }),
+        }
+    );
+
+    tasks.push(
+        ItemScenario {
+            id: ItemId::random(),
+            before_sync: LocatedState::BothSynced( ItemState{
+                calendar: main_cal.clone(),
+                name: String::from("Task H"),
+                completed: false,
+            }),
+            local_changes_to_apply: vec![ChangeToApply::SetCompletion(true)],
+            remote_changes_to_apply: Vec::new(),
+            after_sync: LocatedState::BothSynced( ItemState{
+                calendar: main_cal.clone(),
+                name: String::from("Task H"),
+                completed: true,
+            }),
+        }
+    );
+
+    tasks.push(
+        ItemScenario {
+            id: ItemId::random(),
+            before_sync: LocatedState::BothSynced( ItemState{
+                calendar: main_cal.clone(),
+                name: String::from("Task I"),
+                completed: false,
+            }),
+            local_changes_to_apply: vec![ChangeToApply::SetCompletion(true)],
+            remote_changes_to_apply: vec![ChangeToApply::Rename(String::from("Task I, remotely renamed"))],
+            // Conflict, the server wins
+            after_sync: LocatedState::BothSynced( ItemState{
+                calendar: main_cal.clone(),
+                name: String::from("Task I, remotely renamed"),
+                completed: false,
+            }),
+        }
+    );
+
+    tasks.push(
+        ItemScenario {
+            id: ItemId::random(),
+            before_sync: LocatedState::BothSynced( ItemState{
+                calendar: main_cal.clone(),
+                name: String::from("Task J"),
+                completed: false,
+            }),
+            local_changes_to_apply: vec![ChangeToApply::SetCompletion(true)],
+            remote_changes_to_apply: vec![ChangeToApply::Remove],
+            after_sync: LocatedState::None,
+        }
+    );
+
+    tasks.push(
+        ItemScenario {
+            id: ItemId::random(),
+            before_sync: LocatedState::BothSynced( ItemState{
+                calendar: main_cal.clone(),
+                name: String::from("Task K"),
+                completed: false,
+            }),
+            local_changes_to_apply: vec![ChangeToApply::Remove],
+            remote_changes_to_apply: vec![ChangeToApply::SetCompletion(true)],
+            after_sync: LocatedState::None,
+        }
+    );
+
+    tasks.push(
+        ItemScenario {
+            id: ItemId::random(),
+            before_sync: LocatedState::BothSynced( ItemState{
+                calendar: main_cal.clone(),
+                name: String::from("Task L"),
+                completed: false,
+            }),
+            local_changes_to_apply: vec![ChangeToApply::Remove],
+            remote_changes_to_apply: vec![ChangeToApply::Remove],
+            after_sync: LocatedState::None,
+        }
+    );
+
+    tasks.push(
+        ItemScenario {
+            id: ItemId::random(),
+            before_sync: LocatedState::BothSynced( ItemState{
+                calendar: main_cal.clone(),
+                name: String::from("Task M"),
+                completed: true,
+            }),
+            local_changes_to_apply: vec![ChangeToApply::SetCompletion(false)],
+            remote_changes_to_apply: Vec::new(),
+            after_sync: LocatedState::BothSynced( ItemState{
+                calendar: main_cal.clone(),
+                name: String::from("Task M"),
+                completed: false,
+            }),
+        }
+    );
+
+    tasks.push(
+        ItemScenario {
+            id: ItemId::random(),
+            before_sync: LocatedState::BothSynced( ItemState{
+                calendar: main_cal.clone(),
+                name: String::from("Task N"),
+                completed: true,
+            }),
+            local_changes_to_apply: Vec::new(),
+            remote_changes_to_apply: vec![ChangeToApply::SetCompletion(false)],
+            after_sync: LocatedState::BothSynced( ItemState{
+                calendar: main_cal.clone(),
+                name: String::from("Task N"),
+                completed: false,
+            }),
+        }
+    );
+
+    tasks.push(
+        ItemScenario {
+            id: ItemId::random(),
+            before_sync: LocatedState::BothSynced( ItemState{
+                calendar: main_cal.clone(),
+                name: String::from("Task O"),
+                completed: true,
+            }),
+            local_changes_to_apply:  vec![ChangeToApply::SetCompletion(false)],
+            remote_changes_to_apply: vec![ChangeToApply::SetCompletion(false)],
+            after_sync: LocatedState::BothSynced( ItemState{
+                calendar: main_cal.clone(),
+                name: String::from("Task O"),
+                completed: false,
+            }),
+        }
+    );
+
+    let id_p = ItemId::random();
+    tasks.push(
+        ItemScenario {
+            id: id_p.clone(),
+            before_sync: LocatedState::None,
+            local_changes_to_apply: vec![ChangeToApply::Create(main_cal.clone(), Item::Task(
+                Task::new(String::from("Task P, created locally"), id_p, SyncStatus::NotSynced, false )
+            ))],
+            remote_changes_to_apply: Vec::new(),
+            after_sync: LocatedState::BothSynced( ItemState{
+                calendar: main_cal.clone(),
+                name: String::from("Task P, created locally"),
+                completed: false,
+            }),
+        }
+    );
+
+    let id_q = ItemId::random();
+    tasks.push(
+        ItemScenario {
+            id: id_q.clone(),
+            before_sync: LocatedState::None,
+            local_changes_to_apply: Vec::new(),
+            remote_changes_to_apply: vec![ChangeToApply::Create(main_cal.clone(), Item::Task(
+                Task::new(String::from("Task Q, created on the server"), id_q, SyncStatus::random_synced(), false )
+            ))],
+            after_sync: LocatedState::BothSynced( ItemState{
+                calendar: main_cal.clone(),
+                name: String::from("Task Q, created on the server"),
+                completed: false,
+            }),
+        }
+    );
 
     tasks
 }
