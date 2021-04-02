@@ -1,4 +1,5 @@
 #![cfg(feature = "integration_tests")]
+mod scenarii;
 
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
@@ -17,10 +18,20 @@ use my_tasks::Task;
 use my_tasks::calendar::cached_calendar::CachedCalendar;
 use my_tasks::Provider;
 
+
+#[tokio::test]
+/// This test simulates a regular synchronisation between a local cache and a server.
+/// Note that this uses a second cache to "mock" a server.
+async fn test_regular_sync() {
+    let scenarii = scenarii::basic_scenarii();
+    let provider = scenarii::populate_test_provider(&scenarii).await;
+}
+
+
 #[tokio::test]
 /// This test simulates a synchronisation between a local cache and a server
 /// To "mock" a server, let's use a second cache
-async fn test_regular_sync() {
+async fn legacy_test() {
     let _ = env_logger::builder().is_test(true).try_init();
 
     let mut provider = populate_test_provider().await;
@@ -45,38 +56,26 @@ async fn test_regular_sync() {
 
 }
 
-/// Populate sources with the following:
-/// * At the last sync: both sources had A, B, C, D, E, F, G, H, I, J, K, L, M at last sync
-/// * Before the newer sync, this will be the content of the sources:
-///     * server: A,    C, D,  E', F',  G✓, H , I',      K✓,    M, N
-///     * cache:  A, B,    D', E,  F'', G , H✓, I✓, J✓,        M,    O
-///
-/// Hence, here is the expected result after the sync:
-///     * both:   A,       D', E', F',  G✓, H✓, I',      K✓,   M, N, O
-///
-/// Notes:
-/// * X': name has been modified since the last sync
-/// * F'/F'': name conflict
-/// * G✓: task has been marked as completed
+
 async fn populate_test_provider() -> Provider<Cache, CachedCalendar, Cache, CachedCalendar> {
     let mut server = Cache::new(&PathBuf::from(String::from("server.json")));
     let mut local = Cache::new(&PathBuf::from(String::from("local.json")));
 
     let cal_id = Url::parse("http://todo.list/cal").unwrap();
 
-    let task_a = Item::Task(Task::new("task A".into(), ItemId::random(), SyncStatus::random_synced()));
-    let task_b = Item::Task(Task::new("task B".into(), ItemId::random(), SyncStatus::random_synced()));
-    let task_c = Item::Task(Task::new("task C".into(), ItemId::random(), SyncStatus::random_synced()));
-    let task_d = Item::Task(Task::new("task D".into(), ItemId::random(), SyncStatus::random_synced()));
-    let task_e = Item::Task(Task::new("task E".into(), ItemId::random(), SyncStatus::random_synced()));
-    let task_f = Item::Task(Task::new("task F".into(), ItemId::random(), SyncStatus::random_synced()));
-    let task_g = Item::Task(Task::new("task G".into(), ItemId::random(), SyncStatus::random_synced()));
-    let task_h = Item::Task(Task::new("task H".into(), ItemId::random(), SyncStatus::random_synced()));
-    let task_i = Item::Task(Task::new("task I".into(), ItemId::random(), SyncStatus::random_synced()));
-    let task_j = Item::Task(Task::new("task J".into(), ItemId::random(), SyncStatus::random_synced()));
-    let task_k = Item::Task(Task::new("task K".into(), ItemId::random(), SyncStatus::random_synced()));
-    let task_l = Item::Task(Task::new("task L".into(), ItemId::random(), SyncStatus::random_synced()));
-    let task_m = Item::Task(Task::new("task M".into(), ItemId::random(), SyncStatus::random_synced()));
+    let task_a = Item::Task(Task::new("task A".into(), ItemId::random(), SyncStatus::random_synced(), false));
+    let task_b = Item::Task(Task::new("task B".into(), ItemId::random(), SyncStatus::random_synced(), false));
+    let task_c = Item::Task(Task::new("task C".into(), ItemId::random(), SyncStatus::random_synced(), false));
+    let task_d = Item::Task(Task::new("task D".into(), ItemId::random(), SyncStatus::random_synced(), false));
+    let task_e = Item::Task(Task::new("task E".into(), ItemId::random(), SyncStatus::random_synced(), false));
+    let task_f = Item::Task(Task::new("task F".into(), ItemId::random(), SyncStatus::random_synced(), false));
+    let task_g = Item::Task(Task::new("task G".into(), ItemId::random(), SyncStatus::random_synced(), false));
+    let task_h = Item::Task(Task::new("task H".into(), ItemId::random(), SyncStatus::random_synced(), false));
+    let task_i = Item::Task(Task::new("task I".into(), ItemId::random(), SyncStatus::random_synced(), false));
+    let task_j = Item::Task(Task::new("task J".into(), ItemId::random(), SyncStatus::random_synced(), false));
+    let task_k = Item::Task(Task::new("task K".into(), ItemId::random(), SyncStatus::random_synced(), false));
+    let task_l = Item::Task(Task::new("task L".into(), ItemId::random(), SyncStatus::random_synced(), false));
+    let task_m = Item::Task(Task::new("task M".into(), ItemId::random(), SyncStatus::random_synced(), false));
 
     let task_b_id = task_b.id().clone();
     let task_c_id = task_c.id().clone();
@@ -107,8 +106,8 @@ async fn populate_test_provider() -> Provider<Cache, CachedCalendar, Cache, Cach
     calendar.add_item(task_l).await.unwrap();
     calendar.add_item(task_m).await.unwrap();
 
-    server.add_calendar(Arc::new(Mutex::new(calendar.clone())));
-    local.add_calendar(Arc::new(Mutex::new(calendar.clone())));
+    server.insert_calendar(calendar.clone());
+    local.insert_calendar(calendar.clone());
 
     // Step 2
     // Edit the server calendar
@@ -136,7 +135,7 @@ async fn populate_test_provider() -> Provider<Cache, CachedCalendar, Cache, Cach
 
     cal_server.delete_item(&task_l_id).await.unwrap();
 
-    let task_n = Item::Task(Task::new("task N (new from server)".into(), ItemId::random(), SyncStatus::random_synced()));
+    let task_n = Item::Task(Task::new("task N (new from server)".into(), ItemId::random(), SyncStatus::random_synced(), false));
     cal_server.add_item(task_n).await.unwrap();
 
 
@@ -165,7 +164,7 @@ async fn populate_test_provider() -> Provider<Cache, CachedCalendar, Cache, Cach
     cal_local.mark_for_deletion(&task_k_id).await.unwrap();
     cal_local.mark_for_deletion(&task_l_id).await.unwrap();
 
-    let task_o = Item::Task(Task::new("task O (new from local)".into(), ItemId::random(), SyncStatus::NotSynced));
+    let task_o = Item::Task(Task::new("task O (new from local)".into(), ItemId::random(), SyncStatus::NotSynced, false));
     cal_local.add_item(task_o).await.unwrap();
 
     Provider::new(server, local)
