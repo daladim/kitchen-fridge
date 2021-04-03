@@ -231,8 +231,8 @@ impl CalDavSource<RemoteCalendar> for Client {
             .map(|cal| cal.clone())
         }
 
-    async fn insert_calendar(&mut self, new_calendar: RemoteCalendar) -> Result<(), Box<dyn Error>> {
-        Err("Not implemented".into())
+    async fn insert_calendar(&mut self, _new_calendar: RemoteCalendar) -> Result<Arc<Mutex<RemoteCalendar>>, Box<dyn Error>> {
+        todo!();
     }
 }
 

@@ -183,12 +183,13 @@ impl CalDavSource<CachedCalendar> for Cache {
         self.data.calendars.get(id).map(|arc| arc.clone())
     }
 
-    async fn insert_calendar(&mut self, new_calendar: CachedCalendar) -> Result<(), Box<dyn Error>> {
+    async fn insert_calendar(&mut self, new_calendar: CachedCalendar) -> Result<Arc<Mutex<CachedCalendar>>, Box<dyn Error>> {
         let id = new_calendar.id().clone();
         log::debug!("Inserting local calendar {}", id);
-        match self.data.calendars.insert(id, Arc::new(Mutex::new(new_calendar))) {
+        let arc = Arc::new(Mutex::new(new_calendar));
+        match self.data.calendars.insert(id, arc.clone()) {
             Some(_) => Err("Attempt to insert calendar failed: there is alredy such a calendar.".into()),
-            None => Ok(()) ,
+            None => Ok(arc) ,
         }
     }
 }

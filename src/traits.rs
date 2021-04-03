@@ -17,8 +17,8 @@ pub trait CalDavSource<T: BaseCalendar> {
     async fn get_calendars(&self) -> Result<HashMap<CalendarId, Arc<Mutex<T>>>, Box<dyn Error>>;
     /// Returns the calendar matching the ID
     async fn get_calendar(&self, id: &CalendarId) -> Option<Arc<Mutex<T>>>;
-    /// Insert a calendar if it did not exist
-    async fn insert_calendar(&mut self, new_calendar: T) -> Result<(), Box<dyn Error>>;
+    /// Insert a calendar if it did not exist, and return it
+    async fn insert_calendar(&mut self, new_calendar: T) -> Result<Arc<Mutex<T>>, Box<dyn Error>>;
 }
 
 /// This trait contains functions that are common to all calendars
