@@ -75,6 +75,7 @@ pub trait DavCalendar : BaseCalendar {
 /// Usually, these are local calendars fully backed by a local folder
 #[async_trait]
 pub trait CompleteCalendar : BaseCalendar {
+    /// Create a new calendar
     fn new(name: String, id: CalendarId, supported_components: SupportedComponents) -> Self;
 
     /// Get the IDs of all current items in this calendar

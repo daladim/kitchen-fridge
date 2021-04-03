@@ -14,8 +14,6 @@ use my_tasks::settings::USERNAME;
 use my_tasks::settings::PASSWORD;
 use my_tasks::settings::EXAMPLE_TASK_URL;
 use my_tasks::settings::EXAMPLE_CALENDAR_URL;
-use my_tasks::ItemId;
-use my_tasks::traits::DavCalendar;
 
 
 static EXAMPLE_TASKS_BODY_LAST_MODIFIED: &str = r#"

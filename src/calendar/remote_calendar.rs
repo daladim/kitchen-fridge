@@ -47,8 +47,6 @@ impl RemoteCalendar {
             cached_version_tags: Mutex::new(None),
         }
     }
-
-
 }
 
 #[async_trait]
