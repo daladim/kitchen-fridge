@@ -12,7 +12,7 @@ use crate::item::ItemId;
 
 
 /// A calendar used by the [`cache`](crate::cache) module
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CachedCalendar {
     name: String,
     id: CalendarId,

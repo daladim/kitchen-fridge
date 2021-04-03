@@ -118,7 +118,7 @@ impl Cache {
 
     /// Compares two Caches to check they have the same current content
     ///
-    /// This is not a complete equality test: some attributes (last sync date, deleted items...) may differ
+    /// This is not a complete equality test: some attributes (sync status...) may differ
     pub async fn has_same_contents_than(&self, other: &Self) -> Result<bool, Box<dyn Error>> {
         let calendars_l = self.get_calendars().await?;
         let calendars_r = other.get_calendars().await?;
@@ -128,9 +128,10 @@ impl Cache {
             return Ok(false);
         }
 
-        for (id, cal_l) in calendars_l {
+        for (calendar_id, cal_l) in calendars_l {
+            log::debug!("Comparing calendars {}", calendar_id);
             let cal_l = cal_l.lock().unwrap();
-            let cal_r = match calendars_r.get(&id) {
+            let cal_r = match calendars_r.get(&calendar_id) {
                 Some(c) => c.lock().unwrap(),
                 None => return Err("should not happen, we've just tested keys are the same".into()),
             };
@@ -147,8 +148,10 @@ impl Cache {
                     Some(c) => c,
                     None => return Err("should not happen, we've just tested keys are the same".into()),
                 };
-                if &item_l != item_r {
-                    log::debug!("Different items");
+                if item_l.has_same_observable_content(&item_r) == false {
+                    log::debug!("Different items for id {}:", id_l);
+                    log::debug!("{:#?}", item_l);
+                    log::debug!("{:#?}", item_r);
                     return Ok(false);
                 }
             }
@@ -159,15 +162,27 @@ impl Cache {
 
 fn keys_are_the_same<T, U, V>(left: &HashMap<T, U>, right: &HashMap<T, V>) -> bool
 where
-    T: Hash + Eq + Clone,
+    T: Hash + Eq + Clone + std::fmt::Display,
 {
     if left.len() != right.len() {
+        log::debug!("Count of keys mismatch: {} and {}", left.len(), right.len());
         return false;
     }
 
     let keys_l: HashSet<T> = left.keys().cloned().collect();
     let keys_r: HashSet<T> = right.keys().cloned().collect();
-    keys_l == keys_r
+    let result = keys_l == keys_r;
+    if result == false {
+        log::debug!("Keys of a map mismatch");
+        for key in keys_l {
+            log::debug!("   left: {}", key);
+        }
+        log::debug!("RIGHT:");
+        for key in keys_r {
+            log::debug!("  right: {}", key);
+        }
+    }
+    result
 }
 
 #[async_trait]

@@ -4,7 +4,7 @@ use crate::item::ItemId;
 use crate::item::SyncStatus;
 
 /// A to-do task
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Task {
     /// The task unique ID, that will never change
     id: ItemId,
@@ -33,6 +33,15 @@ impl Task {
     pub fn name(&self) -> &str      { &self.name        }
     pub fn completed(&self) -> bool { self.completed    }
     pub fn sync_status(&self) -> &SyncStatus     { &self.sync_status  }
+
+    pub fn has_same_observable_content(&self, other: &Task) -> bool {
+           self.id == other.id
+        && self.name == other.name
+        && self.completed == other.completed
+        // sync status must be the same variant, but we ignore its embedded version tag
+        && std::mem::discriminant(&self.sync_status) == std::mem::discriminant(&other.sync_status)
+    }
+
     pub fn set_sync_status(&mut self, new_status: SyncStatus) {
         self.sync_status = new_status;
     }

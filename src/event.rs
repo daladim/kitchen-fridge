@@ -4,7 +4,6 @@ use serde::{Deserialize, Serialize};
 
 use crate::item::ItemId;
 use crate::item::SyncStatus;
-use crate::item::VersionTag;
 
 /// TODO: implement Event one day.
 /// This crate currently only supports tasks, not calendar events.
@@ -33,5 +32,9 @@ impl Event {
     }
     pub fn set_sync_status(&mut self, new_status: SyncStatus) {
         self.sync_status = new_status;
+    }
+
+    pub fn has_same_observable_content(&self, _other: &Event) -> bool {
+        unimplemented!();
     }
 }

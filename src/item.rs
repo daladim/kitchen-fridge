@@ -10,7 +10,7 @@ use crate::resource::Resource;
 
 
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum Item {
     Event(crate::event::Event),
     Task(crate::task::Task),
@@ -77,6 +77,14 @@ impl Item {
         match self {
             Item::Task(t) => t,
             _ => panic!("Not a task"),
+        }
+    }
+
+    pub fn has_same_observable_content(&self, other: &Item) -> bool {
+        match (self, other) {
+            (Item::Event(s), Item::Event(o)) => s.has_same_observable_content(o),
+            (Item::Task(s),   Item::Task(o))   => s.has_same_observable_content(o),
+            _ => false,
         }
     }
 }
