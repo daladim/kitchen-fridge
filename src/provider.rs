@@ -78,7 +78,7 @@ where
             let mut cal_local = cal_local.lock().unwrap();
 
             // Step 1 - find the differences
-            log::debug!("* Finding the differences to sync...");
+            log::debug!("Finding the differences to sync...");
             let mut local_del = HashSet::new();
             let mut remote_del = HashSet::new();
             let mut local_changes = HashSet::new();
@@ -89,7 +89,7 @@ where
             let remote_items = cal_remote.get_item_version_tags().await?;
             let mut local_items_to_handle = cal_local.get_item_ids().await?;
             for (id, remote_tag) in remote_items {
-                log::trace!("* Considering remote item {}...", id);
+                log::trace!("***** Considering remote item {}...", id);
                 match cal_local.get_item_by_id_ref(&id).await {
                     None => {
                         // This was created on the remote
@@ -142,7 +142,7 @@ where
 
             // Also iterate on the local tasks that are not on the remote
             for id in local_items_to_handle {
-                log::trace!("# Considering local item {}...", id);
+                log::trace!("##### Considering local item {}...", id);
                 let local_item = match cal_local.get_item_by_id_ref(&id).await {
                     None => {
                         log::error!("Inconsistent state: missing task {} from the local tasks", id);
@@ -176,6 +176,7 @@ where
 
 
             // Step 2 - commit changes
+            log::trace!("Committing changes...");
             for id_del in local_del {
                 log::debug!("> Pushing local deletion {} to the server", id_del);
                 match cal_remote.delete_item(&id_del).await {
