@@ -17,15 +17,7 @@ pub struct Event {
 
 impl Event {
     pub fn new() -> Self {
-        let version_tag = VersionTag::from(String::from("not-implemented"));
-        let sync_status = SyncStatus::Synced(version_tag);
-        let id: ItemId = "http://not.imp/lemented".parse().unwrap();
-
-        Self {
-            id,
-            name: String::from("Events are not supported (yet?)"),
-            sync_status
-        }
+        unimplemented!();
     }
 
     pub fn id(&self) -> &ItemId {
