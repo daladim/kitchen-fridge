@@ -78,7 +78,7 @@ pub struct ItemScenario {
 /// * X': name has been modified since the last sync
 /// * X'/X'': name conflict
 /// * X✓: task has been marked as completed
-pub fn basic_scenarii() -> Vec<ItemScenario> {
+pub fn scenarii_basic() -> Vec<ItemScenario> {
     let mut tasks = Vec::new();
 
     let main_cal = CalendarId::from("https://some.calend.ar/main/".parse().unwrap());
@@ -368,6 +368,70 @@ pub fn basic_scenarii() -> Vec<ItemScenario> {
             after_sync: LocatedState::BothSynced( ItemState{
                 calendar: main_cal.clone(),
                 name: String::from("Task Q, created on the server"),
+                completed: false,
+            }),
+        }
+    );
+
+    tasks
+}
+
+/// This scenario basically checks a first sync to an empty local cache
+pub fn scenarii_first_sync_to_local() -> Vec<ItemScenario> {
+    let mut tasks = Vec::new();
+
+    let cal1 = CalendarId::from("https://some.calend.ar/first/".parse().unwrap());
+    let cal2 = CalendarId::from("https://some.calend.ar/second/".parse().unwrap());
+
+    tasks.push(
+        ItemScenario {
+            id: ItemId::random(),
+            initial_state: LocatedState::Remote( ItemState{
+                calendar: cal1.clone(),
+                name: String::from("Task A1"),
+                completed: false,
+            }),
+            local_changes_to_apply: Vec::new(),
+            remote_changes_to_apply: Vec::new(),
+            after_sync: LocatedState::BothSynced( ItemState{
+                calendar: cal1.clone(),
+                name: String::from("Task A1"),
+                completed: false,
+            }),
+        }
+    );
+
+    tasks.push(
+        ItemScenario {
+            id: ItemId::random(),
+            initial_state: LocatedState::Remote( ItemState{
+                calendar: cal2.clone(),
+                name: String::from("Task A2"),
+                completed: false,
+            }),
+            local_changes_to_apply: Vec::new(),
+            remote_changes_to_apply: Vec::new(),
+            after_sync: LocatedState::BothSynced( ItemState{
+                calendar: cal2.clone(),
+                name: String::from("Task A2"),
+                completed: false,
+            }),
+        }
+    );
+
+    tasks.push(
+        ItemScenario {
+            id: ItemId::random(),
+            initial_state: LocatedState::Remote( ItemState{
+                calendar: cal1.clone(),
+                name: String::from("Task B1"),
+                completed: false,
+            }),
+            local_changes_to_apply: Vec::new(),
+            remote_changes_to_apply: Vec::new(),
+            after_sync: LocatedState::BothSynced( ItemState{
+                calendar: cal1.clone(),
+                name: String::from("Task B1"),
                 completed: false,
             }),
         }
