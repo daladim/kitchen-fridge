@@ -15,7 +15,6 @@
 pub mod traits;
 
 pub mod calendar;
-pub use calendar::cached_calendar::CachedCalendar;
 mod item;
 pub use item::Item;
 pub use item::ItemId;
@@ -29,7 +28,9 @@ pub mod provider;
 pub use provider::Provider;
 
 pub mod client;
+pub use client::Client;
 pub mod cache;
+pub use cache::Cache;
 pub mod ical;
 
 pub mod settings;
