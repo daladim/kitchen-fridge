@@ -83,13 +83,6 @@ pub fn scenarii_basic() -> Vec<ItemScenario> {
 
     let main_cal = CalendarId::from("https://some.calend.ar/main/".parse().unwrap());
 
-    //
-    //
-    //
-    //
-    // TODO: add new calendars, with or without taks in them
-    //
-
     tasks.push(
         ItemScenario {
             id: ItemId::random(),

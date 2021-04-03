@@ -51,6 +51,39 @@ impl CachedCalendar {
         self.items.insert(item.id().clone(), item);
         Ok(ss_clone)
     }
+
+    /// Some kind of equality check
+    pub async fn has_same_observable_content_as(&self, other: &CachedCalendar) -> Result<bool, Box<dyn Error>> {
+        if self.name != other.name
+        || self.id != other.id
+        || self.supported_components != other.supported_components {
+            log::debug!("Calendar properties mismatch");
+            return Ok(false);
+        }
+
+
+        let items_l = self.get_items().await?;
+        let items_r = other.get_items().await?;
+
+        if crate::utils::keys_are_the_same(&items_l, &items_r) == false {
+            log::debug!("Different keys for items");
+            return Ok(false);
+        }
+        for (id_l, item_l) in items_l {
+            let item_r = match items_r.get(&id_l) {
+                Some(c) => c,
+                None => return Err("should not happen, we've just tested keys are the same".into()),
+            };
+            if item_l.has_same_observable_content_as(&item_r) == false {
+                log::debug!("Different items for id {}:", id_l);
+                log::debug!("{:#?}", item_l);
+                log::debug!("{:#?}", item_r);
+                return Ok(false);
+            }
+        }
+
+        Ok(true)
+    }
 }
 
 

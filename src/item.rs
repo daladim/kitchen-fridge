@@ -80,10 +80,10 @@ impl Item {
         }
     }
 
-    pub fn has_same_observable_content(&self, other: &Item) -> bool {
+    pub fn has_same_observable_content_as(&self, other: &Item) -> bool {
         match (self, other) {
-            (Item::Event(s), Item::Event(o)) => s.has_same_observable_content(o),
-            (Item::Task(s),   Item::Task(o))   => s.has_same_observable_content(o),
+            (Item::Event(s), Item::Event(o)) => s.has_same_observable_content_as(o),
+            (Item::Task(s),   Item::Task(o))   => s.has_same_observable_content_as(o),
             _ => false,
         }
     }

@@ -34,7 +34,7 @@ impl Task {
     pub fn completed(&self) -> bool { self.completed    }
     pub fn sync_status(&self) -> &SyncStatus     { &self.sync_status  }
 
-    pub fn has_same_observable_content(&self, other: &Task) -> bool {
+    pub fn has_same_observable_content_as(&self, other: &Task) -> bool {
            self.id == other.id
         && self.name == other.name
         && self.completed == other.completed

@@ -136,11 +136,11 @@ impl Cache {
     /// Compares two Caches to check they have the same current content
     ///
     /// This is not a complete equality test: some attributes (sync status...) may differ
-    pub async fn has_same_contents_than(&self, other: &Self) -> Result<bool, Box<dyn Error>> {
+    pub async fn has_same_observable_content_as(&self, other: &Self) -> Result<bool, Box<dyn Error>> {
         let calendars_l = self.get_calendars().await?;
         let calendars_r = other.get_calendars().await?;
 
-        if keys_are_the_same(&calendars_l, &calendars_r) == false {
+        if crate::utils::keys_are_the_same(&calendars_l, &calendars_r) == false {
             log::debug!("Different keys for calendars");
             return Ok(false);
         }
@@ -153,54 +153,18 @@ impl Cache {
                 None => return Err("should not happen, we've just tested keys are the same".into()),
             };
 
-            let items_l = cal_l.get_items().await?;
-            let items_r = cal_r.get_items().await?;
+            // TODO: check calendars have the same names/ID/whatever
+            if cal_l.has_same_observable_content_as(&cal_r).await? == false {
+                log::debug!("Different calendars");
+                return Ok(false)
+            }
 
-            if keys_are_the_same(&items_l, &items_r) == false {
-                log::debug!("Different keys for items");
-                return Ok(false);
-            }
-            for (id_l, item_l) in items_l {
-                let item_r = match items_r.get(&id_l) {
-                    Some(c) => c,
-                    None => return Err("should not happen, we've just tested keys are the same".into()),
-                };
-                if item_l.has_same_observable_content(&item_r) == false {
-                    log::debug!("Different items for id {}:", id_l);
-                    log::debug!("{:#?}", item_l);
-                    log::debug!("{:#?}", item_r);
-                    return Ok(false);
-                }
-            }
         }
         Ok(true)
     }
 }
 
-fn keys_are_the_same<T, U, V>(left: &HashMap<T, U>, right: &HashMap<T, V>) -> bool
-where
-    T: Hash + Eq + Clone + std::fmt::Display,
-{
-    if left.len() != right.len() {
-        log::debug!("Count of keys mismatch: {} and {}", left.len(), right.len());
-        return false;
-    }
 
-    let keys_l: HashSet<T> = left.keys().cloned().collect();
-    let keys_r: HashSet<T> = right.keys().cloned().collect();
-    let result = keys_l == keys_r;
-    if result == false {
-        log::debug!("Keys of a map mismatch");
-        for key in keys_l {
-            log::debug!("   left: {}", key);
-        }
-        log::debug!("RIGHT:");
-        for key in keys_r {
-            log::debug!("  right: {}", key);
-        }
-    }
-    result
-}
 
 #[async_trait]
 impl CalDavSource<CachedCalendar> for Cache {
@@ -258,7 +222,7 @@ mod tests {
 
         let retrieved_cache = Cache::from_folder(&cache_path).unwrap();
         assert_eq!(cache.backing_folder, retrieved_cache.backing_folder);
-        let test = cache.has_same_contents_than(&retrieved_cache).await;
+        let test = cache.has_same_observable_content_as(&retrieved_cache).await;
         println!("Equal? {:?}", test);
         assert_eq!(test.unwrap(), true);
     }

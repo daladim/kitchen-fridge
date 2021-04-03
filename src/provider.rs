@@ -63,7 +63,7 @@ where
         // Sync every remote calendar
         let cals_remote = self.remote.get_calendars().await?;
         for (cal_id, cal_remote) in cals_remote {
-            let cal_local = self.get_or_insert_local_counterpart_calendar(&cal_id).await;
+            let cal_local = self.get_or_insert_local_counterpart_calendar(&cal_id, cal_remote.clone()).await;
 
             if let Err(err) = Self::sync_calendar_pair(cal_local, cal_remote).await {
                 log::warn!("Unable to sync calendar {}: {}, skipping this time.", cal_id, err);
@@ -78,7 +78,7 @@ where
                 continue;
             }
 
-            let cal_remote = self.get_or_insert_remote_counterpart_calendar(&cal_id).await;
+            let cal_remote = self.get_or_insert_remote_counterpart_calendar(&cal_id, cal_local.clone()).await;
 
             if let Err(err) = Self::sync_calendar_pair(cal_local, cal_remote).await {
                 log::warn!("Unable to sync calendar {}: {}, skipping this time.", cal_id, err);
@@ -89,7 +89,7 @@ where
     }
 
 
-    async fn get_or_insert_local_counterpart_calendar(&mut self, cal_id: &CalendarId) -> Arc<Mutex<T>> {
+    async fn get_or_insert_local_counterpart_calendar(&mut self, cal_id: &CalendarId, source_cal: Arc<Mutex<U>>) -> Arc<Mutex<T>> {
         loop {
             if let Some(cal) = self.local.get_calendar(&cal_id).await {
                 break cal;
@@ -97,10 +97,13 @@ where
 
             // This calendar does not exist locally yet, let's add it
             log::debug!("Adding a local calendar {}", cal_id);
+            let src = source_cal.lock().unwrap();
+            let name = src.name().to_string();
+            let supported_comps = src.supported_components();
             if let Err(err) = self.local.create_calendar(
                 cal_id.clone(),
-                String::from("new calendar"),
-                SupportedComponents::TODO,
+                name,
+                supported_comps,
             ).await {
                 log::warn!("Unable to create local calendar {}: {}. Skipping it.", cal_id, err);
                 continue;
@@ -108,7 +111,7 @@ where
         }
     }
 
-    async fn get_or_insert_remote_counterpart_calendar(&mut self, cal_id: &CalendarId) -> Arc<Mutex<U>> {
+    async fn get_or_insert_remote_counterpart_calendar(&mut self, cal_id: &CalendarId, source_cal: Arc<Mutex<T>>) -> Arc<Mutex<U>> {
         loop {
             if let Some(cal) = self.remote.get_calendar(&cal_id).await {
                 break cal;
@@ -116,10 +119,13 @@ where
 
             // This calendar does not exist in the remote yet, let's add it
             log::debug!("Adding a remote calendar {}", cal_id);
+            let src = source_cal.lock().unwrap();
+            let name = src.name().to_string();
+            let supported_comps = src.supported_components();
             if let Err(err) = self.remote.create_calendar(
                 cal_id.clone(),
-                String::from("new calendar"),
-                SupportedComponents::TODO,
+                name,
+                supported_comps,
             ).await {
                 log::warn!("Unable to create remote calendar {}: {}. Skipping it.", cal_id, err);
                 continue;

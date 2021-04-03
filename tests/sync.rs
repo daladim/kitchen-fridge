@@ -57,15 +57,15 @@ impl TestFlavour {
         print_provider(&provider, "after sync").await;
 
         // Check the contents of both sources are the same after sync
-        assert!(provider.remote().has_same_contents_than(provider.local()).await.unwrap());
+        assert!(provider.remote().has_same_observable_content_as(provider.local()).await.unwrap());
 
         // But also explicitely check that every item is expected
         let expected_provider = scenarii::populate_test_provider_after_sync(&self.scenarii).await;
         println!("\n");
         print_provider(&expected_provider, "expected after sync").await;
 
-        assert!(provider.local() .has_same_contents_than(expected_provider.local() ).await.unwrap());
-        assert!(provider.remote().has_same_contents_than(expected_provider.remote()).await.unwrap());
+        assert!(provider.local() .has_same_observable_content_as(expected_provider.local() ).await.unwrap());
+        assert!(provider.remote().has_same_observable_content_as(expected_provider.remote()).await.unwrap());
     }
 }
 

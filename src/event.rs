@@ -34,7 +34,7 @@ impl Event {
         self.sync_status = new_status;
     }
 
-    pub fn has_same_observable_content(&self, _other: &Event) -> bool {
+    pub fn has_same_observable_content_as(&self, _other: &Event) -> bool {
         unimplemented!();
     }
 }

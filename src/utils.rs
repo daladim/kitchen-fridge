@@ -1,7 +1,8 @@
 ///! Some utility functions
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
+use std::hash::Hash;
 
 use minidom::Element;
 
@@ -110,4 +111,31 @@ pub fn print_task(item: &Item) {
         },
         _ => return,
     }
+}
+
+
+/// Compare keys of two hashmaps for equality
+pub fn keys_are_the_same<T, U, V>(left: &HashMap<T, U>, right: &HashMap<T, V>) -> bool
+where
+    T: Hash + Eq + Clone + std::fmt::Display,
+{
+    if left.len() != right.len() {
+        log::debug!("Count of keys mismatch: {} and {}", left.len(), right.len());
+        return false;
+    }
+
+    let keys_l: HashSet<T> = left.keys().cloned().collect();
+    let keys_r: HashSet<T> = right.keys().cloned().collect();
+    let result = keys_l == keys_r;
+    if result == false {
+        log::debug!("Keys of a map mismatch");
+        for key in keys_l {
+            log::debug!("   left: {}", key);
+        }
+        log::debug!("RIGHT:");
+        for key in keys_r {
+            log::debug!("  right: {}", key);
+        }
+    }
+    result
 }
