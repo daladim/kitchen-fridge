@@ -59,7 +59,7 @@ pub enum ChangeToApply {
 
 pub struct ItemScenario {
     id: ItemId,
-    before_sync: LocatedState,
+    initial_state: LocatedState,
     local_changes_to_apply:  Vec<ChangeToApply>,
     remote_changes_to_apply: Vec<ChangeToApply>,
     after_sync: LocatedState,
@@ -86,7 +86,7 @@ pub fn basic_scenarii() -> Vec<ItemScenario> {
     tasks.push(
         ItemScenario {
             id: ItemId::random(),
-            before_sync: LocatedState::BothSynced( ItemState{
+            initial_state: LocatedState::BothSynced( ItemState{
                 calendar: main_cal.clone(),
                 name: String::from("Task A"),
                 completed: false,
@@ -104,7 +104,7 @@ pub fn basic_scenarii() -> Vec<ItemScenario> {
     tasks.push(
         ItemScenario {
             id: ItemId::random(),
-            before_sync: LocatedState::BothSynced( ItemState{
+            initial_state: LocatedState::BothSynced( ItemState{
                 calendar: main_cal.clone(),
                 name: String::from("Task B"),
                 completed: false,
@@ -118,7 +118,7 @@ pub fn basic_scenarii() -> Vec<ItemScenario> {
     tasks.push(
         ItemScenario {
             id: ItemId::random(),
-            before_sync: LocatedState::BothSynced( ItemState{
+            initial_state: LocatedState::BothSynced( ItemState{
                 calendar: main_cal.clone(),
                 name: String::from("Task C"),
                 completed: false,
@@ -132,7 +132,7 @@ pub fn basic_scenarii() -> Vec<ItemScenario> {
     tasks.push(
         ItemScenario {
             id: ItemId::random(),
-            before_sync: LocatedState::BothSynced( ItemState{
+            initial_state: LocatedState::BothSynced( ItemState{
                 calendar: main_cal.clone(),
                 name: String::from("Task D"),
                 completed: false,
@@ -150,7 +150,7 @@ pub fn basic_scenarii() -> Vec<ItemScenario> {
     tasks.push(
         ItemScenario {
             id: ItemId::random(),
-            before_sync: LocatedState::BothSynced( ItemState{
+            initial_state: LocatedState::BothSynced( ItemState{
                 calendar: main_cal.clone(),
                 name: String::from("Task E"),
                 completed: false,
@@ -168,7 +168,7 @@ pub fn basic_scenarii() -> Vec<ItemScenario> {
     tasks.push(
         ItemScenario {
             id: ItemId::random(),
-            before_sync: LocatedState::BothSynced( ItemState{
+            initial_state: LocatedState::BothSynced( ItemState{
                 calendar: main_cal.clone(),
                 name: String::from("Task F"),
                 completed: false,
@@ -187,7 +187,7 @@ pub fn basic_scenarii() -> Vec<ItemScenario> {
     tasks.push(
         ItemScenario {
             id: ItemId::random(),
-            before_sync: LocatedState::BothSynced( ItemState{
+            initial_state: LocatedState::BothSynced( ItemState{
                 calendar: main_cal.clone(),
                 name: String::from("Task G"),
                 completed: false,
@@ -205,7 +205,7 @@ pub fn basic_scenarii() -> Vec<ItemScenario> {
     tasks.push(
         ItemScenario {
             id: ItemId::random(),
-            before_sync: LocatedState::BothSynced( ItemState{
+            initial_state: LocatedState::BothSynced( ItemState{
                 calendar: main_cal.clone(),
                 name: String::from("Task H"),
                 completed: false,
@@ -223,7 +223,7 @@ pub fn basic_scenarii() -> Vec<ItemScenario> {
     tasks.push(
         ItemScenario {
             id: ItemId::random(),
-            before_sync: LocatedState::BothSynced( ItemState{
+            initial_state: LocatedState::BothSynced( ItemState{
                 calendar: main_cal.clone(),
                 name: String::from("Task I"),
                 completed: false,
@@ -242,7 +242,7 @@ pub fn basic_scenarii() -> Vec<ItemScenario> {
     tasks.push(
         ItemScenario {
             id: ItemId::random(),
-            before_sync: LocatedState::BothSynced( ItemState{
+            initial_state: LocatedState::BothSynced( ItemState{
                 calendar: main_cal.clone(),
                 name: String::from("Task J"),
                 completed: false,
@@ -256,21 +256,25 @@ pub fn basic_scenarii() -> Vec<ItemScenario> {
     tasks.push(
         ItemScenario {
             id: ItemId::random(),
-            before_sync: LocatedState::BothSynced( ItemState{
+            initial_state: LocatedState::BothSynced( ItemState{
                 calendar: main_cal.clone(),
                 name: String::from("Task K"),
                 completed: false,
             }),
             local_changes_to_apply: vec![ChangeToApply::Remove],
             remote_changes_to_apply: vec![ChangeToApply::SetCompletion(true)],
-            after_sync: LocatedState::None,
+            after_sync: LocatedState::BothSynced( ItemState{
+                calendar: main_cal.clone(),
+                name: String::from("Task K"),
+                completed: true,
+            }),
         }
     );
 
     tasks.push(
         ItemScenario {
             id: ItemId::random(),
-            before_sync: LocatedState::BothSynced( ItemState{
+            initial_state: LocatedState::BothSynced( ItemState{
                 calendar: main_cal.clone(),
                 name: String::from("Task L"),
                 completed: false,
@@ -284,7 +288,7 @@ pub fn basic_scenarii() -> Vec<ItemScenario> {
     tasks.push(
         ItemScenario {
             id: ItemId::random(),
-            before_sync: LocatedState::BothSynced( ItemState{
+            initial_state: LocatedState::BothSynced( ItemState{
                 calendar: main_cal.clone(),
                 name: String::from("Task M"),
                 completed: true,
@@ -302,7 +306,7 @@ pub fn basic_scenarii() -> Vec<ItemScenario> {
     tasks.push(
         ItemScenario {
             id: ItemId::random(),
-            before_sync: LocatedState::BothSynced( ItemState{
+            initial_state: LocatedState::BothSynced( ItemState{
                 calendar: main_cal.clone(),
                 name: String::from("Task N"),
                 completed: true,
@@ -320,7 +324,7 @@ pub fn basic_scenarii() -> Vec<ItemScenario> {
     tasks.push(
         ItemScenario {
             id: ItemId::random(),
-            before_sync: LocatedState::BothSynced( ItemState{
+            initial_state: LocatedState::BothSynced( ItemState{
                 calendar: main_cal.clone(),
                 name: String::from("Task O"),
                 completed: true,
@@ -339,7 +343,7 @@ pub fn basic_scenarii() -> Vec<ItemScenario> {
     tasks.push(
         ItemScenario {
             id: id_p.clone(),
-            before_sync: LocatedState::None,
+            initial_state: LocatedState::None,
             local_changes_to_apply: vec![ChangeToApply::Create(main_cal.clone(), Item::Task(
                 Task::new(String::from("Task P, created locally"), id_p, SyncStatus::NotSynced, false )
             ))],
@@ -356,7 +360,7 @@ pub fn basic_scenarii() -> Vec<ItemScenario> {
     tasks.push(
         ItemScenario {
             id: id_q.clone(),
-            before_sync: LocatedState::None,
+            initial_state: LocatedState::None,
             local_changes_to_apply: Vec::new(),
             remote_changes_to_apply: vec![ChangeToApply::Create(main_cal.clone(), Item::Task(
                 Task::new(String::from("Task Q, created on the server"), id_q, SyncStatus::random_synced(), false )
@@ -372,14 +376,26 @@ pub fn basic_scenarii() -> Vec<ItemScenario> {
     tasks
 }
 
-/// Build a `Provider` that contains the data defined in the given scenarii
-pub async fn populate_test_provider(scenarii: &[ItemScenario]) -> Provider<Cache, CachedCalendar, Cache, CachedCalendar> {
+/// Build a `Provider` that contains the data (defined in the given scenarii) before sync
+pub async fn populate_test_provider_before_sync(scenarii: &[ItemScenario]) -> Provider<Cache, CachedCalendar, Cache, CachedCalendar> {
+    let mut provider = populate_test_provider(scenarii, false).await;
+    apply_changes_on_provider(&mut provider, scenarii).await;
+    provider
+}
+
+/// Build a `Provider` that contains the data (defined in the given scenarii) after sync
+pub async fn populate_test_provider_after_sync(scenarii: &[ItemScenario]) -> Provider<Cache, CachedCalendar, Cache, CachedCalendar> {
+    populate_test_provider(scenarii, true).await
+}
+
+async fn populate_test_provider(scenarii: &[ItemScenario], final_state: bool) -> Provider<Cache, CachedCalendar, Cache, CachedCalendar> {
     let mut remote = Cache::new(&PathBuf::from(String::from("test_cache_remote/")));
     let mut local = Cache::new(&PathBuf::from(String::from("test_cache_local/")));
 
     // Create the initial state, as if we synced both sources in a given state
     for item in scenarii {
-        let (state, sync_status) = match &item.before_sync {
+        let required_state = if final_state { &item.after_sync } else { &item.initial_state };
+        let (state, sync_status) = match required_state {
             LocatedState::None => continue,
             LocatedState::Local(s) => (s, SyncStatus::NotSynced),
             LocatedState::Remote(s) => (s, SyncStatus::random_synced()),
@@ -394,7 +410,7 @@ pub async fn populate_test_provider(scenarii: &[ItemScenario]) -> Provider<Cache
                 state.completed,
             ));
 
-        match &item.before_sync {
+        match required_state {
             LocatedState::None => panic!("Should not happen, we've continued already"),
             LocatedState::Local(s) => {
                 get_or_insert_calendar(&mut local, &s.calendar).await.unwrap().lock().unwrap().add_item(new_item).await.unwrap();
@@ -408,12 +424,14 @@ pub async fn populate_test_provider(scenarii: &[ItemScenario]) -> Provider<Cache
             },
         }
     }
-    let provider = Provider::new(remote, local);
+    Provider::new(remote, local)
+}
 
-
+/// Apply `local_changes_to_apply` and `remote_changes_to_apply` to a provider that contains data before sync
+async fn apply_changes_on_provider(provider: &mut Provider<Cache, CachedCalendar, Cache, CachedCalendar>, scenarii: &[ItemScenario]) {
     // Apply changes to each item
     for item in scenarii {
-        let initial_calendar_id = match &item.before_sync {
+        let initial_calendar_id = match &item.initial_state {
             LocatedState::None => None,
             LocatedState::Local(state) => Some(&state.calendar),
             LocatedState::Remote(state) => Some(&state.calendar),
@@ -428,8 +446,6 @@ pub async fn populate_test_provider(scenarii: &[ItemScenario]) -> Provider<Cache
             apply_change(provider.remote(), initial_calendar_id, &item.id, remote_change, true).await;
         }
     }
-
-    provider
 }
 
 async fn get_or_insert_calendar<S, C>(source: &mut S, id: &CalendarId) -> Result<Arc<Mutex<C>>, Box<dyn Error>>
