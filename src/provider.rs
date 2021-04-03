@@ -9,7 +9,8 @@ use crate::traits::CompleteCalendar;
 use crate::item::SyncStatus;
 use crate::calendar::SupportedComponents;
 
-/// A data source that combines two `CalDavSources` (usually a server and a local cache), which is able to sync both sources.
+/// A data source that combines two `CalDavSource`s (usually a server and a local cache), which is able to sync both sources.
+/// This can be used for integration tests, where the remote source is mocked by a `Cache`.
 pub struct Provider<L, T, R, U>
 where
     L: CalDavSource<T>,

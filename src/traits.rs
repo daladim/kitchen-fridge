@@ -10,6 +10,7 @@ use crate::item::VersionTag;
 use crate::calendar::CalendarId;
 use crate::calendar::SupportedComponents;
 
+/// This trait must be implemented by data sources (either local caches or remote CalDAV clients)
 #[async_trait]
 pub trait CalDavSource<T: BaseCalendar> {
     /// Returns the current calendars that this source contains
@@ -92,9 +93,9 @@ pub trait CompleteCalendar : BaseCalendar {
 
     /// Mark an item for deletion.
     /// This is required so that the upcoming sync will know it should also also delete this task from the server
-    /// (and then call [`immediately_delete_item`] once it has been successfully deleted on the server)
+    /// (and then call [`CompleteCalendar::immediately_delete_item`] once it has been successfully deleted on the server)
     async fn mark_for_deletion(&mut self, item_id: &ItemId) -> Result<(), Box<dyn Error>>;
 
-    /// Immediately remove an item. See [`mark_for_deletion`]
+    /// Immediately remove an item. See [`CompleteCalendar::mark_for_deletion`]
     async fn immediately_delete_item(&mut self, item_id: &ItemId) -> Result<(), Box<dyn Error>>;
 }

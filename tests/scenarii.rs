@@ -1,4 +1,11 @@
 //! Multiple scenarios that are performed to test sync operations correctly work
+//!
+//! This module creates test data.
+//! To do so, "scenarii" are defined. A scenario contains an inital state before sync, changes made either on the local or remote side, then the expected final state that should be present in both sources after sync.
+//!
+//! This module builds actual CalDAV sources (actually [`crate::cache::Cache`]s, that can also mock what would be [`crate::client::Client`]s in a real program) and [`crate::provider::Provider]`s that contain this data
+//!
+//! This module can also check the sources after a sync contain the actual data we expect
 #![cfg(feature = "integration_tests")]
 
 use std::path::PathBuf;
@@ -58,7 +65,7 @@ pub struct ItemScenario {
     after_sync: LocatedState,
 }
 
-/// Populate sources with the following:
+/// Generate the scenarii required for the following test:
 /// * At the last sync: both sources had A, B, C, D, E, F, G, H, I, J, K, L, M✓, N✓, O✓ at last sync
 /// * Before the newer sync, this will be the content of the sources:
 ///     * cache:  A, B,    D', E,  F'', G , H✓, I✓, J✓,        M,  N✓, O, P,
@@ -69,8 +76,8 @@ pub struct ItemScenario {
 ///
 /// Notes:
 /// * X': name has been modified since the last sync
-/// * F'/F'': name conflict
-/// * G✓: task has been marked as completed
+/// * X'/X'': name conflict
+/// * X✓: task has been marked as completed
 pub fn basic_scenarii() -> Vec<ItemScenario> {
     let mut tasks = Vec::new();
 
@@ -365,6 +372,7 @@ pub fn basic_scenarii() -> Vec<ItemScenario> {
     tasks
 }
 
+/// Build a `Provider` that contains the data defined in the given scenarii
 pub async fn populate_test_provider(scenarii: &[ItemScenario]) -> Provider<Cache, CachedCalendar, Cache, CachedCalendar> {
     let mut remote = Cache::new(&PathBuf::from(String::from("test_cache_remote/")));
     let mut local = Cache::new(&PathBuf::from(String::from("test_cache_local/")));

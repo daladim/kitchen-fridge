@@ -7,6 +7,10 @@
 //! These two "data sources" (actual client and local cache) can be used together in a [`Provider`](provider::Provider). \
 //! A `Provider` abstracts these two sources by merging them together into one virtual source. \
 //! It also handles synchronisation between the local cache and the server.
+//!
+//! Note that many methods are defined in common traits (see [`crate::traits`]).
+//!
+//! See example usage in the `examples/` folder
 
 pub mod traits;
 
