@@ -40,15 +40,6 @@ pub struct RemoteCalendar {
     cached_version_tags: Mutex<Option<HashMap<ItemId, VersionTag>>>,
 }
 
-impl RemoteCalendar {
-    pub fn new(name: String, resource: Resource, supported_components: SupportedComponents) -> Self {
-        Self {
-            name, resource, supported_components,
-            cached_version_tags: Mutex::new(None),
-        }
-    }
-}
-
 #[async_trait]
 impl BaseCalendar for RemoteCalendar {
     fn name(&self) -> &str { &self.name }
@@ -65,6 +56,14 @@ impl BaseCalendar for RemoteCalendar {
 
 #[async_trait]
 impl DavCalendar for RemoteCalendar {
+    fn new(name: String, resource: Resource, supported_components: SupportedComponents) -> Self {
+        Self {
+            name, resource, supported_components,
+            cached_version_tags: Mutex::new(None),
+        }
+    }
+
+
     async fn get_item_version_tags(&self) -> Result<HashMap<ItemId, VersionTag>, Box<dyn Error>> {
         if let Some(map) = &*self.cached_version_tags.lock().unwrap() {
             log::debug!("Version tags are already cached.");

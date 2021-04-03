@@ -10,6 +10,7 @@ use crate::item::ItemId;
 use crate::item::VersionTag;
 use crate::calendar::CalendarId;
 use crate::calendar::SupportedComponents;
+use crate::resource::Resource;
 
 /// This trait must be implemented by data sources (either local caches or remote CalDAV clients)
 #[async_trait]
@@ -19,8 +20,9 @@ pub trait CalDavSource<T: BaseCalendar> {
     async fn get_calendars(&self) -> Result<HashMap<CalendarId, Arc<Mutex<T>>>, Box<dyn Error>>;
     /// Returns the calendar matching the ID
     async fn get_calendar(&self, id: &CalendarId) -> Option<Arc<Mutex<T>>>;
-    /// Insert a calendar if it did not exist, and return it
-    async fn insert_calendar(&mut self, new_calendar: T) -> Result<Arc<Mutex<T>>, Box<dyn Error>>;
+    /// Create a calendar if it did not exist, and return it
+    async fn create_calendar(&mut self, id: CalendarId, name: String, supported_components: SupportedComponents)
+        -> Result<Arc<Mutex<T>>, Box<dyn Error>>;
 }
 
 /// This trait contains functions that are common to all calendars
@@ -55,6 +57,9 @@ pub trait BaseCalendar {
 /// Functions availabe for calendars that are backed by a CalDAV server
 #[async_trait]
 pub trait DavCalendar : BaseCalendar {
+    /// Create a new calendar
+    fn new(name: String, resource: Resource, supported_components: SupportedComponents) -> Self;
+
     /// Get the IDs and the version tags of every item in this calendar
     async fn get_item_version_tags(&self) -> Result<HashMap<ItemId, VersionTag>, Box<dyn Error>>;
 

@@ -14,8 +14,10 @@ use crate::resource::Resource;
 use crate::utils::{find_elem, find_elems};
 use crate::calendar::remote_calendar::RemoteCalendar;
 use crate::calendar::CalendarId;
+use crate::calendar::SupportedComponents;
 use crate::traits::CalDavSource;
 use crate::traits::BaseCalendar;
+use crate::traits::DavCalendar;
 
 
 static DAVCLIENT_BODY: &str = r#"
@@ -222,17 +224,17 @@ impl CalDavSource<RemoteCalendar> for Client {
         };
     }
 
-
     async fn get_calendar(&self, id: &CalendarId) -> Option<Arc<Mutex<RemoteCalendar>>> {
         self.cached_replies.lock().unwrap()
             .calendars
             .as_ref()
             .and_then(|cals| cals.get(id))
             .map(|cal| cal.clone())
-        }
+    }
 
-    async fn insert_calendar(&mut self, _new_calendar: RemoteCalendar) -> Result<Arc<Mutex<RemoteCalendar>>, Box<dyn Error>> {
+    async fn create_calendar(&mut self, id: CalendarId, name: String, supported_components: SupportedComponents) -> Result<Arc<Mutex<RemoteCalendar>>, Box<dyn Error>> {
         todo!();
     }
+
 }
 

@@ -156,11 +156,16 @@ impl CompleteCalendar for CachedCalendar {
 
 #[cfg(feature = "local_calendar_mocks_remote_calendars")]
 use crate::{item::VersionTag,
-            traits::DavCalendar};
+            traits::DavCalendar,
+            resource::Resource};
 
 #[cfg(feature = "local_calendar_mocks_remote_calendars")]
 #[async_trait]
 impl DavCalendar for CachedCalendar {
+    fn new(name: String, resource: Resource, supported_components: SupportedComponents) -> Self {
+        crate::traits::CompleteCalendar::new(name, resource.url().clone(), supported_components)
+    }
+
     async fn get_item_version_tags(&self) -> Result<HashMap<ItemId, VersionTag>, Box<dyn Error>> {
         use crate::item::SyncStatus;
 

@@ -9,6 +9,7 @@ use crate::traits::{CalDavSource, DavCalendar};
 use crate::traits::CompleteCalendar;
 use crate::item::SyncStatus;
 use crate::calendar::SupportedComponents;
+use crate::calendar::CalendarId;
 
 /// A data source that combines two `CalDavSource`s (usually a server and a local cache), which is able to sync both sources.
 /// This can be used for integration tests, where the remote source is mocked by a `Cache`.
@@ -57,22 +58,27 @@ where
     pub async fn sync(&mut self) -> Result<(), Box<dyn Error>> {
         log::info!("Starting a sync.");
 
+        let mut handled_calendars = HashSet::new();
+
+        // Sync every remote calendar
         let cals_remote = self.remote.get_calendars().await?;
         for (cal_id, cal_remote) in cals_remote {
-            let cal_local = loop {
-                if let Some(cal) = self.local.get_calendar(&cal_id).await {
-                    break cal;
-                }
+            let cal_local = self.get_or_insert_local_counterpart_calendar(&cal_id).await;
 
-                // This calendar does not exist locally yet, let's add it
-                log::error!("TODO: what name/SP should we choose?");
-                let new_calendar = T::new(String::from("new calendar"), cal_id.clone(), SupportedComponents::TODO);
+            if let Err(err) = Self::sync_calendar_pair(cal_local, cal_remote).await {
+                log::warn!("Unable to sync calendar {}: {}, skipping this time.", cal_id, err);
+            }
+            handled_calendars.insert(cal_id);
+        }
 
-                if let Err(err) = self.local.insert_calendar(new_calendar).await {
-                    log::warn!("Unable to create local calendar {}: {}. Skipping it.", cal_id, err);
-                    continue;
-                }
-            };
+        // Sync every local calendar that would not be in the remote yet
+        let cals_local = self.local.get_calendars().await?;
+        for (cal_id, cal_local) in cals_local {
+            if handled_calendars.contains(&cal_id) {
+                continue;
+            }
+
+            let cal_remote = self.get_or_insert_remote_counterpart_calendar(&cal_id).await;
 
             if let Err(err) = Self::sync_calendar_pair(cal_local, cal_remote).await {
                 log::warn!("Unable to sync calendar {}: {}, skipping this time.", cal_id, err);
@@ -81,6 +87,46 @@ where
 
         Ok(())
     }
+
+
+    async fn get_or_insert_local_counterpart_calendar(&mut self, cal_id: &CalendarId) -> Arc<Mutex<T>> {
+        loop {
+            if let Some(cal) = self.local.get_calendar(&cal_id).await {
+                break cal;
+            }
+
+            // This calendar does not exist locally yet, let's add it
+            log::debug!("Adding a local calendar {}", cal_id);
+            if let Err(err) = self.local.create_calendar(
+                cal_id.clone(),
+                String::from("new calendar"),
+                SupportedComponents::TODO,
+            ).await {
+                log::warn!("Unable to create local calendar {}: {}. Skipping it.", cal_id, err);
+                continue;
+            }
+        }
+    }
+
+    async fn get_or_insert_remote_counterpart_calendar(&mut self, cal_id: &CalendarId) -> Arc<Mutex<U>> {
+        loop {
+            if let Some(cal) = self.remote.get_calendar(&cal_id).await {
+                break cal;
+            }
+
+            // This calendar does not exist in the remote yet, let's add it
+            log::debug!("Adding a remote calendar {}", cal_id);
+            if let Err(err) = self.remote.create_calendar(
+                cal_id.clone(),
+                String::from("new calendar"),
+                SupportedComponents::TODO,
+            ).await {
+                log::warn!("Unable to create remote calendar {}: {}. Skipping it.", cal_id, err);
+                continue;
+            }
+        }
+    }
+
 
 
     async fn sync_calendar_pair(cal_local: Arc<Mutex<T>>, cal_remote: Arc<Mutex<U>>) -> Result<(), Box<dyn Error>> {

@@ -99,19 +99,14 @@ where
 pub fn print_task(item: &Item) {
     match item {
         Item::Task(task) => {
-            let mut status = String::new();
-            if task.completed() {
-                status += "✓";
-            } else {
-                status += " ";
-            }
-            match task.sync_status() {
-                SyncStatus::NotSynced => { status += " "; },
-                SyncStatus::Synced(_) => { status += "="; },
-                SyncStatus::LocallyModified(_) => { status += "~"; },
-                SyncStatus::LocallyDeleted(_) =>  { status += "x"; },
-            }
-            println!("    {} {}\t{}", status, task.name(), task.id());
+            let completion = if task.completed() { "✓" } else { " " };
+            let sync = match task.sync_status() {
+                SyncStatus::NotSynced => ".",
+                SyncStatus::Synced(_) => "=",
+                SyncStatus::LocallyModified(_) => "~",
+                SyncStatus::LocallyDeleted(_) =>  "x",
+            };
+            println!("    {}{} {}\t{}", completion, sync, task.name(), task.id());
         },
         _ => return,
     }

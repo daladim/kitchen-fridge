@@ -17,6 +17,7 @@ use crate::traits::BaseCalendar;
 use crate::traits::CompleteCalendar;
 use crate::calendar::cached_calendar::CachedCalendar;
 use crate::calendar::CalendarId;
+use crate::calendar::SupportedComponents;
 
 const MAIN_FILE: &str = "data.json";
 
@@ -25,6 +26,9 @@ const MAIN_FILE: &str = "data.json";
 pub struct Cache {
     backing_folder: PathBuf,
     data: CachedData,
+
+    #[cfg(feature = "local_calendar_mocks_remote_calendars")]
+    is_mocking_remote_source: bool,
 }
 
 #[derive(Default, Debug, Serialize, Deserialize)]
@@ -34,6 +38,13 @@ struct CachedData {
 }
 
 impl Cache {
+    /// Activate the "mocking remote source" features (i.e. tell its children calendars that they are mocked remote calendars)
+    #[cfg(feature = "local_calendar_mocks_remote_calendars")]
+    pub fn set_is_mocking_remote_source(&mut self) {
+        self.is_mocking_remote_source = true;
+    }
+
+
     /// Get the path to the cache folder
     pub fn cache_folder() -> PathBuf {
         return PathBuf::from(String::from("~/.config/my-tasks/cache/"))
@@ -78,6 +89,9 @@ impl Cache {
         Ok(Self{
             backing_folder: PathBuf::from(folder),
             data,
+
+            #[cfg(feature = "local_calendar_mocks_remote_calendars")]
+            is_mocking_remote_source: false,
         })
     }
 
@@ -91,6 +105,9 @@ impl Cache {
         Self{
             backing_folder: PathBuf::from(folder_path),
             data: CachedData::default(),
+
+            #[cfg(feature = "local_calendar_mocks_remote_calendars")]
+            is_mocking_remote_source: false,
         }
     }
 
@@ -198,13 +215,19 @@ impl CalDavSource<CachedCalendar> for Cache {
         self.data.calendars.get(id).map(|arc| arc.clone())
     }
 
-    async fn insert_calendar(&mut self, new_calendar: CachedCalendar) -> Result<Arc<Mutex<CachedCalendar>>, Box<dyn Error>> {
-        let id = new_calendar.id().clone();
+    async fn create_calendar(&mut self, id: CalendarId, name: String, supported_components: SupportedComponents) -> Result<Arc<Mutex<CachedCalendar>>, Box<dyn Error>> {
         log::debug!("Inserting local calendar {}", id);
+        let new_calendar = CachedCalendar::new(name, id.clone(), supported_components);
         let arc = Arc::new(Mutex::new(new_calendar));
+
+        #[cfg(feature = "local_calendar_mocks_remote_calendars")]
+        if self.is_mocking_remote_source {
+            arc.lock().unwrap().set_is_mocking_remote_calendar();
+        }
+
         match self.data.calendars.insert(id, arc.clone()) {
             Some(_) => Err("Attempt to insert calendar failed: there is alredy such a calendar.".into()),
-            None => Ok(arc) ,
+            None => Ok(arc),
         }
     }
 }
@@ -224,10 +247,11 @@ mod tests {
 
         let mut cache = Cache::new(&cache_path);
 
-        let cal1 = CachedCalendar::new("shopping list".to_string(),
-                                Url::parse("https://caldav.com/shopping").unwrap(),
-                            SupportedComponents::TODO);
-        cache.insert_calendar(cal1).await.unwrap();
+        let _ = cache.create_calendar(
+            Url::parse("https://caldav.com/shopping").unwrap(),
+            "shopping list".to_string(),
+            SupportedComponents::TODO,
+        ).await.unwrap();
 
 
         cache.save_to_folder().unwrap();

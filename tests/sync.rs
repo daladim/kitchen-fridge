@@ -1,9 +1,5 @@
 mod scenarii;
 
-use my_tasks::traits::CalDavSource;
-use my_tasks::Provider;
-use my_tasks::cache::Cache;
-use my_tasks::calendar::cached_calendar::CachedCalendar;
 
 
 
@@ -19,6 +15,8 @@ impl TestFlavour {
     pub fn normal() -> Self { Self{} }
     #[cfg(not(feature = "local_calendar_mocks_remote_calendars"))]
     pub fn first_sync_to_local() -> Self { Self{} }
+    #[cfg(not(feature = "local_calendar_mocks_remote_calendars"))]
+    pub fn first_sync_to_server() -> Self { Self{} }
 
     #[cfg(feature = "local_calendar_mocks_remote_calendars")]
     pub fn normal() -> Self {
@@ -31,6 +29,13 @@ impl TestFlavour {
     pub fn first_sync_to_local() -> Self {
         Self {
             scenarii: scenarii::scenarii_first_sync_to_local(),
+        }
+    }
+
+    #[cfg(feature = "local_calendar_mocks_remote_calendars")]
+    pub fn first_sync_to_server() -> Self {
+        Self {
+            scenarii: scenarii::scenarii_first_sync_to_server(),
         }
     }
 
@@ -82,6 +87,22 @@ async fn test_sync_empty_initial_local() {
     let flavour = TestFlavour::first_sync_to_local();
     flavour.run().await;
 }
+
+#[tokio::test]
+async fn test_sync_empty_initial_server() {
+    let _ = env_logger::builder().is_test(true).try_init();
+
+    let flavour = TestFlavour::first_sync_to_server();
+    flavour.run().await;
+}
+
+
+#[cfg(feature = "integration_tests")]
+use my_tasks::{traits::CalDavSource,
+               Provider,
+               cache::Cache,
+               calendar::cached_calendar::CachedCalendar,
+};
 
 /// Print the contents of the provider. This is usually used for debugging
 #[allow(dead_code)]

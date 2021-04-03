@@ -83,6 +83,13 @@ pub fn scenarii_basic() -> Vec<ItemScenario> {
 
     let main_cal = CalendarId::from("https://some.calend.ar/main/".parse().unwrap());
 
+    //
+    //
+    //
+    //
+    // TODO: add new calendars, with or without taks in them
+    //
+
     tasks.push(
         ItemScenario {
             id: ItemId::random(),
@@ -440,6 +447,71 @@ pub fn scenarii_first_sync_to_local() -> Vec<ItemScenario> {
     tasks
 }
 
+/// This scenario basically checks a first sync to an empty server
+pub fn scenarii_first_sync_to_server() -> Vec<ItemScenario> {
+    let mut tasks = Vec::new();
+
+    let cal3 = CalendarId::from("https://some.calend.ar/third/".parse().unwrap());
+    let cal4 = CalendarId::from("https://some.calend.ar/fourth/".parse().unwrap());
+
+    tasks.push(
+        ItemScenario {
+            id: ItemId::random(),
+            initial_state: LocatedState::Local( ItemState{
+                calendar: cal3.clone(),
+                name: String::from("Task A3"),
+                completed: false,
+            }),
+            local_changes_to_apply: Vec::new(),
+            remote_changes_to_apply: Vec::new(),
+            after_sync: LocatedState::BothSynced( ItemState{
+                calendar: cal3.clone(),
+                name: String::from("Task A3"),
+                completed: false,
+            }),
+        }
+    );
+
+    tasks.push(
+        ItemScenario {
+            id: ItemId::random(),
+            initial_state: LocatedState::Local( ItemState{
+                calendar: cal4.clone(),
+                name: String::from("Task A4"),
+                completed: false,
+            }),
+            local_changes_to_apply: Vec::new(),
+            remote_changes_to_apply: Vec::new(),
+            after_sync: LocatedState::BothSynced( ItemState{
+                calendar: cal4.clone(),
+                name: String::from("Task A4"),
+                completed: false,
+            }),
+        }
+    );
+
+    tasks.push(
+        ItemScenario {
+            id: ItemId::random(),
+            initial_state: LocatedState::Local( ItemState{
+                calendar: cal3.clone(),
+                name: String::from("Task B3"),
+                completed: false,
+            }),
+            local_changes_to_apply: Vec::new(),
+            remote_changes_to_apply: Vec::new(),
+            after_sync: LocatedState::BothSynced( ItemState{
+                calendar: cal3.clone(),
+                name: String::from("Task B3"),
+                completed: false,
+            }),
+        }
+    );
+
+    tasks
+}
+
+
 /// Build a `Provider` that contains the data (defined in the given scenarii) before sync
 pub async fn populate_test_provider_before_sync(scenarii: &[ItemScenario]) -> Provider<Cache, CachedCalendar, Cache, CachedCalendar> {
     let mut provider = populate_test_provider(scenarii, false).await;
@@ -453,8 +525,9 @@ pub async fn populate_test_provider_after_sync(scenarii: &[ItemScenario]) -> Pro
 }
 
 async fn populate_test_provider(scenarii: &[ItemScenario], populate_for_final_state: bool) -> Provider<Cache, CachedCalendar, Cache, CachedCalendar> {
-    let mut remote = Cache::new(&PathBuf::from(String::from("test_cache_remote/")));
     let mut local = Cache::new(&PathBuf::from(String::from("test_cache_local/")));
+    let mut remote = Cache::new(&PathBuf::from(String::from("test_cache_remote/")));
+    remote.set_is_mocking_remote_source();
 
     // Create the initial state, as if we synced both sources in a given state
     for item in scenarii {
@@ -483,14 +556,14 @@ async fn populate_test_provider(scenarii: &[ItemScenario], populate_for_final_st
         match required_state {
             LocatedState::None => panic!("Should not happen, we've continued already"),
             LocatedState::Local(s) => {
-                get_or_insert_calendar(&mut local,  &s.calendar, false).await.unwrap().lock().unwrap().add_item(new_item).await.unwrap();
+                get_or_insert_calendar(&mut local,  &s.calendar).await.unwrap().lock().unwrap().add_item(new_item).await.unwrap();
             },
             LocatedState::Remote(s) => {
-                get_or_insert_calendar(&mut remote, &s.calendar, true).await.unwrap().lock().unwrap().add_item(new_item).await.unwrap();
+                get_or_insert_calendar(&mut remote, &s.calendar).await.unwrap().lock().unwrap().add_item(new_item).await.unwrap();
             },
             LocatedState::BothSynced(s) => {
-                get_or_insert_calendar(&mut local,  &s.calendar, false).await.unwrap().lock().unwrap().add_item(new_item.clone()).await.unwrap();
-                get_or_insert_calendar(&mut remote, &s.calendar, true).await.unwrap().lock().unwrap().add_item(new_item).await.unwrap();
+                get_or_insert_calendar(&mut local,  &s.calendar).await.unwrap().lock().unwrap().add_item(new_item.clone()).await.unwrap();
+                get_or_insert_calendar(&mut remote, &s.calendar).await.unwrap().lock().unwrap().add_item(new_item).await.unwrap();
             },
         }
     }
@@ -518,7 +591,7 @@ async fn apply_changes_on_provider(provider: &mut Provider<Cache, CachedCalendar
     }
 }
 
-async fn get_or_insert_calendar(source: &mut Cache, id: &CalendarId, should_mock_remote_calendar: bool)
+async fn get_or_insert_calendar(source: &mut Cache, id: &CalendarId)
     -> Result<Arc<Mutex<CachedCalendar>>, Box<dyn Error>>
 {
     match source.get_calendar(id).await {
@@ -526,11 +599,12 @@ async fn get_or_insert_calendar(source: &mut Cache, id: &CalendarId, should_mock
         None => {
             let new_name = format!("Calendar for ID {}", id);
             let supported_components = SupportedComponents::TODO;
-            let mut cal = CachedCalendar::new(new_name.to_string(), id.clone(), supported_components);
-            if should_mock_remote_calendar {
-                cal.set_is_mocking_remote_calendar();
-            }
-            source.insert_calendar(cal).await
+
+            source.create_calendar(
+                id.clone(),
+                new_name.to_string(),
+                supported_components,
+            ).await
         }
     }
 }
