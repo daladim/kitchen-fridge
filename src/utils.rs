@@ -106,9 +106,10 @@ pub fn print_task(item: &Item) {
                 status += " ";
             }
             match task.sync_status() {
+                SyncStatus::NotSynced => { status += " "; },
+                SyncStatus::Synced(_) => { status += "="; },
                 SyncStatus::LocallyModified(_) => { status += "~"; },
                 SyncStatus::LocallyDeleted(_) =>  { status += "x"; },
-                _ => (),
             }
             println!("    {} {}\t{}", status, task.name(), task.id());
         },

@@ -6,7 +6,7 @@
 //! This module builds actual CalDAV sources (actually [`crate::cache::Cache`]s, that can also mock what would be [`crate::client::Client`]s in a real program) and [`crate::provider::Provider]`s that contain this data
 //!
 //! This module can also check the sources after a sync contain the actual data we expect
-#![cfg(feature = "integration_tests")]
+#![cfg(feature = "local_calendar_mocks_remote_calendars")]
 
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
@@ -388,17 +388,23 @@ pub async fn populate_test_provider_after_sync(scenarii: &[ItemScenario]) -> Pro
     populate_test_provider(scenarii, true).await
 }
 
-async fn populate_test_provider(scenarii: &[ItemScenario], final_state: bool) -> Provider<Cache, CachedCalendar, Cache, CachedCalendar> {
+async fn populate_test_provider(scenarii: &[ItemScenario], populate_for_final_state: bool) -> Provider<Cache, CachedCalendar, Cache, CachedCalendar> {
     let mut remote = Cache::new(&PathBuf::from(String::from("test_cache_remote/")));
     let mut local = Cache::new(&PathBuf::from(String::from("test_cache_local/")));
 
     // Create the initial state, as if we synced both sources in a given state
     for item in scenarii {
-        let required_state = if final_state { &item.after_sync } else { &item.initial_state };
+        let required_state = if populate_for_final_state { &item.after_sync } else { &item.initial_state };
         let (state, sync_status) = match required_state {
             LocatedState::None => continue,
-            LocatedState::Local(s) => (s, SyncStatus::NotSynced),
-            LocatedState::Remote(s) => (s, SyncStatus::random_synced()),
+            LocatedState::Local(s) => {
+                assert!(populate_for_final_state == false, "You are not supposed to expect an item in this state after sync");
+                (s, SyncStatus::NotSynced)
+            },
+            LocatedState::Remote(s) => {
+                assert!(populate_for_final_state == false, "You are not supposed to expect an item in this state after sync");
+                (s, SyncStatus::random_synced())
+            }
             LocatedState::BothSynced(s) => (s, SyncStatus::random_synced()),
         };
 
@@ -413,14 +419,14 @@ async fn populate_test_provider(scenarii: &[ItemScenario], final_state: bool) ->
         match required_state {
             LocatedState::None => panic!("Should not happen, we've continued already"),
             LocatedState::Local(s) => {
-                get_or_insert_calendar(&mut local, &s.calendar).await.unwrap().lock().unwrap().add_item(new_item).await.unwrap();
+                get_or_insert_calendar(&mut local,  &s.calendar, false).await.unwrap().lock().unwrap().add_item(new_item).await.unwrap();
             },
             LocatedState::Remote(s) => {
-                get_or_insert_calendar(&mut remote, &s.calendar).await.unwrap().lock().unwrap().add_item(new_item).await.unwrap();
+                get_or_insert_calendar(&mut remote, &s.calendar, true).await.unwrap().lock().unwrap().add_item(new_item).await.unwrap();
             },
             LocatedState::BothSynced(s) => {
-                get_or_insert_calendar(&mut local, &s.calendar).await.unwrap().lock().unwrap().add_item(new_item.clone()).await.unwrap();
-                get_or_insert_calendar(&mut remote, &s.calendar).await.unwrap().lock().unwrap().add_item(new_item).await.unwrap();
+                get_or_insert_calendar(&mut local,  &s.calendar, false).await.unwrap().lock().unwrap().add_item(new_item.clone()).await.unwrap();
+                get_or_insert_calendar(&mut remote, &s.calendar, true).await.unwrap().lock().unwrap().add_item(new_item).await.unwrap();
             },
         }
     }
@@ -448,17 +454,18 @@ async fn apply_changes_on_provider(provider: &mut Provider<Cache, CachedCalendar
     }
 }
 
-async fn get_or_insert_calendar<S, C>(source: &mut S, id: &CalendarId) -> Result<Arc<Mutex<C>>, Box<dyn Error>>
-where
-    S: CalDavSource<C>,
-    C: CompleteCalendar + DavCalendar, // in this test, we're using a calendar that mocks both kinds
+async fn get_or_insert_calendar(source: &mut Cache, id: &CalendarId, should_mock_remote_calendar: bool)
+    -> Result<Arc<Mutex<CachedCalendar>>, Box<dyn Error>>
 {
     match source.get_calendar(id).await {
         Some(cal) => Ok(cal),
         None => {
             let new_name = format!("Calendar for ID {}", id);
             let supported_components = SupportedComponents::TODO;
-            let cal = C::new(new_name.to_string(), id.clone(), supported_components);
+            let mut cal = CachedCalendar::new(new_name.to_string(), id.clone(), supported_components);
+            if should_mock_remote_calendar {
+                cal.set_is_mocking_remote_calendar();
+            }
             source.insert_calendar(cal).await
         }
     }

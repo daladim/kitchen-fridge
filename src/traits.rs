@@ -4,6 +4,7 @@ use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
 
+use crate::SyncStatus;
 use crate::item::Item;
 use crate::item::ItemId;
 use crate::item::VersionTag;
@@ -34,8 +35,10 @@ pub trait BaseCalendar {
     /// Returns the supported kinds of components for this calendar
     fn supported_components(&self) -> crate::calendar::SupportedComponents;
 
-    /// Add an item into this calendar
-    async fn add_item(&mut self, item: Item) -> Result<(), Box<dyn Error>>;
+    /// Add an item into this calendar, and return its new sync status.
+    /// For local calendars, the sync status is not modified.
+    /// For remote calendars, the sync status is updated by the server
+    async fn add_item(&mut self, item: Item) -> Result<SyncStatus, Box<dyn Error>>;
 
     /// Returns whether this calDAV calendar supports to-do items
     fn supports_todo(&self) -> bool {

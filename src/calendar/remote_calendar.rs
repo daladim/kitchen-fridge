@@ -58,8 +58,8 @@ impl BaseCalendar for RemoteCalendar {
     }
 
     /// Add an item into this calendar
-    async fn add_item(&mut self, _item: Item) -> Result<(), Box<dyn Error>> {
-        Err("Not implemented".into())
+    async fn add_item(&mut self, _item: Item) -> Result<SyncStatus, Box<dyn Error>> {
+        todo!()
     }
 }
 

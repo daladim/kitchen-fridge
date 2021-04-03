@@ -17,9 +17,42 @@ pub struct CachedCalendar {
     name: String,
     id: CalendarId,
     supported_components: SupportedComponents,
+    #[cfg(feature = "local_calendar_mocks_remote_calendars")]
+    is_mocking_remote_calendar: bool,
 
     items: HashMap<ItemId, Item>,
 }
+
+impl CachedCalendar {
+    /// Activate the "mocking remote calendar" feature (i.e. ignore sync statuses, since this is what an actual CalDAV sever would do)
+    #[cfg(feature = "local_calendar_mocks_remote_calendars")]
+    pub fn set_is_mocking_remote_calendar(&mut self) {
+        self.is_mocking_remote_calendar = true;
+    }
+
+    /// Add an item
+    async fn regular_add_item(&mut self, item: Item) -> Result<SyncStatus, Box<dyn Error>> {
+        // TODO: here (and in the remote version, display an errror in case we overwrite something?)
+        let ss_clone = item.sync_status().clone();
+        log::debug!("Adding an item with {:?}", ss_clone);
+        self.items.insert(item.id().clone(), item);
+        Ok(ss_clone)
+    }
+
+    /// Add an item, but force a "synced" SyncStatus. This is the typical behaviour on a remote calendar
+    #[cfg(feature = "local_calendar_mocks_remote_calendars")]
+    async fn add_item_force_synced(&mut self, mut item: Item) -> Result<SyncStatus, Box<dyn Error>> {
+        log::debug!("Adding an item, but forces a synced SyncStatus");
+        match item.sync_status() {
+            SyncStatus::Synced(_) => (),
+            _ => item.set_sync_status(SyncStatus::random_synced()),
+        };
+        let ss_clone = item.sync_status().clone();
+        self.items.insert(item.id().clone(), item);
+        Ok(ss_clone)
+    }
+}
+
 
 #[async_trait]
 impl BaseCalendar for CachedCalendar {
@@ -35,10 +68,17 @@ impl BaseCalendar for CachedCalendar {
         self.supported_components
     }
 
-    async fn add_item(&mut self, item: Item) -> Result<(), Box<dyn Error>> {
-        // TODO: here (and in the remote version, display an errror in case we overwrite something?)
-        self.items.insert(item.id().clone(), item);
-        Ok(())
+    #[cfg(not(feature = "local_calendar_mocks_remote_calendars"))]
+    async fn add_item(&mut self, item: Item) -> Result<SyncStatus, Box<dyn Error>> {
+        self.regular_add_item(item).await
+    }
+    #[cfg(feature = "local_calendar_mocks_remote_calendars")]
+    async fn add_item(&mut self, item: Item) -> Result<SyncStatus, Box<dyn Error>> {
+        if self.is_mocking_remote_calendar {
+            self.add_item_force_synced(item).await
+        } else {
+            self.regular_add_item(item).await
+        }
     }
 }
 
@@ -47,6 +87,8 @@ impl CompleteCalendar for CachedCalendar {
     fn new(name: String, id: CalendarId, supported_components: SupportedComponents) -> Self {
         Self {
             name, id, supported_components,
+            #[cfg(feature = "local_calendar_mocks_remote_calendars")]
+            is_mocking_remote_calendar: false,
             items: HashMap::new(),
         }
     }
