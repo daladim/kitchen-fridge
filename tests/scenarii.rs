@@ -639,7 +639,7 @@ async fn get_or_insert_calendar(source: &mut Cache, id: &CalendarId)
     match source.get_calendar(id).await {
         Some(cal) => Ok(cal),
         None => {
-            let new_name = format!("Calendar for ID {}", id);
+            let new_name = format!("Test calendar for ID {}", id);
             let supported_components = SupportedComponents::TODO;
 
             source.create_calendar(

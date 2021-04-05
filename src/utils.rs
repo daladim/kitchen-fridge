@@ -67,7 +67,7 @@ where
     C: CompleteCalendar,
 {
     for (id, cal) in cals {
-        println!("CAL {}", id);
+        println!("CAL {} ({})", cal.lock().unwrap().name(), id);
         match cal.lock().unwrap().get_items().await {
             Err(_err) => continue,
             Ok(map) => {
@@ -85,7 +85,7 @@ where
     C: DavCalendar,
 {
     for (id, cal) in cals {
-        println!("CAL {}", id);
+        println!("CAL {} ({})", cal.lock().unwrap().name(), id);
         match cal.lock().unwrap().get_item_version_tags().await {
             Err(_err) => continue,
             Ok(map) => {
