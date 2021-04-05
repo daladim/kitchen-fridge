@@ -10,51 +10,44 @@ struct TestFlavour {
     scenarii: Vec<scenarii::ItemScenario>,
 }
 
+#[cfg(not(feature = "local_calendar_mocks_remote_calendars"))]
 impl TestFlavour {
-    #[cfg(not(feature = "local_calendar_mocks_remote_calendars"))]
     pub fn normal() -> Self { Self{} }
-    #[cfg(not(feature = "local_calendar_mocks_remote_calendars"))]
     pub fn first_sync_to_local() -> Self { Self{} }
-    #[cfg(not(feature = "local_calendar_mocks_remote_calendars"))]
     pub fn first_sync_to_server() -> Self { Self{} }
-    #[cfg(not(feature = "local_calendar_mocks_remote_calendars"))]
     pub fn transient_task() -> Self { Self{} }
 
-    #[cfg(feature = "local_calendar_mocks_remote_calendars")]
+    pub async fn run(&self) {
+        println!("WARNING: This test required the \"integration_tests\" Cargo feature");
+    }
+}
+
+#[cfg(feature = "local_calendar_mocks_remote_calendars")]
+impl TestFlavour {
     pub fn normal() -> Self {
         Self {
             scenarii: scenarii::scenarii_basic(),
         }
     }
 
-    #[cfg(feature = "local_calendar_mocks_remote_calendars")]
     pub fn first_sync_to_local() -> Self {
         Self {
             scenarii: scenarii::scenarii_first_sync_to_local(),
         }
     }
 
-    #[cfg(feature = "local_calendar_mocks_remote_calendars")]
     pub fn first_sync_to_server() -> Self {
         Self {
             scenarii: scenarii::scenarii_first_sync_to_server(),
         }
     }
 
-    #[cfg(feature = "local_calendar_mocks_remote_calendars")]
     pub fn transient_task() -> Self {
         Self {
             scenarii: scenarii::scenarii_transient_task(),
         }
     }
 
-
-    #[cfg(not(feature = "local_calendar_mocks_remote_calendars"))]
-    pub async fn run(&self) {
-        println!("WARNING: This test required the \"integration_tests\" Cargo feature");
-    }
-
-    #[cfg(feature = "local_calendar_mocks_remote_calendars")]
     pub async fn run(&self) {
         let mut provider = scenarii::populate_test_provider_before_sync(&self.scenarii).await;
 
