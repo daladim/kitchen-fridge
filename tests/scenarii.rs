@@ -50,10 +50,10 @@ pub struct ItemState {
 pub enum ChangeToApply {
     Rename(String),
     SetCompletion(bool),
-    ChangeCalendar(CalendarId),
     Create(CalendarId, Item),
     /// "remove" means "mark for deletion" in the local calendar, or "immediately delete" on the remote calendar
     Remove,
+    // ChangeCalendar(CalendarId) is useless, as long as changing a calendar is implemented as "delete in one calendar and re-create it in another one"
 }
 
 
@@ -692,9 +692,6 @@ where
                 task.set_completed(new_status.clone());
             }
         },
-        ChangeToApply::ChangeCalendar(_) => {
-            panic!("Not implemented yet");
-        },
         ChangeToApply::Remove => {
             match is_remote {
                 false => cal.mark_for_deletion(item_id).await.unwrap(),
@@ -716,7 +713,6 @@ where
     match change {
         ChangeToApply::Rename(_) |
         ChangeToApply::SetCompletion(_) |
-        ChangeToApply::ChangeCalendar(_) |
         ChangeToApply::Remove => {
             panic!("This function only creates items that do not exist yet");
         }
