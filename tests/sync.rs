@@ -68,6 +68,12 @@ impl TestFlavour {
 
         assert!(provider.local() .has_same_observable_content_as(expected_provider.local() ).await.unwrap());
         assert!(provider.remote().has_same_observable_content_as(expected_provider.remote()).await.unwrap());
+
+        // Perform a second sync, even if no change has happened, just to check
+        println!("Syncing again");
+        provider.sync().await.unwrap();
+        assert!(provider.local() .has_same_observable_content_as(expected_provider.local() ).await.unwrap());
+        assert!(provider.remote().has_same_observable_content_as(expected_provider.remote()).await.unwrap());
     }
 }
 
