@@ -505,6 +505,53 @@ pub fn scenarii_first_sync_to_server() -> Vec<ItemScenario> {
 }
 
 
+/// This scenario tests a task added and deleted before a sync happens
+pub fn scenarii_transient_task() -> Vec<ItemScenario> {
+    let mut tasks = Vec::new();
+
+    let cal = CalendarId::from("https://some.calend.ar/transient/".parse().unwrap());
+
+    tasks.push(
+        ItemScenario {
+            id: ItemId::random(),
+            initial_state: LocatedState::Local( ItemState{
+                calendar: cal.clone(),
+                name: String::from("A task, so that the calendar actually exists"),
+                completed: false,
+            }),
+            local_changes_to_apply: Vec::new(),
+            remote_changes_to_apply: Vec::new(),
+            after_sync: LocatedState::BothSynced( ItemState{
+                calendar: cal.clone(),
+                name: String::from("A task, so that the calendar actually exists"),
+                completed: false,
+            }),
+        }
+    );
+
+    let id_transient = ItemId::random();
+    tasks.push(
+        ItemScenario {
+            id: id_transient.clone(),
+            initial_state: LocatedState::None,
+            local_changes_to_apply: vec![
+                ChangeToApply::Create(cal, Item::Task(
+                    Task::new(String::from("A transient task that will be deleted before the sync"), id_transient, SyncStatus::NotSynced, false )
+                )),
+
+                ChangeToApply::Rename(String::from("A new name")),
+                ChangeToApply::SetCompletion(true),
+                ChangeToApply::Remove,
+            ],
+            remote_changes_to_apply: Vec::new(),
+            after_sync: LocatedState::None,
+        }
+    );
+
+    tasks
+}
+
+
 /// Build a `Provider` that contains the data (defined in the given scenarii) before sync
 pub async fn populate_test_provider_before_sync(scenarii: &[ItemScenario]) -> Provider<Cache, CachedCalendar, Cache, CachedCalendar> {
     let mut provider = populate_test_provider(scenarii, false).await;
@@ -569,17 +616,19 @@ async fn apply_changes_on_provider(provider: &mut Provider<Cache, CachedCalendar
     for item in scenarii {
         let initial_calendar_id = match &item.initial_state {
             LocatedState::None => None,
-            LocatedState::Local(state) => Some(&state.calendar),
-            LocatedState::Remote(state) => Some(&state.calendar),
-            LocatedState::BothSynced(state) => Some(&state.calendar),
+            LocatedState::Local(state) => Some(state.calendar.clone()),
+            LocatedState::Remote(state) => Some(state.calendar.clone()),
+            LocatedState::BothSynced(state) => Some(state.calendar.clone()),
         };
 
+        let mut calendar_id = initial_calendar_id.clone();
         for local_change in &item.local_changes_to_apply {
-            apply_change(provider.local(), initial_calendar_id, &item.id, local_change, false).await;
+            calendar_id = Some(apply_change(provider.local(), calendar_id, &item.id, local_change, false).await);
         }
 
+        let mut calendar_id = initial_calendar_id;
         for remote_change in &item.remote_changes_to_apply {
-            apply_change(provider.remote(), initial_calendar_id, &item.id, remote_change, true).await;
+            calendar_id = Some(apply_change(provider.remote(), calendar_id, &item.id, remote_change, true).await);
         }
     }
 }
@@ -602,15 +651,20 @@ async fn get_or_insert_calendar(source: &mut Cache, id: &CalendarId)
     }
 }
 
-/// Apply a single change on a given source
-async fn apply_change<S, C>(source: &S, calendar_id: Option<&CalendarId>, item_id: &ItemId, change: &ChangeToApply, is_remote: bool)
+/// Apply a single change on a given source, and returns the calendar ID that was modified
+async fn apply_change<S, C>(source: &S, calendar_id: Option<CalendarId>, item_id: &ItemId, change: &ChangeToApply, is_remote: bool) -> CalendarId
 where
     S: CalDavSource<C>,
     C: CompleteCalendar + DavCalendar, // in this test, we're using a calendar that mocks both kinds
 {
     match calendar_id {
-        Some(cal) => apply_changes_on_an_existing_item(source, cal, item_id, change, is_remote).await,
-        None => create_test_item(source, change).await,
+        Some(cal) => {
+            apply_changes_on_an_existing_item(source, &cal, item_id, change, is_remote).await;
+            cal
+        },
+        None => {
+            create_test_item(source, change).await
+        },
     }
 }
 
@@ -653,7 +707,8 @@ where
     }
 }
 
-async fn create_test_item<S, C>(source: &S, change: &ChangeToApply)
+/// Create an item, and returns the calendar ID it was inserted in
+async fn create_test_item<S, C>(source: &S, change: &ChangeToApply) -> CalendarId
 where
     S: CalDavSource<C>,
     C: CompleteCalendar + DavCalendar, // in this test, we're using a calendar that mocks both kinds
@@ -668,6 +723,7 @@ where
         ChangeToApply::Create(calendar_id, item) => {
             let cal = source.get_calendar(calendar_id).await.unwrap();
             cal.lock().unwrap().add_item(item.clone()).await.unwrap();
+            calendar_id.clone()
         },
     }
 }

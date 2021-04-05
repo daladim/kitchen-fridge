@@ -17,6 +17,8 @@ impl TestFlavour {
     pub fn first_sync_to_local() -> Self { Self{} }
     #[cfg(not(feature = "local_calendar_mocks_remote_calendars"))]
     pub fn first_sync_to_server() -> Self { Self{} }
+    #[cfg(not(feature = "local_calendar_mocks_remote_calendars"))]
+    pub fn transient_task() -> Self { Self{} }
 
     #[cfg(feature = "local_calendar_mocks_remote_calendars")]
     pub fn normal() -> Self {
@@ -36,6 +38,13 @@ impl TestFlavour {
     pub fn first_sync_to_server() -> Self {
         Self {
             scenarii: scenarii::scenarii_first_sync_to_server(),
+        }
+    }
+
+    #[cfg(feature = "local_calendar_mocks_remote_calendars")]
+    pub fn transient_task() -> Self {
+        Self {
+            scenarii: scenarii::scenarii_transient_task(),
         }
     }
 
@@ -93,6 +102,14 @@ async fn test_sync_empty_initial_server() {
     let _ = env_logger::builder().is_test(true).try_init();
 
     let flavour = TestFlavour::first_sync_to_server();
+    flavour.run().await;
+}
+
+#[tokio::test]
+async fn test_sync_transient_task() {
+    let _ = env_logger::builder().is_test(true).try_init();
+
+    let flavour = TestFlavour::transient_task();
     flavour.run().await;
 }
 
