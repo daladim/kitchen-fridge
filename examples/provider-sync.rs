@@ -14,6 +14,8 @@ const CACHE_FOLDER: &str = "example_cache";
 async fn main() {
     env_logger::init();
 
+    println!("This examples show how to sync a remote server with a local cache, using a Provider");
+
     let cache_path = Path::new(CACHE_FOLDER);
 
     let client = Client::new(URL, USERNAME, PASSWORD).unwrap();
@@ -30,9 +32,10 @@ async fn main() {
     println!("---- before sync -----");
     my_tasks::utils::print_calendar_list(&cals).await;
 
-    if let Err(err) = provider.sync().await {
-        log::error!("Unable to sync: {}", err);
+    if provider.sync().await == false {
+        log::warn!("Sync did not complete, see the previous log lines for more info. You can safely start a new sync.");
     }
+
     println!("---- after sync -----");
     let cals = provider.local().get_calendars().await.unwrap();
     my_tasks::utils::print_calendar_list(&cals).await;
