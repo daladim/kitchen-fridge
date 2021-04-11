@@ -23,7 +23,17 @@ impl TestFlavour {
     pub fn first_sync_to_local() -> Self { Self{} }
     pub fn first_sync_to_server() -> Self { Self{} }
     pub fn transient_task() -> Self { Self{} }
-    pub fn normal_with_errors() -> Self { Self{} }
+    pub fn normal_with_errors1() -> Self { Self{} }
+    pub fn normal_with_errors2() -> Self { Self{} }
+    pub fn normal_with_errors3() -> Self { Self{} }
+    pub fn normal_with_errors4() -> Self { Self{} }
+    pub fn normal_with_errors5() -> Self { Self{} }
+    pub fn normal_with_errors6() -> Self { Self{} }
+    pub fn normal_with_errors7() -> Self { Self{} }
+    pub fn normal_with_errors8() -> Self { Self{} }
+    pub fn normal_with_errors9() -> Self { Self{} }
+    pub fn normal_with_errors10() -> Self { Self{} }
+    pub fn normal_with_errors11() -> Self { Self{} }
 
     pub async fn run(&self, _max_attempts: u32) {
         println!("WARNING: This test required the \"integration_tests\" Cargo feature");
@@ -60,10 +70,121 @@ impl TestFlavour {
         }
     }
 
-    pub fn normal_with_errors() -> Self {
+    pub fn normal_with_errors1() -> Self {
         Self {
             scenarii: scenarii::scenarii_basic(),
             mock_behaviour: Arc::new(Mutex::new(MockBehaviour::fail_now(10))),
+        }
+    }
+
+    pub fn normal_with_errors2() -> Self {
+        Self {
+            scenarii: scenarii::scenarii_basic(),
+            mock_behaviour: Arc::new(Mutex::new(MockBehaviour{
+                get_calendars_behaviour: (0,1),
+                create_calendar_behaviour: (2,2),
+                ..MockBehaviour::default()
+            })),
+        }
+    }
+
+    pub fn normal_with_errors3() -> Self {
+        Self {
+            scenarii: scenarii::scenarii_first_sync_to_server(),
+            mock_behaviour: Arc::new(Mutex::new(MockBehaviour{
+                get_calendars_behaviour: (1,6),
+                create_calendar_behaviour: (0,1),
+                ..MockBehaviour::default()
+            })),
+        }
+    }
+
+    pub fn normal_with_errors4() -> Self {
+        Self {
+            scenarii: scenarii::scenarii_first_sync_to_server(),
+            mock_behaviour: Arc::new(Mutex::new(MockBehaviour{
+                add_item_behaviour: (1,3),
+                ..MockBehaviour::default()
+            })),
+        }
+    }
+
+    pub fn normal_with_errors5() -> Self {
+        Self {
+            scenarii: scenarii::scenarii_basic(),
+            mock_behaviour: Arc::new(Mutex::new(MockBehaviour{
+                get_item_version_tags_behaviour: (0,1),
+                ..MockBehaviour::default()
+            })),
+        }
+    }
+
+    pub fn normal_with_errors6() -> Self {
+        Self {
+            scenarii: scenarii::scenarii_basic(),
+            mock_behaviour: Arc::new(Mutex::new(MockBehaviour{
+                get_item_by_id_behaviour: (3,2),
+                ..MockBehaviour::default()
+            })),
+        }
+    }
+
+    pub fn normal_with_errors7() -> Self {
+        Self {
+            scenarii: scenarii::scenarii_basic(),
+            mock_behaviour: Arc::new(Mutex::new(MockBehaviour{
+                delete_item_behaviour: (0,2),
+                ..MockBehaviour::default()
+            })),
+        }
+    }
+
+    pub fn normal_with_errors8() -> Self {
+        Self {
+            scenarii: scenarii::scenarii_basic(),
+            mock_behaviour: Arc::new(Mutex::new(MockBehaviour{
+                add_item_behaviour: (2,3),
+                get_item_by_id_behaviour: (1,4),
+                ..MockBehaviour::default()
+            })),
+        }
+    }
+
+    pub fn normal_with_errors9() -> Self {
+        Self {
+            scenarii: scenarii::scenarii_basic(),
+            mock_behaviour: Arc::new(Mutex::new(MockBehaviour{
+                get_calendars_behaviour: (0,8),
+                delete_item_behaviour: (1,1),
+                ..MockBehaviour::default()
+            })),
+        }
+    }
+
+    pub fn normal_with_errors10() -> Self {
+        Self {
+            scenarii: scenarii::scenarii_first_sync_to_server(),
+            mock_behaviour: Arc::new(Mutex::new(MockBehaviour{
+                get_calendars_behaviour: (0,8),
+                delete_item_behaviour: (1,1),
+                create_calendar_behaviour: (1,4),
+                get_item_version_tags_behaviour: (3,1),
+                ..MockBehaviour::default()
+            })),
+        }
+    }
+
+    pub fn normal_with_errors11() -> Self {
+        Self {
+            scenarii: scenarii::scenarii_basic(),
+            mock_behaviour: Arc::new(Mutex::new(MockBehaviour{
+                get_calendars_behaviour: (0,8),
+                delete_item_behaviour: (1,1),
+                create_calendar_behaviour: (1,4),
+                get_item_version_tags_behaviour: (3,1),
+                get_item_by_id_behaviour: (0,41),
+                ..MockBehaviour::default()
+            })),
         }
     }
 
@@ -91,8 +212,6 @@ impl TestFlavour {
 
         // But also explicitely check that every item is expected
         let expected_provider = scenarii::populate_test_provider_after_sync(&self.scenarii, Arc::clone(&self.mock_behaviour)).await;
-        println!("\n");
-        print_provider(&expected_provider, "expected after sync").await;
 
         assert!(provider.local() .has_same_observable_content_as(expected_provider.local() ).await.unwrap());
         assert!(provider.remote().has_same_observable_content_as(expected_provider.remote()).await.unwrap());
@@ -107,45 +226,84 @@ impl TestFlavour {
 
 
 
+async fn run_flavour(flavour: TestFlavour, max_attempts: u32) {
+    let _ = env_logger::builder().is_test(true).try_init();
+    flavour.run(max_attempts).await;
+}
 
 #[tokio::test]
 async fn test_regular_sync() {
-    let _ = env_logger::builder().is_test(true).try_init();
-
-    let flavour = TestFlavour::normal();
-    flavour.run(1).await;
+    run_flavour(TestFlavour::normal(), 1).await;
 }
 
 #[tokio::test]
 async fn test_sync_empty_initial_local() {
-    let _ = env_logger::builder().is_test(true).try_init();
-
-    let flavour = TestFlavour::first_sync_to_local();
-    flavour.run(1).await;
+    run_flavour(TestFlavour::first_sync_to_local(), 1).await;
 }
 
 #[tokio::test]
 async fn test_sync_empty_initial_server() {
-    let _ = env_logger::builder().is_test(true).try_init();
-
-    let flavour = TestFlavour::first_sync_to_server();
-    flavour.run(1).await;
+    run_flavour(TestFlavour::first_sync_to_server(), 1).await;
 }
 
 #[tokio::test]
 async fn test_sync_transient_task() {
-    let _ = env_logger::builder().is_test(true).try_init();
-
-    let flavour = TestFlavour::transient_task();
-    flavour.run(1).await;
+    run_flavour(TestFlavour::transient_task(), 1).await;
 }
 
 #[tokio::test]
-async fn test_errors_in_regular_sync() {
-    let _ = env_logger::builder().is_test(true).try_init();
+async fn test_errors_in_regular_sync1() {
+    run_flavour(TestFlavour::normal_with_errors1(), 100).await;
+}
 
-    let flavour = TestFlavour::normal_with_errors();
-    flavour.run(100).await;
+#[tokio::test]
+async fn test_errors_in_regular_sync2() {
+    run_flavour(TestFlavour::normal_with_errors2(), 100).await;
+}
+
+#[tokio::test]
+async fn test_errors_in_regular_sync3() {
+    run_flavour(TestFlavour::normal_with_errors3(), 100).await;
+}
+
+#[tokio::test]
+async fn test_errors_in_regular_sync4() {
+    run_flavour(TestFlavour::normal_with_errors4(), 100).await;
+}
+
+#[tokio::test]
+async fn test_errors_in_regular_sync5() {
+    run_flavour(TestFlavour::normal_with_errors5(), 100).await;
+}
+
+#[tokio::test]
+async fn test_errors_in_regular_sync6() {
+    run_flavour(TestFlavour::normal_with_errors6(), 100).await;
+}
+
+#[tokio::test]
+async fn test_errors_in_regular_sync7() {
+    run_flavour(TestFlavour::normal_with_errors7(), 100).await;
+}
+
+#[tokio::test]
+async fn test_errors_in_regular_sync8() {
+    run_flavour(TestFlavour::normal_with_errors8(), 100).await;
+}
+
+#[tokio::test]
+async fn test_errors_in_regular_sync9() {
+    run_flavour(TestFlavour::normal_with_errors9(), 100).await;
+}
+
+#[tokio::test]
+async fn test_errors_in_regular_sync10() {
+    run_flavour(TestFlavour::normal_with_errors10(), 100).await;
+}
+
+#[tokio::test]
+async fn test_errors_in_regular_sync11() {
+    run_flavour(TestFlavour::normal_with_errors11(), 100).await;
 }
 
 #[cfg(feature = "integration_tests")]
