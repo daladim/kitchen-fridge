@@ -41,8 +41,10 @@ impl SyncResult {
     }
 }
 
-/// A data source that combines two `CalDavSource`s (usually a server and a local cache), which is able to sync both sources.
-/// This can be used for integration tests, where the remote source is mocked by a `Cache`.
+/// A data source that combines two `CalDavSource`s, which is able to sync both sources.
+///
+/// Usually, you will only need to use a provider between a server and a local cache, that is to say `Provider<Cache, CachedCalendar, Client, RemoteCalendar>`
+/// However, providers can be used for integration tests, where the remote source is mocked by a `Cache`.
 pub struct Provider<L, T, R, U>
 where
     L: CalDavSource<T>,
