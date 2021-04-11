@@ -90,7 +90,7 @@ pub fn scenarii_basic() -> Vec<ItemScenario> {
 
     tasks.push(
         ItemScenario {
-            id: ItemId::random(),
+            id: ItemId::random(&first_cal),
             initial_state: LocatedState::BothSynced( ItemState{
                 calendar: first_cal.clone(),
                 name: String::from("Task A"),
@@ -108,7 +108,7 @@ pub fn scenarii_basic() -> Vec<ItemScenario> {
 
     tasks.push(
         ItemScenario {
-            id: ItemId::random(),
+            id: ItemId::random(&first_cal),
             initial_state: LocatedState::BothSynced( ItemState{
                 calendar: first_cal.clone(),
                 name: String::from("Task B"),
@@ -122,7 +122,7 @@ pub fn scenarii_basic() -> Vec<ItemScenario> {
 
     tasks.push(
         ItemScenario {
-            id: ItemId::random(),
+            id: ItemId::random(&first_cal),
             initial_state: LocatedState::BothSynced( ItemState{
                 calendar: first_cal.clone(),
                 name: String::from("Task C"),
@@ -136,7 +136,7 @@ pub fn scenarii_basic() -> Vec<ItemScenario> {
 
     tasks.push(
         ItemScenario {
-            id: ItemId::random(),
+            id: ItemId::random(&first_cal),
             initial_state: LocatedState::BothSynced( ItemState{
                 calendar: first_cal.clone(),
                 name: String::from("Task D"),
@@ -154,7 +154,7 @@ pub fn scenarii_basic() -> Vec<ItemScenario> {
 
     tasks.push(
         ItemScenario {
-            id: ItemId::random(),
+            id: ItemId::random(&first_cal),
             initial_state: LocatedState::BothSynced( ItemState{
                 calendar: first_cal.clone(),
                 name: String::from("Task E"),
@@ -172,7 +172,7 @@ pub fn scenarii_basic() -> Vec<ItemScenario> {
 
     tasks.push(
         ItemScenario {
-            id: ItemId::random(),
+            id: ItemId::random(&first_cal),
             initial_state: LocatedState::BothSynced( ItemState{
                 calendar: first_cal.clone(),
                 name: String::from("Task F"),
@@ -191,7 +191,7 @@ pub fn scenarii_basic() -> Vec<ItemScenario> {
 
     tasks.push(
         ItemScenario {
-            id: ItemId::random(),
+            id: ItemId::random(&second_cal),
             initial_state: LocatedState::BothSynced( ItemState{
                 calendar: second_cal.clone(),
                 name: String::from("Task G"),
@@ -209,7 +209,7 @@ pub fn scenarii_basic() -> Vec<ItemScenario> {
 
     tasks.push(
         ItemScenario {
-            id: ItemId::random(),
+            id: ItemId::random(&second_cal),
             initial_state: LocatedState::BothSynced( ItemState{
                 calendar: second_cal.clone(),
                 name: String::from("Task H"),
@@ -227,7 +227,7 @@ pub fn scenarii_basic() -> Vec<ItemScenario> {
 
     tasks.push(
         ItemScenario {
-            id: ItemId::random(),
+            id: ItemId::random(&second_cal),
             initial_state: LocatedState::BothSynced( ItemState{
                 calendar: second_cal.clone(),
                 name: String::from("Task I"),
@@ -246,7 +246,7 @@ pub fn scenarii_basic() -> Vec<ItemScenario> {
 
     tasks.push(
         ItemScenario {
-            id: ItemId::random(),
+            id: ItemId::random(&second_cal),
             initial_state: LocatedState::BothSynced( ItemState{
                 calendar: second_cal.clone(),
                 name: String::from("Task J"),
@@ -260,7 +260,7 @@ pub fn scenarii_basic() -> Vec<ItemScenario> {
 
     tasks.push(
         ItemScenario {
-            id: ItemId::random(),
+            id: ItemId::random(&second_cal),
             initial_state: LocatedState::BothSynced( ItemState{
                 calendar: second_cal.clone(),
                 name: String::from("Task K"),
@@ -278,7 +278,7 @@ pub fn scenarii_basic() -> Vec<ItemScenario> {
 
     tasks.push(
         ItemScenario {
-            id: ItemId::random(),
+            id: ItemId::random(&second_cal),
             initial_state: LocatedState::BothSynced( ItemState{
                 calendar: second_cal.clone(),
                 name: String::from("Task L"),
@@ -292,7 +292,7 @@ pub fn scenarii_basic() -> Vec<ItemScenario> {
 
     tasks.push(
         ItemScenario {
-            id: ItemId::random(),
+            id: ItemId::random(&second_cal),
             initial_state: LocatedState::BothSynced( ItemState{
                 calendar: second_cal.clone(),
                 name: String::from("Task M"),
@@ -310,7 +310,7 @@ pub fn scenarii_basic() -> Vec<ItemScenario> {
 
     tasks.push(
         ItemScenario {
-            id: ItemId::random(),
+            id: ItemId::random(&third_cal),
             initial_state: LocatedState::BothSynced( ItemState{
                 calendar: third_cal.clone(),
                 name: String::from("Task N"),
@@ -328,7 +328,7 @@ pub fn scenarii_basic() -> Vec<ItemScenario> {
 
     tasks.push(
         ItemScenario {
-            id: ItemId::random(),
+            id: ItemId::random(&third_cal),
             initial_state: LocatedState::BothSynced( ItemState{
                 calendar: third_cal.clone(),
                 name: String::from("Task O"),
@@ -344,7 +344,7 @@ pub fn scenarii_basic() -> Vec<ItemScenario> {
         }
     );
 
-    let id_p = ItemId::random();
+    let id_p = ItemId::random(&third_cal);
     tasks.push(
         ItemScenario {
             id: id_p.clone(),
@@ -366,14 +366,14 @@ pub fn scenarii_basic() -> Vec<ItemScenario> {
         }
     );
 
-    let id_q = ItemId::random();
+    let id_q = ItemId::random(&third_cal);
     tasks.push(
         ItemScenario {
             id: id_q.clone(),
             initial_state: LocatedState::None,
             local_changes_to_apply: Vec::new(),
             remote_changes_to_apply: vec![ChangeToApply::Create(third_cal.clone(), Item::Task(
-                Task::new(String::from("Task Q, created on the server"), id_q, SyncStatus::random_synced(), false )
+                Task::new_with_parameters(String::from("Task Q, created on the server"), false, id_q, SyncStatus::random_synced() )
             ))],
             after_sync: LocatedState::BothSynced( ItemState{
                 calendar: third_cal.clone(),
@@ -383,13 +383,13 @@ pub fn scenarii_basic() -> Vec<ItemScenario> {
         }
     );
 
-    let id_r = ItemId::random();
+    let id_r = ItemId::random(&third_cal);
     tasks.push(
         ItemScenario {
             id: id_r.clone(),
             initial_state: LocatedState::None,
             local_changes_to_apply: vec![ChangeToApply::Create(third_cal.clone(), Item::Task(
-                Task::new(String::from("Task R, created locally"), id_r, SyncStatus::NotSynced, false )
+                Task::new_with_parameters(String::from("Task R, created locally"), false, id_r, SyncStatus::NotSynced )
             ))],
             remote_changes_to_apply: Vec::new(),
             after_sync: LocatedState::BothSynced( ItemState{
@@ -412,7 +412,7 @@ pub fn scenarii_first_sync_to_local() -> Vec<ItemScenario> {
 
     tasks.push(
         ItemScenario {
-            id: ItemId::random(),
+            id: ItemId::random(&cal1),
             initial_state: LocatedState::Remote( ItemState{
                 calendar: cal1.clone(),
                 name: String::from("Task A1"),
@@ -430,7 +430,7 @@ pub fn scenarii_first_sync_to_local() -> Vec<ItemScenario> {
 
     tasks.push(
         ItemScenario {
-            id: ItemId::random(),
+            id: ItemId::random(&cal2),
             initial_state: LocatedState::Remote( ItemState{
                 calendar: cal2.clone(),
                 name: String::from("Task A2"),
@@ -448,7 +448,7 @@ pub fn scenarii_first_sync_to_local() -> Vec<ItemScenario> {
 
     tasks.push(
         ItemScenario {
-            id: ItemId::random(),
+            id: ItemId::random(&cal1),
             initial_state: LocatedState::Remote( ItemState{
                 calendar: cal1.clone(),
                 name: String::from("Task B1"),
@@ -476,7 +476,7 @@ pub fn scenarii_first_sync_to_server() -> Vec<ItemScenario> {
 
     tasks.push(
         ItemScenario {
-            id: ItemId::random(),
+            id: ItemId::random(&cal3),
             initial_state: LocatedState::Local( ItemState{
                 calendar: cal3.clone(),
                 name: String::from("Task A3"),
@@ -494,7 +494,7 @@ pub fn scenarii_first_sync_to_server() -> Vec<ItemScenario> {
 
     tasks.push(
         ItemScenario {
-            id: ItemId::random(),
+            id: ItemId::random(&cal4),
             initial_state: LocatedState::Local( ItemState{
                 calendar: cal4.clone(),
                 name: String::from("Task A4"),
@@ -512,7 +512,7 @@ pub fn scenarii_first_sync_to_server() -> Vec<ItemScenario> {
 
     tasks.push(
         ItemScenario {
-            id: ItemId::random(),
+            id: ItemId::random(&cal3),
             initial_state: LocatedState::Local( ItemState{
                 calendar: cal3.clone(),
                 name: String::from("Task B3"),
@@ -540,7 +540,7 @@ pub fn scenarii_transient_task() -> Vec<ItemScenario> {
 
     tasks.push(
         ItemScenario {
-            id: ItemId::random(),
+            id: ItemId::random(&cal),
             initial_state: LocatedState::Local( ItemState{
                 calendar: cal.clone(),
                 name: String::from("A task, so that the calendar actually exists"),
@@ -556,14 +556,14 @@ pub fn scenarii_transient_task() -> Vec<ItemScenario> {
         }
     );
 
-    let id_transient = ItemId::random();
+    let id_transient = ItemId::random(&cal);
     tasks.push(
         ItemScenario {
             id: id_transient.clone(),
             initial_state: LocatedState::None,
             local_changes_to_apply: vec![
                 ChangeToApply::Create(cal, Item::Task(
-                    Task::new(String::from("A transient task that will be deleted before the sync"), id_transient, SyncStatus::NotSynced, false )
+                    Task::new_with_parameters(String::from("A transient task that will be deleted before the sync"), false, id_transient, SyncStatus::NotSynced )
                 )),
 
                 ChangeToApply::Rename(String::from("A new name")),
@@ -613,11 +613,11 @@ async fn populate_test_provider(scenarii: &[ItemScenario], mock_behaviour: Arc<M
         };
 
         let new_item = Item::Task(
-            Task::new(
+            Task::new_with_parameters(
                 state.name.clone(),
+                state.completed,
                 item.id.clone(),
                 sync_status,
-                state.completed,
             ));
 
         match required_state {

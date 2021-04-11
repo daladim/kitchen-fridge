@@ -50,7 +50,7 @@ pub fn parse(content: &str, item_id: ItemId, sync_status: SyncStatus) -> Result<
                 None => return Err(format!("Missing name for item {}", item_id).into()),
             };
 
-            Item::Task(Task::new(name, item_id, sync_status, completed))
+            Item::Task(Task::new_with_parameters(name, completed, item_id, sync_status))
         },
     };
 

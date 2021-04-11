@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::item::ItemId;
 use crate::item::SyncStatus;
+use crate::calendar::CalendarId;
 
 /// A to-do task
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -19,8 +20,16 @@ pub struct Task {
 }
 
 impl Task {
-    /// Create a new Task
-    pub fn new(name: String, id: ItemId, sync_status: SyncStatus, completed: bool) -> Self {
+    /// Create a brand new Task that is not on a server yet.
+    /// This will pick a new (random) task ID.
+    pub fn new(name: String, completed: bool, parent_calendar_id: &CalendarId) -> Self {
+        let new_item_id = ItemId::random(parent_calendar_id);
+        let new_sync_status = SyncStatus::NotSynced;
+        Self::new_with_parameters(name, completed, new_item_id, new_sync_status)
+    }
+
+    /// Create a new Task instance, that may be synced already
+    pub fn new_with_parameters(name: String, completed: bool, id: ItemId, sync_status: SyncStatus) -> Self {
         Self {
             id,
             name,

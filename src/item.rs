@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use url::Url;
 
 use crate::resource::Resource;
+use crate::calendar::CalendarId;
 
 
 
@@ -95,11 +96,10 @@ pub struct ItemId {
     content: Url,
 }
 impl ItemId{
-    /// Generate a random ItemId. This should only be useful in tests
-    pub fn random() -> Self {
+    /// Generate a random ItemId.
+    pub fn random(parent_calendar: &CalendarId) -> Self {
         let random = uuid::Uuid::new_v4().to_hyphenated().to_string();
-        let s = format!("https://server.com/{}", random);
-        let u = s.parse().unwrap();
+        let u = parent_calendar.join(&random).unwrap(/* this cannot panic since we've just created a string that is a valid URL */);
         Self { content:u }
     }
 
