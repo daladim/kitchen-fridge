@@ -24,3 +24,4 @@ async-trait = "0.1"
 uuid = { version = "0.8", features = ["v4"] }
 sanitize-filename = "0.3"
 ical = "0.7"
+ics = "0.5"
