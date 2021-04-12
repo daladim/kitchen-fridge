@@ -37,6 +37,7 @@ static EXAMPLE_TASKS_BODY_LAST_MODIFIED: &str = r#"
 "#;
 
 #[tokio::test]
+#[ignore]
 async fn show_calendars() {
     let _ = env_logger::builder().is_test(true).try_init();
 
@@ -49,6 +50,7 @@ async fn show_calendars() {
 }
 
 #[tokio::test]
+#[ignore]
 async fn profind() {
     let _ = env_logger::builder().is_test(true).try_init();
 
@@ -71,6 +73,7 @@ async fn profind() {
 }
 
 #[tokio::test]
+#[ignore]
 async fn last_modified() {
     let _ = env_logger::builder().is_test(true).try_init();
 
