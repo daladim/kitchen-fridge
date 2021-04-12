@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 use crate::item::ItemId;
 use crate::item::SyncStatus;
@@ -7,8 +8,12 @@ use crate::calendar::CalendarId;
 /// A to-do task
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Task {
-    /// The task unique ID, that will never change
+    /// The task URL
     id: ItemId,
+
+    /// Persistent, globally unique identifier for the calendar component
+    /// The [RFC](https://tools.ietf.org/html/rfc5545#page-117) recommends concatenating a timestamp with the server's domain name, but UUID are even better
+    uid: String,
 
     /// The sync status of this item
     sync_status: SyncStatus,
@@ -25,13 +30,15 @@ impl Task {
     pub fn new(name: String, completed: bool, parent_calendar_id: &CalendarId) -> Self {
         let new_item_id = ItemId::random(parent_calendar_id);
         let new_sync_status = SyncStatus::NotSynced;
-        Self::new_with_parameters(name, completed, new_item_id, new_sync_status)
+        let new_uid = Uuid::new_v4().to_hyphenated().to_string();
+        Self::new_with_parameters(name, completed, new_uid, new_item_id, new_sync_status)
     }
 
     /// Create a new Task instance, that may be synced already
-    pub fn new_with_parameters(name: String, completed: bool, id: ItemId, sync_status: SyncStatus) -> Self {
+    pub fn new_with_parameters(name: String, completed: bool, uid: String, id: ItemId, sync_status: SyncStatus) -> Self {
         Self {
             id,
+            uid,
             name,
             sync_status,
             completed,
@@ -39,6 +46,7 @@ impl Task {
     }
 
     pub fn id(&self) -> &ItemId     { &self.id          }
+    pub fn uid(&self) -> &str       { &self.uid         }
     pub fn name(&self) -> &str      { &self.name        }
     pub fn completed(&self) -> bool { self.completed    }
     pub fn sync_status(&self) -> &SyncStatus     { &self.sync_status  }

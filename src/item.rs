@@ -25,6 +25,13 @@ impl Item {
         }
     }
 
+    pub fn uid(&self) -> &str {
+        match self {
+            Item::Event(e) => e.uid(),
+            Item::Task(t) => t.uid(),
+        }
+    }
+
     pub fn name(&self) -> &str {
         match self {
             Item::Event(e) => e.name(),

@@ -23,6 +23,10 @@ impl Event {
         &self.id
     }
 
+    pub fn uid(&self) -> &str {
+        unimplemented!()
+    }
+
     pub fn name(&self) -> &str {
         &self.name
     }

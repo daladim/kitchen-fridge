@@ -29,6 +29,7 @@ pub fn parse(content: &str, item_id: ItemId, sync_status: SyncStatus) -> Result<
 
         CurrentType::Todo(todo) => {
             let mut name = None;
+            let mut uid = None;
             let mut completed = false;
             for prop in &todo.properties {
                 if prop.name == "SUMMARY" {
@@ -44,13 +45,20 @@ pub fn parse(content: &str, item_id: ItemId, sync_status: SyncStatus) -> Result<
                         completed = true;
                     }
                 }
+                if prop.name == "UID" {
+                    uid = prop.value.clone();
+                }
             }
             let name = match name {
                 Some(name) => name,
                 None => return Err(format!("Missing name for item {}", item_id).into()),
             };
+            let uid = match uid {
+                Some(uid) => uid,
+                None => return Err(format!("Missing UID for item {}", item_id).into()),
+            };
 
-            Item::Task(Task::new_with_parameters(name, completed, item_id, sync_status))
+            Item::Task(Task::new_with_parameters(name, completed, uid, item_id, sync_status))
         },
     };
 
@@ -99,7 +107,7 @@ mod test {
 VERSION:2.0
 PRODID:-//Nextcloud Tasks v0.13.6
 BEGIN:VTODO
-UID:0633de27-8c32-42be-bcb8-63bc879c6185
+UID:0633de27-8c32-42be-bcb8-63bc879c6185@some-domain.com
 CREATED:20210321T001600
 LAST-MODIFIED:20210321T001600
 DTSTAMP:20210321T001600
@@ -112,7 +120,7 @@ END:VCALENDAR
 VERSION:2.0
 PRODID:-//Nextcloud Tasks v0.13.6
 BEGIN:VTODO
-UID:0633de27-8c32-42be-bcb8-63bc879c6185
+UID:19960401T080045Z-4000F192713-0052@example.com
 CREATED:20210321T001600
 LAST-MODIFIED:20210402T081557
 DTSTAMP:20210402T081557
@@ -160,6 +168,7 @@ END:VCALENDAR
 
         assert_eq!(task.name(), "Do not forget to do this");
         assert_eq!(task.id(), &item_id);
+        assert_eq!(task.uid(), "0633de27-8c32-42be-bcb8-63bc879c6185@some-domain.com");
         assert_eq!(task.completed(), false);
         assert_eq!(task.sync_status(), &sync_status);
     }
