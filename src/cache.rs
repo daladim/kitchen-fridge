@@ -22,7 +22,9 @@ use crate::mock_behaviour::MockBehaviour;
 
 const MAIN_FILE: &str = "data.json";
 
-/// A CalDAV source that stores its item in a local folder
+/// A CalDAV source that stores its items in a local folder.
+///
+/// It automatically updates the content of the folder when dropped (see its `Drop` implementation), but you can also manually call [`save_to_folder`]
 #[derive(Debug)]
 pub struct Cache {
     backing_folder: PathBuf,
@@ -114,7 +116,9 @@ impl Cache {
     }
 
     /// Store the current Cache to its backing folder
-    fn save_to_folder(&mut self) -> Result<(), std::io::Error> {
+    ///
+    /// Note that this is automatically called when `self` is `drop`ped
+    pub fn save_to_folder(&self) -> Result<(), std::io::Error> {
         let folder = &self.backing_folder;
         std::fs::create_dir_all(folder)?;
 
@@ -131,13 +135,14 @@ impl Cache {
             let cal = cal_mutex.lock().unwrap();
             serde_json::to_writer(file, &*cal)?;
         }
+
         Ok(())
     }
 
 
     /// Compares two Caches to check they have the same current content
     ///
-    /// This is not a complete equality test: some attributes (sync status...) may differ
+    /// This is not a complete equality test: some attributes (sync status...) may differ. This should mostly be used in tests
     pub async fn has_same_observable_content_as(&self, other: &Self) -> Result<bool, Box<dyn Error>> {
         let calendars_l = self.get_calendars().await?;
         let calendars_r = other.get_calendars().await?;
@@ -166,6 +171,13 @@ impl Cache {
     }
 }
 
+impl Drop for Cache {
+    fn drop(&mut self) {
+        if let Err(err) = self.save_to_folder() {
+            log::error!("Unable to automatically save the cache when it's no longer required");
+        }
+    }
+}
 
 
 #[async_trait]
