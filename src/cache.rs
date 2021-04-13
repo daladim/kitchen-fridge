@@ -210,6 +210,8 @@ mod tests {
 
     use url::Url;
     use crate::calendar::SupportedComponents;
+    use crate::item::Item;
+    use crate::task::Task;
 
     #[tokio::test]
     async fn serde_cache() {
@@ -219,11 +221,29 @@ mod tests {
 
         let mut cache = Cache::new(&cache_path);
 
-        let _ = cache.create_calendar(
+        let shopping_list = cache.create_calendar(
             Url::parse("https://caldav.com/shopping").unwrap(),
-            "shopping list".to_string(),
+            "My shopping list".to_string(),
             SupportedComponents::TODO,
         ).await.unwrap();
+
+        let bucket_list = cache.create_calendar(
+            Url::parse("https://caldav.com/bucket-list").unwrap(),
+            "My bucket list".to_string(),
+            SupportedComponents::TODO,
+        ).await.unwrap();
+
+        {
+            let mut bucket_list = bucket_list.lock().unwrap();
+            let cal_id = bucket_list.id().clone();
+            bucket_list.add_item(Item::Task(Task::new(
+                String::from("Attend a concert of JS Bach"), false, &cal_id
+            ))).await.unwrap();
+
+            bucket_list.add_item(Item::Task(Task::new(
+                String::from("Climb the Lighthouse of Alexandria"), true, &cal_id
+            ))).await.unwrap();
+        }
 
 
         cache.save_to_folder().unwrap();

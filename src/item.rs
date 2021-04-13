@@ -3,7 +3,7 @@
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use url::Url;
 
 use crate::resource::Resource;
@@ -98,7 +98,7 @@ impl Item {
 }
 
 
-#[derive(Clone, Debug, PartialEq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Hash)]
 pub struct ItemId {
     content: Url,
 }
@@ -138,6 +138,27 @@ impl Display for ItemId {
         write!(f, "{}", self.content)
     }
 }
+
+/// Used to support serde
+impl Serialize for ItemId {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(self.content.as_str())
+    }
+}
+/// Used to support serde
+impl<'de> Deserialize<'de> for ItemId {
+    fn deserialize<D>(deserializer: D) -> Result<ItemId, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let u = Url::deserialize(deserializer)?;
+        Ok(ItemId{ content: u })
+    }
+}
+
 
 
 /// A VersionTag is basically a CalDAV `ctag` or `etag`. Whenever it changes, this means the data has changed.
