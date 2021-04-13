@@ -3,6 +3,7 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 use std::hash::Hash;
+use std::io::{stdin, stdout, Read, Write};
 
 use minidom::Element;
 
@@ -50,7 +51,6 @@ pub fn find_elem<S: AsRef<str>>(root: &Element, searched_name: S) -> Option<&Ele
 
 
 pub fn print_xml(element: &Element) {
-    use std::io::Write;
     let mut writer = std::io::stdout();
 
     let mut xml_writer = minidom::quick_xml::Writer::new_with_indent(
@@ -138,4 +138,13 @@ where
         }
     }
     result
+}
+
+
+/// Wait for the user to press enter
+pub fn pause() {
+    let mut stdout = stdout();
+    stdout.write_all(b"Press Enter to continue...").unwrap();
+    stdout.flush().unwrap();
+    stdin().read_exact(&mut [0]).unwrap();
 }
