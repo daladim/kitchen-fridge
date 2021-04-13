@@ -10,6 +10,11 @@ use crate::calendar::{CalendarId, SupportedComponents};
 use crate::Item;
 use crate::item::ItemId;
 
+#[cfg(feature = "local_calendar_mocks_remote_calendars")]
+use std::sync::{Arc, Mutex};
+#[cfg(feature = "local_calendar_mocks_remote_calendars")]
+use crate::mock_behaviour::MockBehaviour;
+
 
 /// A calendar used by the [`cache`](crate::cache) module
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -18,7 +23,8 @@ pub struct CachedCalendar {
     id: CalendarId,
     supported_components: SupportedComponents,
     #[cfg(feature = "local_calendar_mocks_remote_calendars")]
-    is_mocking_remote_calendar: bool,
+    #[serde(skip)]
+    mock_behaviour: Option<Arc<Mutex<MockBehaviour>>>,
 
     items: HashMap<ItemId, Item>,
 }
@@ -26,8 +32,8 @@ pub struct CachedCalendar {
 impl CachedCalendar {
     /// Activate the "mocking remote calendar" feature (i.e. ignore sync statuses, since this is what an actual CalDAV sever would do)
     #[cfg(feature = "local_calendar_mocks_remote_calendars")]
-    pub fn set_is_mocking_remote_calendar(&mut self) {
-        self.is_mocking_remote_calendar = true;
+    pub fn set_mock_behaviour(&mut self, mock_behaviour: Option<Arc<Mutex<MockBehaviour>>>) {
+        self.mock_behaviour = mock_behaviour;
     }
 
     /// Add an item
@@ -107,7 +113,10 @@ impl BaseCalendar for CachedCalendar {
     }
     #[cfg(feature = "local_calendar_mocks_remote_calendars")]
     async fn add_item(&mut self, item: Item) -> Result<SyncStatus, Box<dyn Error>> {
-        if self.is_mocking_remote_calendar {
+        #[cfg(feature = "local_calendar_mocks_remote_calendars")]
+        self.mock_behaviour.as_ref().map_or(Ok(()), |b| b.lock().unwrap().can_add_item())?;
+
+        if self.mock_behaviour.is_some() {
             self.add_item_force_synced(item).await
         } else {
             self.regular_add_item(item).await
@@ -121,7 +130,7 @@ impl CompleteCalendar for CachedCalendar {
         Self {
             name, id, supported_components,
             #[cfg(feature = "local_calendar_mocks_remote_calendars")]
-            is_mocking_remote_calendar: false,
+            mock_behaviour: None,
             items: HashMap::new(),
         }
     }
@@ -200,6 +209,9 @@ impl DavCalendar for CachedCalendar {
     }
 
     async fn get_item_version_tags(&self) -> Result<HashMap<ItemId, VersionTag>, Box<dyn Error>> {
+        #[cfg(feature = "local_calendar_mocks_remote_calendars")]
+        self.mock_behaviour.as_ref().map_or(Ok(()), |b| b.lock().unwrap().can_get_item_version_tags())?;
+
         use crate::item::SyncStatus;
 
         let mut result = HashMap::new();
@@ -218,10 +230,16 @@ impl DavCalendar for CachedCalendar {
     }
 
     async fn get_item_by_id(&self, id: &ItemId) -> Result<Option<Item>, Box<dyn Error>> {
+        #[cfg(feature = "local_calendar_mocks_remote_calendars")]
+        self.mock_behaviour.as_ref().map_or(Ok(()), |b| b.lock().unwrap().can_get_item_by_id())?;
+
         Ok(self.items.get(id).cloned())
     }
 
     async fn delete_item(&mut self, item_id: &ItemId) -> Result<(), Box<dyn Error>> {
+        #[cfg(feature = "local_calendar_mocks_remote_calendars")]
+        self.mock_behaviour.as_ref().map_or(Ok(()), |b| b.lock().unwrap().can_delete_item())?;
+
         self.immediately_delete_item(item_id).await
     }
 }

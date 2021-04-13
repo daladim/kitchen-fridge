@@ -26,6 +26,7 @@ mod event;
 pub use event::Event;
 pub mod provider;
 pub use provider::Provider;
+pub mod mock_behaviour;
 
 pub mod client;
 pub use client::Client;

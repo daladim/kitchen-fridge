@@ -25,6 +25,7 @@ use my_tasks::SyncStatus;
 use my_tasks::Task;
 use my_tasks::calendar::cached_calendar::CachedCalendar;
 use my_tasks::Provider;
+use my_tasks::mock_behaviour::MockBehaviour;
 
 pub enum LocatedState {
     /// Item does not exist yet or does not exist anymore
@@ -575,21 +576,21 @@ pub fn scenarii_transient_task() -> Vec<ItemScenario> {
 
 
 /// Build a `Provider` that contains the data (defined in the given scenarii) before sync
-pub async fn populate_test_provider_before_sync(scenarii: &[ItemScenario]) -> Provider<Cache, CachedCalendar, Cache, CachedCalendar> {
-    let mut provider = populate_test_provider(scenarii, false).await;
+pub async fn populate_test_provider_before_sync(scenarii: &[ItemScenario], mock_behaviour: Arc<Mutex<MockBehaviour>>) -> Provider<Cache, CachedCalendar, Cache, CachedCalendar> {
+    let mut provider = populate_test_provider(scenarii, mock_behaviour, false).await;
     apply_changes_on_provider(&mut provider, scenarii).await;
     provider
 }
 
 /// Build a `Provider` that contains the data (defined in the given scenarii) after sync
-pub async fn populate_test_provider_after_sync(scenarii: &[ItemScenario]) -> Provider<Cache, CachedCalendar, Cache, CachedCalendar> {
-    populate_test_provider(scenarii, true).await
+pub async fn populate_test_provider_after_sync(scenarii: &[ItemScenario], mock_behaviour: Arc<Mutex<MockBehaviour>>) -> Provider<Cache, CachedCalendar, Cache, CachedCalendar> {
+    populate_test_provider(scenarii, mock_behaviour, true).await
 }
 
-async fn populate_test_provider(scenarii: &[ItemScenario], populate_for_final_state: bool) -> Provider<Cache, CachedCalendar, Cache, CachedCalendar> {
+async fn populate_test_provider(scenarii: &[ItemScenario], mock_behaviour: Arc<Mutex<MockBehaviour>>, populate_for_final_state: bool) -> Provider<Cache, CachedCalendar, Cache, CachedCalendar> {
     let mut local = Cache::new(&PathBuf::from(String::from("test_cache_local/")));
     let mut remote = Cache::new(&PathBuf::from(String::from("test_cache_remote/")));
-    remote.set_is_mocking_remote_source();
+    remote.set_mock_behaviour(Some(mock_behaviour));
 
     // Create the initial state, as if we synced both sources in a given state
     for item in scenarii {
