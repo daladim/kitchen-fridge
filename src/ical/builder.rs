@@ -3,7 +3,7 @@
 use std::error::Error;
 
 use chrono::{DateTime, Utc};
-use ics::properties::{LastModified, Status, Summary};
+use ics::properties::{Completed, LastModified, Status, Summary};
 use ics::{ICalendar, ToDo};
 
 use crate::item::Item;
@@ -26,6 +26,10 @@ pub fn build_from(item: &Item) -> Result<String, Box<dyn Error>> {
 
     match item {
         Item::Task(t) => {
+            t.completion_date().map(|dt| todo.push(
+                Completed::new(format_date_time(dt))
+            ));
+
             let status = if t.completed() { Status::completed() } else { Status::needs_action() };
             todo.push(status);
         },
@@ -53,11 +57,13 @@ mod tests {
     #[test]
     fn test_ical_from_task() {
         let cal_id = "http://my.calend.ar/id".parse().unwrap();
-        let now = format_date_time(&Utc::now());
+        let now = Utc::now();
+        let s_now = format_date_time(&now);
 
-        let task = Item::Task(Task::new(
+        let mut task = Item::Task(Task::new(
             String::from("This is a task with ÜTF-8 characters"), true, &cal_id
         ));
+        task.unwrap_task_mut().set_completed_on(Some(now));
         let expected_ical = format!("BEGIN:VCALENDAR\r\n\
             VERSION:2.0\r\n\
             PRODID:-//{}//{}//EN\r\n\
@@ -65,9 +71,10 @@ mod tests {
             UID:{}\r\n\
             DTSTAMP:{}\r\n\
             SUMMARY:This is a task with ÜTF-8 characters\r\n\
+            COMPLETED:{}\r\n\
             STATUS:COMPLETED\r\n\
             END:VTODO\r\n\
-            END:VCALENDAR\r\n", ORG_NAME, PRODUCT_NAME, task.uid(), now);
+            END:VCALENDAR\r\n", ORG_NAME, PRODUCT_NAME, task.uid(), s_now, s_now);
 
         let ical = build_from(&task);
         assert_eq!(ical.unwrap(), expected_ical);

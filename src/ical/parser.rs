@@ -33,6 +33,7 @@ pub fn parse(content: &str, item_id: ItemId, sync_status: SyncStatus) -> Result<
             let mut uid = None;
             let mut completed = false;
             let mut last_modified = None;
+            let mut completion_date = None;
             for prop in &todo.properties {
                 if prop.name == "SUMMARY" {
                     name = prop.value.clone();
@@ -53,15 +54,12 @@ pub fn parse(content: &str, item_id: ItemId, sync_status: SyncStatus) -> Result<
                 if prop.name == "DTSTAMP" {
                     // this property specifies the date and time that the information associated with
                     // the calendar component was last revised in the calendar store.
-                    last_modified = prop.value.as_ref()
-                        .and_then(|s| {
-                            parse_date_time(s)
-                            .map_err(|err| {
-                                log::warn!("Invalid DTSTAMP: {}", s);
-                                err
-                            })
-                            .ok()
-                        })
+                    last_modified = parse_date_time_from_property(&prop.value)
+                }
+                if prop.name == "COMPLETED" {
+                    // this property specifies the date and time that the information associated with
+                    // the calendar component was last revised in the calendar store.
+                    completion_date = parse_date_time_from_property(&prop.value)
                 }
             }
             let name = match name {
@@ -76,8 +74,13 @@ pub fn parse(content: &str, item_id: ItemId, sync_status: SyncStatus) -> Result<
                 Some(dt) => dt,
                 None => return Err(format!("Missing DTSTAMP for item {}, but this is required by RFC5545", item_id).into()),
             };
+            if completion_date.is_none() && completed ||
+               completion_date.is_some() && !completed
+            {
+                log::warn!("Inconsistant iCal data: completion date is {:?} but completion status is {:?}", completion_date, completed);
+            }
 
-            Item::Task(Task::new_with_parameters(name, completed, uid, item_id, sync_status, last_modified))
+            Item::Task(Task::new_with_parameters(name, uid, item_id, sync_status, last_modified, completion_date))
         },
     };
 
@@ -94,6 +97,17 @@ fn parse_date_time(dt: &str) -> Result<DateTime<Utc>, chrono::format::ParseError
     Utc.datetime_from_str(dt, "%Y%m%dT%H%M%S")
 }
 
+fn parse_date_time_from_property(value: &Option<String>) -> Option<DateTime<Utc>> {
+    value.as_ref()
+        .and_then(|s| {
+            parse_date_time(s)
+            .map_err(|err| {
+                log::warn!("Invalid timestamp: {}", s);
+                err
+            })
+            .ok()
+        })
+}
 
 
 enum CurrentType<'a> {
