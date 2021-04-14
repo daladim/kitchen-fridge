@@ -25,3 +25,4 @@ uuid = { version = "0.8", features = ["v4"] }
 sanitize-filename = "0.3"
 ical = "0.7"
 ics = "0.5"
+chrono = { version = "0.4", features = ["serde"] }

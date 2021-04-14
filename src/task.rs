@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+use chrono::{DateTime, Utc};
 
 use crate::item::ItemId;
 use crate::item::SyncStatus;
@@ -17,6 +18,8 @@ pub struct Task {
 
     /// The sync status of this item
     sync_status: SyncStatus,
+    /// The last time this item was modified
+    last_modified: DateTime<Utc>,
 
     /// The display name of the task
     name: String,
@@ -31,17 +34,19 @@ impl Task {
         let new_item_id = ItemId::random(parent_calendar_id);
         let new_sync_status = SyncStatus::NotSynced;
         let new_uid = Uuid::new_v4().to_hyphenated().to_string();
-        Self::new_with_parameters(name, completed, new_uid, new_item_id, new_sync_status)
+        let new_last_modified = Utc::now();
+        Self::new_with_parameters(name, completed, new_uid, new_item_id, new_sync_status, new_last_modified)
     }
 
     /// Create a new Task instance, that may be synced already
-    pub fn new_with_parameters(name: String, completed: bool, uid: String, id: ItemId, sync_status: SyncStatus) -> Self {
+    pub fn new_with_parameters(name: String, completed: bool, uid: String, id: ItemId, sync_status: SyncStatus, last_modified: DateTime<Utc>) -> Self {
         Self {
             id,
             uid,
             name,
             sync_status,
             completed,
+            last_modified,
         }
     }
 
@@ -50,6 +55,7 @@ impl Task {
     pub fn name(&self) -> &str      { &self.name        }
     pub fn completed(&self) -> bool { self.completed    }
     pub fn sync_status(&self) -> &SyncStatus     { &self.sync_status  }
+    pub fn last_modified(&self) -> &DateTime<Utc> { &self.last_modified }
 
     pub fn has_same_observable_content_as(&self, other: &Task) -> bool {
            self.id == other.id
@@ -77,10 +83,16 @@ impl Task {
         }
     }
 
+    fn update_last_modified(&mut self) {
+        self.last_modified = Utc::now();
+    }
+
+
     /// Rename a task.
     /// This updates its "last modified" field
     pub fn set_name(&mut self, new_name: String) {
         self.update_sync_status();
+        self.update_last_modified();
         self.name = new_name;
     }
     #[cfg(feature = "local_calendar_mocks_remote_calendars")]
@@ -93,6 +105,7 @@ impl Task {
     /// Set the completion status
     pub fn set_completed(&mut self, new_value: bool) {
         self.update_sync_status();
+        self.update_last_modified();
         self.completed = new_value;
     }
     #[cfg(feature = "local_calendar_mocks_remote_calendars")]

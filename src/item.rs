@@ -5,6 +5,7 @@ use std::str::FromStr;
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use url::Url;
+use chrono::{DateTime, Utc};
 
 use crate::resource::Resource;
 use crate::calendar::CalendarId;
@@ -36,6 +37,13 @@ impl Item {
         match self {
             Item::Event(e) => e.name(),
             Item::Task(t) => t.name(),
+        }
+    }
+
+    pub fn last_modified(&self) -> &DateTime<Utc> {
+        match self {
+            Item::Event(e) => e.last_modified(),
+            Item::Task(t) => t.last_modified(),
         }
     }
 

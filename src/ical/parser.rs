@@ -3,6 +3,7 @@
 use std::error::Error;
 
 use ical::parser::ical::component::{IcalCalendar, IcalEvent, IcalTodo};
+use chrono::{DateTime, TimeZone, Utc};
 
 use crate::Item;
 use crate::item::SyncStatus;
@@ -31,6 +32,7 @@ pub fn parse(content: &str, item_id: ItemId, sync_status: SyncStatus) -> Result<
             let mut name = None;
             let mut uid = None;
             let mut completed = false;
+            let mut last_modified = None;
             for prop in &todo.properties {
                 if prop.name == "SUMMARY" {
                     name = prop.value.clone();
@@ -48,6 +50,19 @@ pub fn parse(content: &str, item_id: ItemId, sync_status: SyncStatus) -> Result<
                 if prop.name == "UID" {
                     uid = prop.value.clone();
                 }
+                if prop.name == "DTSTAMP" {
+                    // this property specifies the date and time that the information associated with
+                    // the calendar component was last revised in the calendar store.
+                    last_modified = prop.value.as_ref()
+                        .and_then(|s| {
+                            parse_date_time(s)
+                            .map_err(|err| {
+                                log::warn!("Invalid DTSTAMP: {}", s);
+                                err
+                            })
+                            .ok()
+                        })
+                }
             }
             let name = match name {
                 Some(name) => name,
@@ -57,8 +72,12 @@ pub fn parse(content: &str, item_id: ItemId, sync_status: SyncStatus) -> Result<
                 Some(uid) => uid,
                 None => return Err(format!("Missing UID for item {}", item_id).into()),
             };
+            let last_modified = match last_modified {
+                Some(dt) => dt,
+                None => return Err(format!("Missing DTSTAMP for item {}, but this is required by RFC5545", item_id).into()),
+            };
 
-            Item::Task(Task::new_with_parameters(name, completed, uid, item_id, sync_status))
+            Item::Task(Task::new_with_parameters(name, completed, uid, item_id, sync_status, last_modified))
         },
     };
 
@@ -70,6 +89,12 @@ pub fn parse(content: &str, item_id: ItemId, sync_status: SyncStatus) -> Result<
 
     Ok(item)
 }
+
+fn parse_date_time(dt: &str) -> Result<DateTime<Utc>, chrono::format::ParseError> {
+    Utc.datetime_from_str(dt, "%Y%m%dT%H%M%S")
+}
+
+
 
 enum CurrentType<'a> {
     Event(&'a IcalEvent),
@@ -171,6 +196,7 @@ END:VCALENDAR
         assert_eq!(task.uid(), "0633de27-8c32-42be-bcb8-63bc879c6185@some-domain.com");
         assert_eq!(task.completed(), false);
         assert_eq!(task.sync_status(), &sync_status);
+        assert_eq!(task.last_modified(), &Utc.ymd(2021, 03, 21).and_hms(0, 16, 0));
     }
 
     #[test]
