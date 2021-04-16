@@ -32,6 +32,10 @@ impl Event {
         &self.name
     }
 
+    pub fn creation_date(&self) -> Option<&DateTime<Utc>> {
+        unimplemented!()
+    }
+
     pub fn last_modified(&self) -> &DateTime<Utc> {
         unimplemented!()
     }

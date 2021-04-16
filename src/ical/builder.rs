@@ -3,7 +3,7 @@
 use std::error::Error;
 
 use chrono::{DateTime, Utc};
-use ics::properties::{Completed, LastModified, Status, Summary};
+use ics::properties::{Completed, Created, LastModified, PercentComplete, Status, Summary};
 use ics::{ICalendar, ToDo};
 
 use crate::item::Item;
@@ -21,17 +21,24 @@ pub fn build_from(item: &Item) -> Result<String, Box<dyn Error>> {
         item.uid(),
         s_last_modified.clone(),
     );
+
+    item.creation_date().map(|dt|
+        todo.push(Created::new(format_date_time(dt)))
+    );
     todo.push(LastModified::new(s_last_modified));
     todo.push(Summary::new(item.name()));
 
     match item {
         Item::Task(t) => {
-            t.completion_date().map(|dt| todo.push(
-                Completed::new(format_date_time(dt))
-            ));
-
-            let status = if t.completed() { Status::completed() } else { Status::needs_action() };
-            todo.push(status);
+            if t.completed() {
+                todo.push(PercentComplete::new("100"));
+                t.completion_date().map(|dt| todo.push(
+                    Completed::new(format_date_time(dt))
+                ));
+                todo.push(Status::completed());
+            } else {
+                todo.push(Status::needs_action());
+            }
         },
         _ => {
             unimplemented!()
@@ -55,29 +62,61 @@ mod tests {
     use crate::Task;
 
     #[test]
-    fn test_ical_from_task() {
-        let cal_id = "http://my.calend.ar/id".parse().unwrap();
-        let now = Utc::now();
-        let s_now = format_date_time(&now);
+    fn test_ical_from_completed_task() {
+        let (s_now, uid, ical) = build_task(true);
 
-        let mut task = Item::Task(Task::new(
-            String::from("This is a task with ÜTF-8 characters"), true, &cal_id
-        ));
-        task.unwrap_task_mut().set_completed_on(Some(now));
         let expected_ical = format!("BEGIN:VCALENDAR\r\n\
             VERSION:2.0\r\n\
             PRODID:-//{}//{}//EN\r\n\
             BEGIN:VTODO\r\n\
             UID:{}\r\n\
             DTSTAMP:{}\r\n\
+            CREATED:{}\r\n\
+            LAST-MODIFIED:{}\r\n\
             SUMMARY:This is a task with ÜTF-8 characters\r\n\
+            PERCENT-COMPLETE:100\r\n\
             COMPLETED:{}\r\n\
             STATUS:COMPLETED\r\n\
             END:VTODO\r\n\
-            END:VCALENDAR\r\n", ORG_NAME, PRODUCT_NAME, task.uid(), s_now, s_now);
+            END:VCALENDAR\r\n", ORG_NAME, PRODUCT_NAME, uid, s_now, s_now, s_now, s_now);
 
-        let ical = build_from(&task);
-        assert_eq!(ical.unwrap(), expected_ical);
+        assert_eq!(ical, expected_ical);
+    }
+
+    #[test]
+    fn test_ical_from_uncompleted_task() {
+        let (s_now, uid, ical) = build_task(false);
+
+        let expected_ical = format!("BEGIN:VCALENDAR\r\n\
+            VERSION:2.0\r\n\
+            PRODID:-//{}//{}//EN\r\n\
+            BEGIN:VTODO\r\n\
+            UID:{}\r\n\
+            DTSTAMP:{}\r\n\
+            CREATED:{}\r\n\
+            LAST-MODIFIED:{}\r\n\
+            SUMMARY:This is a task with ÜTF-8 characters\r\n\
+            STATUS:NEEDS-ACTION\r\n\
+            END:VTODO\r\n\
+            END:VCALENDAR\r\n", ORG_NAME, PRODUCT_NAME, uid, s_now, s_now, s_now);
+
+        assert_eq!(ical, expected_ical);
+    }
+
+    fn build_task(completed: bool) -> (String, String, String) {
+        let cal_id = "http://my.calend.ar/id".parse().unwrap();
+        let now = Utc::now();
+        let s_now = format_date_time(&now);
+
+        let mut task = Item::Task(Task::new(
+            String::from("This is a task with ÜTF-8 characters"), completed, &cal_id
+        ));
+        if completed {
+            task.unwrap_task_mut().set_completed_on(Some(now));
+        }
+
+        let ical = build_from(&task).unwrap();
+        (s_now, task.uid().to_string(), ical)
     }
 
     #[test]

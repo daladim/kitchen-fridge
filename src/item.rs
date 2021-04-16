@@ -40,6 +40,13 @@ impl Item {
         }
     }
 
+    pub fn creation_date(&self) -> Option<&DateTime<Utc>> {
+        match self {
+            Item::Event(e) => e.creation_date(),
+            Item::Task(t) => t.creation_date(),
+        }
+    }
+
     pub fn last_modified(&self) -> &DateTime<Utc> {
         match self {
             Item::Event(e) => e.last_modified(),

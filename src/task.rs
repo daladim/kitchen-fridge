@@ -18,6 +18,9 @@ pub struct Task {
 
     /// The sync status of this item
     sync_status: SyncStatus,
+    /// The time this item was created.
+    /// This is not required by RFC5545. This will be populated in tasks created by this crate, but can be None for tasks coming from a server
+    creation_date: Option<DateTime<Utc>>,
     /// The last time this item was modified
     last_modified: DateTime<Utc>,
 
@@ -34,20 +37,23 @@ impl Task {
         let new_item_id = ItemId::random(parent_calendar_id);
         let new_sync_status = SyncStatus::NotSynced;
         let new_uid = Uuid::new_v4().to_hyphenated().to_string();
+        let new_creation_date = Some(Utc::now());
         let new_last_modified = Utc::now();
         let new_completion_date = if completed { Some(Utc::now()) } else { None };
-        Self::new_with_parameters(name, new_uid, new_item_id, new_sync_status, new_last_modified, new_completion_date)
+        Self::new_with_parameters(name, new_uid, new_item_id, new_sync_status, new_creation_date, new_last_modified, new_completion_date)
     }
 
     /// Create a new Task instance, that may be synced already
     pub fn new_with_parameters(name: String, uid: String, id: ItemId,
-                               sync_status: SyncStatus, last_modified: DateTime<Utc>, completion_date: Option<DateTime<Utc>>) -> Self {
+                               sync_status: SyncStatus, creation_date: Option<DateTime<Utc>>, last_modified: DateTime<Utc>, completion_date: Option<DateTime<Utc>>) -> Self
+    {
         Self {
             id,
             uid,
             name,
             sync_status,
             completion_date,
+            creation_date,
             last_modified,
         }
     }
@@ -56,8 +62,9 @@ impl Task {
     pub fn uid(&self) -> &str       { &self.uid         }
     pub fn name(&self) -> &str      { &self.name        }
     pub fn completed(&self) -> bool { self.completion_date.is_some() }
-    pub fn sync_status(&self) -> &SyncStatus     { &self.sync_status  }
+    pub fn sync_status(&self) -> &SyncStatus      { &self.sync_status  }
     pub fn last_modified(&self) -> &DateTime<Utc> { &self.last_modified }
+    pub fn creation_date(&self) -> Option<&DateTime<Utc>>   { self.creation_date.as_ref() }
     pub fn completion_date(&self) -> Option<&DateTime<Utc>> { self.completion_date.as_ref() }
 
     pub fn has_same_observable_content_as(&self, other: &Task) -> bool {

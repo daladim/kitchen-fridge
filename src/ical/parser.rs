@@ -34,6 +34,7 @@ pub fn parse(content: &str, item_id: ItemId, sync_status: SyncStatus) -> Result<
             let mut completed = false;
             let mut last_modified = None;
             let mut completion_date = None;
+            let mut creation_date = None;
             for prop in &todo.properties {
                 if prop.name == "SUMMARY" {
                     name = prop.value.clone();
@@ -61,6 +62,10 @@ pub fn parse(content: &str, item_id: ItemId, sync_status: SyncStatus) -> Result<
                     // the calendar component was last revised in the calendar store.
                     completion_date = parse_date_time_from_property(&prop.value)
                 }
+                if prop.name == "CREATED" {
+                    // The property can be specified once, but is not mandatory
+                    creation_date = parse_date_time_from_property(&prop.value)
+                }
             }
             let name = match name {
                 Some(name) => name,
@@ -80,7 +85,7 @@ pub fn parse(content: &str, item_id: ItemId, sync_status: SyncStatus) -> Result<
                 log::warn!("Inconsistant iCal data: completion date is {:?} but completion status is {:?}", completion_date, completed);
             }
 
-            Item::Task(Task::new_with_parameters(name, uid, item_id, sync_status, last_modified, completion_date))
+            Item::Task(Task::new_with_parameters(name, uid, item_id, sync_status, creation_date, last_modified, completion_date))
         },
     };
 
