@@ -12,6 +12,8 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::error::Error;
 
+use chrono::Utc;
+
 use my_tasks::calendar::CalendarId;
 use my_tasks::calendar::SupportedComponents;
 use my_tasks::traits::CalDavSource;
@@ -23,6 +25,7 @@ use my_tasks::Item;
 use my_tasks::ItemId;
 use my_tasks::SyncStatus;
 use my_tasks::Task;
+use my_tasks::task::CompletionStatus;
 use my_tasks::calendar::cached_calendar::CachedCalendar;
 use my_tasks::Provider;
 use my_tasks::mock_behaviour::MockBehaviour;
@@ -373,7 +376,11 @@ pub fn scenarii_basic() -> Vec<ItemScenario> {
             initial_state: LocatedState::None,
             local_changes_to_apply: Vec::new(),
             remote_changes_to_apply: vec![ChangeToApply::Create(third_cal.clone(), Item::Task(
-                Task::new_with_parameters(String::from("Task Q, created on the server"), false, id_q, SyncStatus::random_synced() )
+                Task::new_with_parameters(
+                    String::from("Task Q, created on the server"),
+                    id_q.to_string(), id_q,
+                    CompletionStatus::Uncompleted,
+                    SyncStatus::random_synced(), Some(Utc::now()), Utc::now() )
             ))],
             after_sync: LocatedState::BothSynced( ItemState{
                 calendar: third_cal.clone(),
@@ -389,7 +396,11 @@ pub fn scenarii_basic() -> Vec<ItemScenario> {
             id: id_r.clone(),
             initial_state: LocatedState::None,
             local_changes_to_apply: vec![ChangeToApply::Create(third_cal.clone(), Item::Task(
-                Task::new_with_parameters(String::from("Task R, created locally"), false, id_r, SyncStatus::NotSynced )
+                Task::new_with_parameters(
+                    String::from("Task R, created locally"),
+                    id_r.to_string(), id_r,
+                    CompletionStatus::Uncompleted,
+                    SyncStatus::NotSynced, Some(Utc::now()), Utc::now() )
             ))],
             remote_changes_to_apply: Vec::new(),
             after_sync: LocatedState::BothSynced( ItemState{
@@ -563,7 +574,11 @@ pub fn scenarii_transient_task() -> Vec<ItemScenario> {
             initial_state: LocatedState::None,
             local_changes_to_apply: vec![
                 ChangeToApply::Create(cal, Item::Task(
-                    Task::new_with_parameters(String::from("A transient task that will be deleted before the sync"), false, id_transient, SyncStatus::NotSynced )
+                    Task::new_with_parameters(
+                        String::from("A transient task that will be deleted before the sync"),
+                        id_transient.to_string(), id_transient,
+                        CompletionStatus::Uncompleted,
+                        SyncStatus::NotSynced, Some(Utc::now()), Utc::now() )
                 )),
 
                 ChangeToApply::Rename(String::from("A new name")),
@@ -612,12 +627,21 @@ async fn populate_test_provider(scenarii: &[ItemScenario], mock_behaviour: Arc<M
             LocatedState::BothSynced(s) => (s, SyncStatus::random_synced()),
         };
 
+        let now = Utc::now();
+        let completion_status = match state.completed {
+            false => CompletionStatus::Uncompleted,
+            true => CompletionStatus::Completed(Some(now)),
+        };
+
         let new_item = Item::Task(
             Task::new_with_parameters(
                 state.name.clone(),
-                state.completed,
+                item.id.to_string(),
                 item.id.clone(),
+                completion_status,
                 sync_status,
+                Some(now),
+                now,
             ));
 
         match required_state {
@@ -713,10 +737,14 @@ where
             }
         },
         ChangeToApply::SetCompletion(new_status) => {
+            let completion_status = match new_status {
+                false => CompletionStatus::Uncompleted,
+                true => CompletionStatus::Completed(Some(Utc::now())),
+            };
             if is_remote {
-                task.mock_remote_calendar_set_completed(new_status.clone());
+                task.mock_remote_calendar_set_completion_status(completion_status);
             } else {
-                task.set_completed(new_status.clone());
+                task.set_completion_status(completion_status);
             }
         },
         ChangeToApply::Remove => {

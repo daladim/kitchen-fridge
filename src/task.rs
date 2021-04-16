@@ -6,6 +6,26 @@ use crate::item::ItemId;
 use crate::item::SyncStatus;
 use crate::calendar::CalendarId;
 
+/// RFC5545 defines the completion as several optional fields, yet some combinations make no sense.
+/// This enum provides an API that forbids such impossible combinations.
+///
+/// * `COMPLETED` is an optional timestamp that tells whether this task is completed
+/// * `STATUS` is an optional field, that can be set to `NEEDS-ACTION`, `COMPLETED`, or others.
+/// Even though having a `COMPLETED` date but a `STATUS:NEEDS-ACTION` is theorically possible, it obviously makes no sense. This API ensures this cannot happen
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub enum CompletionStatus {
+    Completed(Option<DateTime<Utc>>),
+    Uncompleted,
+}
+impl CompletionStatus {
+    pub fn is_completed(&self) -> bool {
+        match self {
+            CompletionStatus::Completed(_) => true,
+            _ => false,
+        }
+    }
+}
+
 /// A to-do task
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Task {
@@ -23,12 +43,14 @@ pub struct Task {
     creation_date: Option<DateTime<Utc>>,
     /// The last time this item was modified
     last_modified: DateTime<Utc>,
+    /// The completion status of this task
+    completion_status: CompletionStatus,
 
     /// The display name of the task
     name: String,
-    /// The time it was completed. Set to None if this task has not been completed
-    completion_date: Option<DateTime<Utc>>,
+
 }
+
 
 impl Task {
     /// Create a brand new Task that is not on a server yet.
@@ -39,20 +61,23 @@ impl Task {
         let new_uid = Uuid::new_v4().to_hyphenated().to_string();
         let new_creation_date = Some(Utc::now());
         let new_last_modified = Utc::now();
-        let new_completion_date = if completed { Some(Utc::now()) } else { None };
-        Self::new_with_parameters(name, new_uid, new_item_id, new_sync_status, new_creation_date, new_last_modified, new_completion_date)
+        let new_completion_status = if completed {
+                CompletionStatus::Completed(Some(Utc::now()))
+            } else { CompletionStatus::Uncompleted };
+        Self::new_with_parameters(name, new_uid, new_item_id, new_completion_status, new_sync_status, new_creation_date, new_last_modified)
     }
 
     /// Create a new Task instance, that may be synced already
     pub fn new_with_parameters(name: String, uid: String, id: ItemId,
-                               sync_status: SyncStatus, creation_date: Option<DateTime<Utc>>, last_modified: DateTime<Utc>, completion_date: Option<DateTime<Utc>>) -> Self
+                               completion_status: CompletionStatus,
+                               sync_status: SyncStatus, creation_date: Option<DateTime<Utc>>, last_modified: DateTime<Utc>) -> Self
     {
         Self {
             id,
             uid,
             name,
+            completion_status,
             sync_status,
-            completion_date,
             creation_date,
             last_modified,
         }
@@ -61,16 +86,16 @@ impl Task {
     pub fn id(&self) -> &ItemId     { &self.id          }
     pub fn uid(&self) -> &str       { &self.uid         }
     pub fn name(&self) -> &str      { &self.name        }
-    pub fn completed(&self) -> bool { self.completion_date.is_some() }
+    pub fn completed(&self) -> bool { self.completion_status.is_completed() }
     pub fn sync_status(&self) -> &SyncStatus      { &self.sync_status  }
     pub fn last_modified(&self) -> &DateTime<Utc> { &self.last_modified }
     pub fn creation_date(&self) -> Option<&DateTime<Utc>>   { self.creation_date.as_ref() }
-    pub fn completion_date(&self) -> Option<&DateTime<Utc>> { self.completion_date.as_ref() }
+    pub fn completion_status(&self) -> &CompletionStatus    { &self.completion_status }
 
     pub fn has_same_observable_content_as(&self, other: &Task) -> bool {
            self.id == other.id
         && self.name == other.name
-        && self.completion_date == other.completion_date
+        && self.completion_status == other.completion_status
         && self.last_modified == other.last_modified
         // sync status must be the same variant, but we ignore its embedded version tag
         && std::mem::discriminant(&self.sync_status) == std::mem::discriminant(&other.sync_status)
@@ -113,16 +138,16 @@ impl Task {
         self.name = new_name;
     }
 
-    /// Set the completion date (or pass None to un-complete the task)
-    pub fn set_completed_on(&mut self, new_completion_date: Option<DateTime<Utc>>) {
+    /// Set the completion status
+    pub fn set_completion_status(&mut self, new_completion_status: CompletionStatus) {
         self.update_sync_status();
         self.update_last_modified();
-        self.completion_date = new_completion_date;
+        self.completion_status = new_completion_status;
     }
     #[cfg(feature = "local_calendar_mocks_remote_calendars")]
     /// Set the completion status, but forces a "master" SyncStatus, just like CalDAV servers are always "masters"
-    pub fn mock_remote_calendar_set_completed_on(&mut self, nnew_completion_date: Option<DateTime<Utc>>) {
+    pub fn mock_remote_calendar_set_completion_status(&mut self, new_completion_status: CompletionStatus) {
         self.sync_status = SyncStatus::random_synced();
-        self.completion_date = new_completion_date;
+        self.completion_status = new_completion_status;
     }
 }

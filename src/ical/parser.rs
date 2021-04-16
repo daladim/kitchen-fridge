@@ -9,6 +9,7 @@ use crate::Item;
 use crate::item::SyncStatus;
 use crate::item::ItemId;
 use crate::Task;
+use crate::task::CompletionStatus;
 use crate::Event;
 
 
@@ -53,13 +54,15 @@ pub fn parse(content: &str, item_id: ItemId, sync_status: SyncStatus) -> Result<
                     uid = prop.value.clone();
                 }
                 if prop.name == "DTSTAMP" {
-                    // this property specifies the date and time that the information associated with
-                    // the calendar component was last revised in the calendar store.
+                    // The property can be specified once, but is not mandatory
+                    // "This property specifies the date and time that the information associated with
+                    //  the calendar component was last revised in the calendar store."
                     last_modified = parse_date_time_from_property(&prop.value)
                 }
                 if prop.name == "COMPLETED" {
-                    // this property specifies the date and time that the information associated with
-                    // the calendar component was last revised in the calendar store.
+                    // The property can be specified once, but is not mandatory
+                    // "This property defines the date and time that a to-do was
+                    //  actually completed."
                     completion_date = parse_date_time_from_property(&prop.value)
                 }
                 if prop.name == "CREATED" {
@@ -79,13 +82,17 @@ pub fn parse(content: &str, item_id: ItemId, sync_status: SyncStatus) -> Result<
                 Some(dt) => dt,
                 None => return Err(format!("Missing DTSTAMP for item {}, but this is required by RFC5545", item_id).into()),
             };
-            if completion_date.is_none() && completed ||
-               completion_date.is_some() && !completed
-            {
-                log::warn!("Inconsistant iCal data: completion date is {:?} but completion status is {:?}", completion_date, completed);
-            }
+            let completion_status = match completed {
+                false => {
+                    if completion_date.is_some() {
+                        log::warn!("Task {:?} has an inconsistent content: its STATUS is not completed, yet it has a COMPLETED timestamp at {:?}", uid, completion_date);
+                    }
+                    CompletionStatus::Uncompleted
+                },
+                true => CompletionStatus::Completed(completion_date),
+            };
 
-            Item::Task(Task::new_with_parameters(name, uid, item_id, sync_status, creation_date, last_modified, completion_date))
+            Item::Task(Task::new_with_parameters(name, uid, item_id, completion_status, sync_status, creation_date, last_modified))
         },
     };
 
@@ -160,7 +167,7 @@ END:VTODO
 END:VCALENDAR
 "#;
 
-    const EXAMPLE_ICAL_COMPLETED: &str = r#"BEGIN:VCALENDAR
+const EXAMPLE_ICAL_COMPLETED: &str = r#"BEGIN:VCALENDAR
 VERSION:2.0
 PRODID:-//Nextcloud Tasks v0.13.6
 BEGIN:VTODO
@@ -171,6 +178,20 @@ DTSTAMP:20210402T081557
 SUMMARY:Clean up your room or Mom will be angry
 PERCENT-COMPLETE:100
 COMPLETED:20210402T081557
+STATUS:COMPLETED
+END:VTODO
+END:VCALENDAR
+"#;
+
+const EXAMPLE_ICAL_COMPLETED_WITHOUT_A_COMPLETION_DATE: &str = r#"BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Nextcloud Tasks v0.13.6
+BEGIN:VTODO
+UID:19960401T080045Z-4000F192713-0052@example.com
+CREATED:20210321T001600
+LAST-MODIFIED:20210402T081557
+DTSTAMP:20210402T081557
+SUMMARY:Clean up your room or Mom will be angry
 STATUS:COMPLETED
 END:VTODO
 END:VCALENDAR
@@ -214,12 +235,13 @@ END:VCALENDAR
         assert_eq!(task.id(), &item_id);
         assert_eq!(task.uid(), "0633de27-8c32-42be-bcb8-63bc879c6185@some-domain.com");
         assert_eq!(task.completed(), false);
+        assert_eq!(task.completion_status(), &CompletionStatus::Uncompleted);
         assert_eq!(task.sync_status(), &sync_status);
         assert_eq!(task.last_modified(), &Utc.ymd(2021, 03, 21).and_hms(0, 16, 0));
     }
 
     #[test]
-    fn test_ical_completion_parsing() {
+    fn test_completed_ical_parsing() {
         let version_tag = VersionTag::from(String::from("test-tag"));
         let sync_status = SyncStatus::Synced(version_tag);
         let item_id: ItemId = "http://some.id/for/testing".parse().unwrap();
@@ -228,6 +250,20 @@ END:VCALENDAR
         let task = item.unwrap_task();
 
         assert_eq!(task.completed(), true);
+        assert_eq!(task.completion_status(), &CompletionStatus::Completed(Some(Utc.ymd(2021, 04, 02).and_hms(8, 15, 57))));
+    }
+
+    #[test]
+    fn test_completed_without_date_ical_parsing() {
+        let version_tag = VersionTag::from(String::from("test-tag"));
+        let sync_status = SyncStatus::Synced(version_tag);
+        let item_id: ItemId = "http://some.id/for/testing".parse().unwrap();
+
+        let item = parse(EXAMPLE_ICAL_COMPLETED_WITHOUT_A_COMPLETION_DATE, item_id.clone(), sync_status.clone()).unwrap();
+        let task = item.unwrap_task();
+
+        assert_eq!(task.completed(), true);
+        assert_eq!(task.completion_status(), &CompletionStatus::Completed(None));
     }
 
     #[test]

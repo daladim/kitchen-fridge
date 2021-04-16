@@ -20,7 +20,7 @@ pub use item::Item;
 pub use item::ItemId;
 pub use item::VersionTag;
 pub use item::SyncStatus;
-mod task;
+pub mod task;
 pub use task::Task;
 mod event;
 pub use event::Event;

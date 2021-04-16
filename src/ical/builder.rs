@@ -7,6 +7,7 @@ use ics::properties::{Completed, Created, LastModified, PercentComplete, Status,
 use ics::{ICalendar, ToDo};
 
 use crate::item::Item;
+use crate::task::CompletionStatus;
 use crate::settings::{ORG_NAME, PRODUCT_NAME};
 
 fn ical_product_id() -> String {
@@ -30,14 +31,17 @@ pub fn build_from(item: &Item) -> Result<String, Box<dyn Error>> {
 
     match item {
         Item::Task(t) => {
-            if t.completed() {
-                todo.push(PercentComplete::new("100"));
-                t.completion_date().map(|dt| todo.push(
-                    Completed::new(format_date_time(dt))
-                ));
-                todo.push(Status::completed());
-            } else {
-                todo.push(Status::needs_action());
+            match t.completion_status() {
+                CompletionStatus::Uncompleted => {
+                    todo.push(Status::needs_action());
+                },
+                CompletionStatus::Completed(completion_date) => {
+                    todo.push(PercentComplete::new("100"));
+                    completion_date.as_ref().map(|dt| todo.push(
+                        Completed::new(format_date_time(dt))
+                    ));
+                    todo.push(Status::completed());
+                }
             }
         },
         _ => {
@@ -108,12 +112,9 @@ mod tests {
         let now = Utc::now();
         let s_now = format_date_time(&now);
 
-        let mut task = Item::Task(Task::new(
+        let task = Item::Task(Task::new(
             String::from("This is a task with ÜTF-8 characters"), completed, &cal_id
         ));
-        if completed {
-            task.unwrap_task_mut().set_completed_on(Some(now));
-        }
 
         let ical = build_from(&task).unwrap();
         (s_now, task.uid().to_string(), ical)
