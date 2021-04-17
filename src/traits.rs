@@ -76,6 +76,9 @@ pub trait DavCalendar : BaseCalendar {
             .map(|(id, _tag)| id.clone())
             .collect())
     }
+
+    // Note: the CalDAV protocol could also enable to do this:
+    // fn get_current_version(&self) -> CTag
 }
 
 
