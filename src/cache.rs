@@ -24,7 +24,7 @@ const MAIN_FILE: &str = "data.json";
 
 /// A CalDAV source that stores its items in a local folder.
 ///
-/// It automatically updates the content of the folder when dropped (see its `Drop` implementation), but you can also manually call [`save_to_folder`]
+/// It automatically updates the content of the folder when dropped (see its `Drop` implementation), but you can also manually call [`Cache::save_to_folder`]
 #[derive(Debug)]
 pub struct Cache {
     backing_folder: PathBuf,
@@ -174,7 +174,7 @@ impl Cache {
 impl Drop for Cache {
     fn drop(&mut self) {
         if let Err(err) = self.save_to_folder() {
-            log::error!("Unable to automatically save the cache when it's no longer required");
+            log::error!("Unable to automatically save the cache when it's no longer required: {}", err);
         }
     }
 }
@@ -233,7 +233,7 @@ mod tests {
 
         let mut cache = Cache::new(&cache_path);
 
-        let shopping_list = cache.create_calendar(
+        let _shopping_list = cache.create_calendar(
             Url::parse("https://caldav.com/shopping").unwrap(),
             "My shopping list".to_string(),
             SupportedComponents::TODO,
