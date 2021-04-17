@@ -145,8 +145,12 @@ impl DavCalendar for RemoteCalendar {
         Ok(Some(item))
     }
 
-    async fn delete_item(&mut self, _item_id: &ItemId) -> Result<(), Box<dyn Error>> {
-        log::error!("Not implemented");
+    async fn delete_item(&mut self, item_id: &ItemId) -> Result<(), Box<dyn Error>> {
+        reqwest::Client::new()
+            .delete(item_id.as_url().clone())
+            .basic_auth(self.resource.username(), Some(self.resource.password()))
+            .send()
+            .await?;
         Ok(())
     }
 }
