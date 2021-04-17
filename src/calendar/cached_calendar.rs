@@ -39,9 +39,8 @@ impl CachedCalendar {
 
     #[cfg(feature = "local_calendar_mocks_remote_calendars")]
     async fn add_item_maybe_mocked(&mut self, item: Item) -> Result<SyncStatus, Box<dyn Error>> {
-        self.mock_behaviour.as_ref().map_or(Ok(()), |b| b.lock().unwrap().can_add_item())?;
-
         if self.mock_behaviour.is_some() {
+            self.mock_behaviour.as_ref().map_or(Ok(()), |b| b.lock().unwrap().can_add_item())?;
             self.add_or_update_item_force_synced(item).await
         } else {
             self.regular_add_or_update_item(item).await
@@ -50,9 +49,8 @@ impl CachedCalendar {
 
     #[cfg(feature = "local_calendar_mocks_remote_calendars")]
     async fn update_item_maybe_mocked(&mut self, item: Item) -> Result<SyncStatus, Box<dyn Error>> {
-        self.mock_behaviour.as_ref().map_or(Ok(()), |b| b.lock().unwrap().can_update_item())?;
-
         if self.mock_behaviour.is_some() {
+            self.mock_behaviour.as_ref().map_or(Ok(()), |b| b.lock().unwrap().can_update_item())?;
             self.add_or_update_item_force_synced(item).await
         } else {
             self.regular_add_or_update_item(item).await
@@ -133,7 +131,7 @@ impl BaseCalendar for CachedCalendar {
     async fn add_item(&mut self, item: Item) -> Result<SyncStatus, Box<dyn Error>> {
         if self.items.contains_key(item.id()) {
             return Err(format!("Item {:?} cannot be added, it exists already", item.id()).into());
-    }
+        }
         #[cfg(not(feature = "local_calendar_mocks_remote_calendars"))]
         return self.regular_add_or_update_item(item).await;
 
