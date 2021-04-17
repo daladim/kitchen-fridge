@@ -42,6 +42,10 @@ pub trait BaseCalendar {
     /// For remote calendars, the sync status is updated by the server
     async fn add_item(&mut self, item: Item) -> Result<SyncStatus, Box<dyn Error>>;
 
+    /// Update an item that already exists in this calendar and returns its new `SyncStatus`
+    /// This replaces a given item at a given URL
+    async fn update_item(&mut self, item: Item) -> Result<SyncStatus, Box<dyn Error>>;
+
     /// Returns whether this calDAV calendar supports to-do items
     fn supports_todo(&self) -> bool {
         self.supported_components().contains(crate::calendar::SupportedComponents::TODO)

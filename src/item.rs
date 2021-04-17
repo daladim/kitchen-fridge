@@ -190,6 +190,11 @@ impl From<String> for VersionTag {
 }
 
 impl VersionTag {
+    /// Get the inner version tag (usually a WebDAV `ctag` or `etag`)
+    pub fn as_str(&self) -> &str {
+        &self.tag
+    }
+
     /// Generate a random VesionTag
     #[cfg(feature = "local_calendar_mocks_remote_calendars")]
     pub fn random() -> Self {

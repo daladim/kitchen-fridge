@@ -48,13 +48,42 @@ impl BaseCalendar for RemoteCalendar {
         self.supported_components
     }
 
-    /// Add an item into this calendar
     async fn add_item(&mut self, item: Item) -> Result<SyncStatus, Box<dyn Error>> {
         let ical_text = crate::ical::build_from(&item)?;
 
         let request = reqwest::Client::new()
             .put(item.id().as_url().clone())
             .header("If-None-Match", "*")
+            .header(CONTENT_TYPE, "text/calendar")
+            .header(CONTENT_LENGTH, ical_text.len())
+            .basic_auth(self.resource.username(), Some(self.resource.password()))
+            .body(ical_text)
+            .send()
+            .await?;
+
+        let reply_hdrs = request.headers();
+        match reply_hdrs.get("ETag") {
+            None => Err(format!("No ETag in these response headers: {:?} (request was {:?})", reply_hdrs, item.id()).into()),
+            Some(etag) => {
+                let vtag_str = etag.to_str()?;
+                let vtag = VersionTag::from(String::from(vtag_str));
+                Ok(SyncStatus::Synced(vtag))
+            }
+        }
+    }
+
+    async fn update_item(&mut self, item: Item) -> Result<SyncStatus, Box<dyn Error>> {
+        let old_etag = match item.sync_status() {
+            SyncStatus::NotSynced => return Err("Cannot update an item that has not been synced already".into()),
+            SyncStatus::Synced(_) => return Err("Cannot update an item that has not changed".into()),
+            SyncStatus::LocallyModified(etag) => etag,
+            SyncStatus::LocallyDeleted(etag) => etag,
+        };
+        let ical_text = crate::ical::build_from(&item)?;
+
+        let request = reqwest::Client::new()
+            .put(item.id().as_url().clone())
+            .header("If-Match", old_etag.as_str())
             .header(CONTENT_TYPE, "text/calendar")
             .header(CONTENT_LENGTH, ical_text.len())
             .basic_auth(self.resource.username(), Some(self.resource.password()))
