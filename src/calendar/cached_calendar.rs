@@ -59,6 +59,7 @@ impl CachedCalendar {
     }
 
     /// Some kind of equality check
+    #[cfg(any(test, feature = "integration_tests"))]
     pub async fn has_same_observable_content_as(&self, other: &CachedCalendar) -> Result<bool, Box<dyn Error>> {
         if self.name != other.name
         || self.id != other.id

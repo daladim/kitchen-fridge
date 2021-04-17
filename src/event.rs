@@ -47,6 +47,7 @@ impl Event {
         self.sync_status = new_status;
     }
 
+    #[cfg(any(test, feature = "integration_tests"))]
     pub fn has_same_observable_content_as(&self, _other: &Event) -> bool {
         unimplemented!();
     }

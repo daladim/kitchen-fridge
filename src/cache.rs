@@ -143,6 +143,7 @@ impl Cache {
     /// Compares two Caches to check they have the same current content
     ///
     /// This is not a complete equality test: some attributes (sync status...) may differ. This should mostly be used in tests
+    #[cfg(any(test, feature = "integration_tests"))]
     pub async fn has_same_observable_content_as(&self, other: &Self) -> Result<bool, Box<dyn Error>> {
         let calendars_l = self.get_calendars().await?;
         let calendars_r = other.get_calendars().await?;

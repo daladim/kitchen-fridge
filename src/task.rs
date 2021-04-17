@@ -92,13 +92,15 @@ impl Task {
     pub fn creation_date(&self) -> Option<&DateTime<Utc>>   { self.creation_date.as_ref() }
     pub fn completion_status(&self) -> &CompletionStatus    { &self.completion_status }
 
+    #[cfg(any(test, feature = "integration_tests"))]
     pub fn has_same_observable_content_as(&self, other: &Task) -> bool {
            self.id == other.id
         && self.name == other.name
-        && self.completion_status == other.completion_status
-        && self.last_modified == other.last_modified
         // sync status must be the same variant, but we ignore its embedded version tag
         && std::mem::discriminant(&self.sync_status) == std::mem::discriminant(&other.sync_status)
+        // completion status must be the same variant, but we ignore its embedded completion date (they are not totally mocked in integration tests)
+        && std::mem::discriminant(&self.completion_status) == std::mem::discriminant(&other.completion_status)
+        // last modified dates are ignored (they are not totally mocked in integration tests)
     }
 
     pub fn set_sync_status(&mut self, new_status: SyncStatus) {
@@ -135,6 +137,7 @@ impl Task {
     /// Rename a task, but forces a "master" SyncStatus, just like CalDAV servers are always "masters"
     pub fn mock_remote_calendar_set_name(&mut self, new_name: String) {
         self.sync_status = SyncStatus::random_synced();
+        self.update_last_modified();
         self.name = new_name;
     }
 
