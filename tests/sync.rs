@@ -34,6 +34,7 @@ impl TestFlavour {
     pub fn normal_with_errors9() -> Self { Self{} }
     pub fn normal_with_errors10() -> Self { Self{} }
     pub fn normal_with_errors11() -> Self { Self{} }
+    pub fn normal_with_errors12() -> Self { Self{} }
 
     pub async fn run(&self, _max_attempts: u32) {
         println!("WARNING: This test required the \"integration_tests\" Cargo feature");
@@ -188,6 +189,16 @@ impl TestFlavour {
         }
     }
 
+    pub fn normal_with_errors12() -> Self {
+        Self {
+            scenarii: scenarii::scenarii_basic(),
+            mock_behaviour: Arc::new(Mutex::new(MockBehaviour{
+                update_item_behaviour: (0,3),
+                ..MockBehaviour::default()
+            })),
+        }
+    }
+
 
     pub async fn run(&self, max_attempts: u32) {
         self.mock_behaviour.lock().unwrap().suspend();
@@ -304,6 +315,11 @@ async fn test_errors_in_regular_sync10() {
 #[tokio::test]
 async fn test_errors_in_regular_sync11() {
     run_flavour(TestFlavour::normal_with_errors11(), 100).await;
+}
+
+#[tokio::test]
+async fn test_errors_in_regular_sync12() {
+    run_flavour(TestFlavour::normal_with_errors12(), 100).await;
 }
 
 #[cfg(feature = "integration_tests")]

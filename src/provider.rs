@@ -314,17 +314,8 @@ where
                         continue;
                     },
                     Some(item) => {
-                        //
-                        //
-                        //
-                        //
-                        // TODO: implement update_item (maybe only create_item also updates it?)
-                        //
-                        if let Err(err) = cal_local.immediately_delete_item(&id_change).await {
-                            result.error(&format!("Unable to delete (update) item {} from local calendar: {}", id_change, err));
-                        }
-                        if let Err(err) = cal_local.add_item(item.clone()).await {
-                            result.error(&format!("Unable to add (update) item {} to local calendar: {}", id_change, err));
+                        if let Err(err) = cal_local.update_item(item.clone()).await {
+                            result.error(&format!("Unable to update item {} in local calendar: {}", id_change, err));
                         }
                     },
                 }
@@ -359,17 +350,8 @@ where
                     continue;
                 },
                 Some(item) => {
-                    //
-                    //
-                    //
-                    //
-                    // TODO: implement update_item (maybe only create_item also updates it?)
-                    //
-                    if let Err(err) = cal_remote.delete_item(&id_change).await {
-                        result.error(&format!("Unable to delete (update) item {} from remote calendar: {}", id_change, err));
-                    }
-                    match cal_remote.add_item(item.clone()).await {
-                        Err(err) => log::error!("Unable to add (update) item {} to remote calendar: {}", id_change, err),
+                    match cal_remote.update_item(item.clone()).await {
+                        Err(err) => result.error(&format!("Unable to update item {} in remote calendar: {}", id_change, err)),
                         Ok(new_ss) => {
                             // Update local sync status
                             item.set_sync_status(new_ss);
