@@ -1,12 +1,17 @@
 use std::path::Path;
 
+use chrono::{Utc};
+
 use my_tasks::{client::Client, traits::CalDavSource};
 use my_tasks::calendar::{CalendarId, cached_calendar::CachedCalendar, remote_calendar::RemoteCalendar};
 use my_tasks::Item;
 use my_tasks::Task;
+use my_tasks::task::CompletionStatus;
+use my_tasks::ItemId;
 use my_tasks::cache::Cache;
 use my_tasks::Provider;
 use my_tasks::traits::BaseCalendar;
+use my_tasks::traits::CompleteCalendar;
 use my_tasks::settings::URL;
 use my_tasks::settings::USERNAME;
 use my_tasks::settings::PASSWORD;
@@ -38,7 +43,7 @@ async fn main() {
     let mut provider = Provider::new(client, cache);
 
     let cals = provider.local().get_calendars().await.unwrap();
-    println!("---- before sync -----");
+    println!("---- Local items, before sync -----");
     my_tasks::utils::print_calendar_list(&cals).await;
 
     println!("Starting a sync...");
@@ -47,28 +52,78 @@ async fn main() {
     }
     provider.local().save_to_folder().unwrap();
 
-    println!("---- after sync -----");
+    println!("---- Local items, after sync -----");
     let cals = provider.local().get_calendars().await.unwrap();
     my_tasks::utils::print_calendar_list(&cals).await;
 
-    add_items_and_sync_again(&mut provider).await;
+    let changed_calendar_id: CalendarId = EXAMPLE_CALENDAR_URL.parse().unwrap();
+    add_items_and_sync_again(&mut provider, &changed_calendar_id).await;
 }
 
-async fn add_items_and_sync_again(provider: &mut Provider<Cache, CachedCalendar, Client, RemoteCalendar>) {
-    println!("Now, we'll add a task and run the sync again.");
+async fn add_items_and_sync_again(
+    provider: &mut Provider<Cache, CachedCalendar, Client, RemoteCalendar>,
+    changed_calendar_id: &CalendarId)
+{
+    println!("\nNow, we'll add a task and run the sync again.");
     pause();
 
-    let changed_calendar_id: CalendarId = EXAMPLE_CALENDAR_URL.parse().unwrap();
-    let changed_calendar = provider.local().get_calendar(&changed_calendar_id).await.unwrap();
-
-    let new_name = "New example task";
+    let new_name = "This is a new task we're adding as an example, with ÜTF-8 characters";
     let new_task = Task::new(String::from(new_name), false, &changed_calendar_id);
-    changed_calendar.lock().unwrap().add_item(Item::Task(new_task)).await.unwrap();
+    let new_id = new_task.id().clone();
+
+    provider.local().get_calendar(changed_calendar_id).await.unwrap()
+        .lock().unwrap().add_item(Item::Task(new_task)).await.unwrap();
 
     if provider.sync().await == false {
         log::warn!("Sync did not complete, see the previous log lines for more info. You can safely start a new sync. The new task may not have been synced.");
     } else {
         println!("Done syncing the new task '{}'", new_name);
+    }
+    provider.local().save_to_folder().unwrap();
+
+    complete_item_and_sync_again(provider, changed_calendar_id, &new_id).await;
+}
+
+async fn complete_item_and_sync_again(
+    provider: &mut Provider<Cache, CachedCalendar, Client, RemoteCalendar>,
+    changed_calendar_id: &CalendarId,
+    id_to_complete: &ItemId)
+{
+    println!("\nNow, we'll mark this last task as completed, and run the sync again.");
+    pause();
+
+    let completion_status = CompletionStatus::Completed(Some(Utc::now()));
+    provider.local().get_calendar(changed_calendar_id).await.unwrap()
+        .lock().unwrap().get_item_by_id_mut(id_to_complete).await.unwrap()
+        .unwrap_task_mut()
+        .set_completion_status(completion_status);
+
+    if provider.sync().await == false {
+        log::warn!("Sync did not complete, see the previous log lines for more info. You can safely start a new sync. The new task may not have been synced.");
+    } else {
+        println!("Done syncing the completed task");
+    }
+    provider.local().save_to_folder().unwrap();
+
+    remove_item_and_sync_again(provider, changed_calendar_id, id_to_complete).await;
+}
+
+async fn remove_item_and_sync_again(
+    provider: &mut Provider<Cache, CachedCalendar, Client, RemoteCalendar>,
+    changed_calendar_id: &CalendarId,
+    id_to_remove: &ItemId)
+{
+    println!("\nNow, we'll delete this last task, and run the sync again.");
+    pause();
+
+    provider.local().get_calendar(changed_calendar_id).await.unwrap()
+        .lock().unwrap()
+        .mark_for_deletion(id_to_remove).await.unwrap();
+
+    if provider.sync().await == false {
+        log::warn!("Sync did not complete, see the previous log lines for more info. You can safely start a new sync. The new task may not have been synced.");
+    } else {
+        println!("Done syncing the deleted task");
     }
     provider.local().save_to_folder().unwrap();
 
