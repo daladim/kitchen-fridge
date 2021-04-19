@@ -226,12 +226,7 @@ mod tests {
     use crate::item::Item;
     use crate::task::Task;
 
-    #[tokio::test]
-    async fn serde_cache() {
-        let _ = env_logger::builder().is_test(true).try_init();
-
-        let cache_path = PathBuf::from(String::from("test_cache/unit_test"));
-
+    async fn populate_cache(cache_path: &Path) -> Cache {
         let mut cache = Cache::new(&cache_path);
 
         let _shopping_list = cache.create_calendar(
@@ -258,6 +253,14 @@ mod tests {
             ))).await.unwrap();
         }
 
+        cache
+    }
+
+    #[tokio::test]
+    async fn cache_serde() {
+        let _ = env_logger::builder().is_test(true).try_init();
+        let cache_path = PathBuf::from(String::from("test_cache/serde_test"));
+        let cache = populate_cache(&cache_path).await;
 
         cache.save_to_folder().unwrap();
 
@@ -266,5 +269,20 @@ mod tests {
         let test = cache.has_same_observable_content_as(&retrieved_cache).await;
         println!("Equal? {:?}", test);
         assert_eq!(test.unwrap(), true);
+    }
+
+    #[tokio::test]
+    async fn cache_sanity_checks() {
+        let _ = env_logger::builder().is_test(true).try_init();
+        let cache_path = PathBuf::from(String::from("test_cache/sanity_tests"));
+        let mut cache = populate_cache(&cache_path).await;
+
+        // We should not be able to add twice the same calendar
+        let second_addition_same_calendar = cache.create_calendar(
+            Url::parse("https://caldav.com/shopping").unwrap(),
+            "My shopping list".to_string(),
+            SupportedComponents::TODO,
+        ).await;
+        assert!(second_addition_same_calendar.is_err());
     }
 }
