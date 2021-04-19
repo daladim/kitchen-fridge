@@ -230,7 +230,7 @@ mod tests {
     async fn serde_cache() {
         let _ = env_logger::builder().is_test(true).try_init();
 
-        let cache_path = PathBuf::from(String::from("test_cache/"));
+        let cache_path = PathBuf::from(String::from("test_cache/unit_test"));
 
         let mut cache = Cache::new(&cache_path);
 

@@ -18,7 +18,7 @@ use my_tasks::settings::PASSWORD;
 use my_tasks::settings::EXAMPLE_CALENDAR_URL;
 use my_tasks::utils::pause;
 
-const CACHE_FOLDER: &str = "example_cache";
+const CACHE_FOLDER: &str = "test_cache/provider_sync";
 
 
 #[tokio::main]

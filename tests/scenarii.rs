@@ -607,8 +607,8 @@ pub async fn populate_test_provider_after_sync(scenarii: &[ItemScenario], mock_b
 }
 
 async fn populate_test_provider(scenarii: &[ItemScenario], mock_behaviour: Arc<Mutex<MockBehaviour>>, populate_for_final_state: bool) -> Provider<Cache, CachedCalendar, Cache, CachedCalendar> {
-    let mut local = Cache::new(&PathBuf::from(String::from("test_cache_local/")));
-    let mut remote = Cache::new(&PathBuf::from(String::from("test_cache_remote/")));
+    let mut local = Cache::new(&PathBuf::from(String::from("test_cache/local/")));
+    let mut remote = Cache::new(&PathBuf::from(String::from("test_cache/remote/")));
     remote.set_mock_behaviour(Some(mock_behaviour));
 
     // Create the initial state, as if we synced both sources in a given state
