@@ -3,7 +3,9 @@ use std::path::Path;
 use chrono::{Utc};
 
 use my_tasks::{client::Client, traits::CalDavSource};
-use my_tasks::calendar::{CalendarId, cached_calendar::CachedCalendar, remote_calendar::RemoteCalendar};
+use my_tasks::calendar::{CalendarId, SupportedComponents};
+use my_tasks::calendar::cached_calendar::CachedCalendar;
+use my_tasks::calendar::remote_calendar::RemoteCalendar;
 use my_tasks::Item;
 use my_tasks::Task;
 use my_tasks::task::CompletionStatus;
@@ -15,7 +17,8 @@ use my_tasks::traits::CompleteCalendar;
 use my_tasks::settings::URL;
 use my_tasks::settings::USERNAME;
 use my_tasks::settings::PASSWORD;
-use my_tasks::settings::EXAMPLE_CALENDAR_URL;
+use my_tasks::settings::EXAMPLE_CREATED_CALENDAR_URL;
+use my_tasks::settings::EXAMPLE_EXISTING_CALENDAR_URL;
 use my_tasks::utils::pause;
 
 const CACHE_FOLDER: &str = "test_cache/provider_sync";
@@ -56,32 +59,44 @@ async fn main() {
     let cals = provider.local().get_calendars().await.unwrap();
     my_tasks::utils::print_calendar_list(&cals).await;
 
-    let changed_calendar_id: CalendarId = EXAMPLE_CALENDAR_URL.parse().unwrap();
-    add_items_and_sync_again(&mut provider, &changed_calendar_id).await;
+    add_items_and_sync_again(&mut provider).await;
 }
 
 async fn add_items_and_sync_again(
-    provider: &mut Provider<Cache, CachedCalendar, Client, RemoteCalendar>,
-    changed_calendar_id: &CalendarId)
+    provider: &mut Provider<Cache, CachedCalendar, Client, RemoteCalendar>)
 {
-    println!("\nNow, we'll add a task and run the sync again.");
+    println!("\nNow, we'll add a calendar and a few tasks and run the sync again.");
     pause();
 
-    let new_name = "This is a new task we're adding as an example, with ÜTF-8 characters";
-    let new_task = Task::new(String::from(new_name), false, &changed_calendar_id);
-    let new_id = new_task.id().clone();
-
-    provider.local().get_calendar(changed_calendar_id).await.unwrap()
+    // Create a new calendar...
+    let new_calendar_id: CalendarId = EXAMPLE_CREATED_CALENDAR_URL.parse().unwrap();
+    let new_calendar_name = "A brave new calendar".to_string();
+    provider.local_mut().create_calendar(new_calendar_id.clone(), new_calendar_name.clone(), SupportedComponents::TODO)
+        .await.unwrap();
+    // ...and add a task in it
+    let new_name = "This is a new task in a new calendar";
+    let new_task = Task::new(String::from(new_name), true, &new_calendar_id);
+    provider.local().get_calendar(&new_calendar_id).await.unwrap()
         .lock().unwrap().add_item(Item::Task(new_task)).await.unwrap();
+
+
+    // Also create a task in a previously existing calendar
+    let changed_calendar_id: CalendarId = EXAMPLE_EXISTING_CALENDAR_URL.parse().unwrap();
+    let new_task_name = "This is a new task we're adding as an example, with ÜTF-8 characters";
+    let new_task = Task::new(String::from(new_task_name), false, &changed_calendar_id);
+    let new_id = new_task.id().clone();
+    provider.local().get_calendar(&changed_calendar_id).await.unwrap()
+        .lock().unwrap().add_item(Item::Task(new_task)).await.unwrap();
+
 
     if provider.sync().await == false {
         log::warn!("Sync did not complete, see the previous log lines for more info. You can safely start a new sync. The new task may not have been synced.");
     } else {
-        println!("Done syncing the new task '{}'", new_name);
+        println!("Done syncing the new task '{}' and the new calendar '{}'", new_task_name, new_calendar_name);
     }
     provider.local().save_to_folder().unwrap();
 
-    complete_item_and_sync_again(provider, changed_calendar_id, &new_id).await;
+    complete_item_and_sync_again(provider, &changed_calendar_id, &new_id).await;
 }
 
 async fn complete_item_and_sync_again(
@@ -105,10 +120,10 @@ async fn complete_item_and_sync_again(
     }
     provider.local().save_to_folder().unwrap();
 
-    remove_item_and_sync_again(provider, changed_calendar_id, id_to_complete).await;
+    remove_items_and_sync_again(provider, changed_calendar_id, id_to_complete).await;
 }
 
-async fn remove_item_and_sync_again(
+async fn remove_items_and_sync_again(
     provider: &mut Provider<Cache, CachedCalendar, Client, RemoteCalendar>,
     changed_calendar_id: &CalendarId,
     id_to_remove: &ItemId)
@@ -116,6 +131,7 @@ async fn remove_item_and_sync_again(
     println!("\nNow, we'll delete this last task, and run the sync again.");
     pause();
 
+    // Remove the task we had created
     provider.local().get_calendar(changed_calendar_id).await.unwrap()
         .lock().unwrap()
         .mark_for_deletion(id_to_remove).await.unwrap();
