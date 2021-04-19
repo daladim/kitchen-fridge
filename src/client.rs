@@ -262,7 +262,7 @@ impl CalDavSource<RemoteCalendar> for Client {
 
         self.get_calendar(&id).await.ok_or(format!("Unable to insert calendar {:?}", id).into())
     }
-    }
+}
 
 fn calendar_body(name: String, supported_components: SupportedComponents) -> String {
     // This is taken from https://tools.ietf.org/html/rfc4791#page-24
