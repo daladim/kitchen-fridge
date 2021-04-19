@@ -226,6 +226,11 @@ impl CalDavSource<RemoteCalendar> for Client {
     }
 
     async fn get_calendar(&self, id: &CalendarId) -> Option<Arc<Mutex<RemoteCalendar>>> {
+        if let Err(err) = self.populate_calendars().await {
+            log::warn!("Unable to fetch calendars: {}", err);
+            return None;
+        }
+
         self.cached_replies.lock().unwrap()
             .calendars
             .as_ref()
@@ -234,6 +239,17 @@ impl CalDavSource<RemoteCalendar> for Client {
     }
 
     async fn create_calendar(&mut self, id: CalendarId, name: String, supported_components: SupportedComponents) -> Result<Arc<Mutex<RemoteCalendar>>, Box<dyn Error>> {
+        self.populate_calendars().await?;
+
+        match self.cached_replies.lock().unwrap().calendars.as_ref() {
+            None => return Err("No calendars have been fetched".into()),
+            Some(cals) => {
+                if cals.contains_key(&id) {
+                    return Err("This calendar already exists".into());
+                }
+            },
+        }
+
         let creation_body = calendar_body(name, supported_components);
 
         reqwest::Client::new()
@@ -244,7 +260,6 @@ impl CalDavSource<RemoteCalendar> for Client {
             .send()
             .await?;
 
-        self.populate_calendars().await?;
         self.get_calendar(&id).await.ok_or(format!("Unable to insert calendar {:?}", id).into())
     }
     }
