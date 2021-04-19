@@ -71,8 +71,12 @@ async fn add_items_and_sync_again(
     // Create a new calendar...
     let new_calendar_id: CalendarId = EXAMPLE_CREATED_CALENDAR_URL.parse().unwrap();
     let new_calendar_name = "A brave new calendar".to_string();
-    provider.local_mut().create_calendar(new_calendar_id.clone(), new_calendar_name.clone(), SupportedComponents::TODO)
-        .await.unwrap();
+    if let Err(_err) = provider.local_mut()
+        .create_calendar(new_calendar_id.clone(), new_calendar_name.clone(), SupportedComponents::TODO)
+        .await {
+            println!("Unable to add calendar, maybe it exists already. We're not adding it after all.");
+    }
+
     // ...and add a task in it
     let new_name = "This is a new task in a new calendar";
     let new_task = Task::new(String::from(new_name), true, &new_calendar_id);
