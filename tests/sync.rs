@@ -37,7 +37,7 @@ impl TestFlavour {
     pub fn normal_with_errors12() -> Self { Self{} }
 
     pub async fn run(&self, _max_attempts: u32) {
-        println!("WARNING: This test required the \"integration_tests\" Cargo feature");
+        panic!("WARNING: This test required the \"integration_tests\" Cargo feature");
     }
 }
 
@@ -243,81 +243,97 @@ async fn run_flavour(flavour: TestFlavour, max_attempts: u32) {
 }
 
 #[tokio::test]
+#[cfg_attr(not(feature="integration_tests"), ignore)]
 async fn test_regular_sync() {
     run_flavour(TestFlavour::normal(), 1).await;
 }
 
 #[tokio::test]
+#[cfg_attr(not(feature="integration_tests"), ignore)]
 async fn test_sync_empty_initial_local() {
     run_flavour(TestFlavour::first_sync_to_local(), 1).await;
 }
 
 #[tokio::test]
+#[cfg_attr(not(feature="integration_tests"), ignore)]
 async fn test_sync_empty_initial_server() {
     run_flavour(TestFlavour::first_sync_to_server(), 1).await;
 }
 
 #[tokio::test]
+#[cfg_attr(not(feature="integration_tests"), ignore)]
 async fn test_sync_transient_task() {
     run_flavour(TestFlavour::transient_task(), 1).await;
 }
 
 #[tokio::test]
+#[cfg_attr(not(feature="integration_tests"), ignore)]
 async fn test_errors_in_regular_sync1() {
     run_flavour(TestFlavour::normal_with_errors1(), 100).await;
 }
 
 #[tokio::test]
+#[cfg_attr(not(feature="integration_tests"), ignore)]
 async fn test_errors_in_regular_sync2() {
     run_flavour(TestFlavour::normal_with_errors2(), 100).await;
 }
 
 #[tokio::test]
+#[cfg_attr(not(feature="integration_tests"), ignore)]
 async fn test_errors_in_regular_sync3() {
     run_flavour(TestFlavour::normal_with_errors3(), 100).await;
 }
 
 #[tokio::test]
+#[cfg_attr(not(feature="integration_tests"), ignore)]
 async fn test_errors_in_regular_sync4() {
     run_flavour(TestFlavour::normal_with_errors4(), 100).await;
 }
 
 #[tokio::test]
+#[cfg_attr(not(feature="integration_tests"), ignore)]
 async fn test_errors_in_regular_sync5() {
     run_flavour(TestFlavour::normal_with_errors5(), 100).await;
 }
 
 #[tokio::test]
+#[cfg_attr(not(feature="integration_tests"), ignore)]
 async fn test_errors_in_regular_sync6() {
     run_flavour(TestFlavour::normal_with_errors6(), 100).await;
 }
 
 #[tokio::test]
+#[cfg_attr(not(feature="integration_tests"), ignore)]
 async fn test_errors_in_regular_sync7() {
     run_flavour(TestFlavour::normal_with_errors7(), 100).await;
 }
 
 #[tokio::test]
+#[cfg_attr(not(feature="integration_tests"), ignore)]
 async fn test_errors_in_regular_sync8() {
     run_flavour(TestFlavour::normal_with_errors8(), 100).await;
 }
 
 #[tokio::test]
+#[cfg_attr(not(feature="integration_tests"), ignore)]
 async fn test_errors_in_regular_sync9() {
     run_flavour(TestFlavour::normal_with_errors9(), 100).await;
 }
 
 #[tokio::test]
+#[cfg_attr(not(feature="integration_tests"), ignore)]
 async fn test_errors_in_regular_sync10() {
     run_flavour(TestFlavour::normal_with_errors10(), 100).await;
 }
 
 #[tokio::test]
+#[cfg_attr(not(feature="integration_tests"), ignore)]
 async fn test_errors_in_regular_sync11() {
     run_flavour(TestFlavour::normal_with_errors11(), 100).await;
 }
 
 #[tokio::test]
+#[cfg_attr(not(feature="integration_tests"), ignore)]
 async fn test_errors_in_regular_sync12() {
     run_flavour(TestFlavour::normal_with_errors12(), 100).await;
 }
