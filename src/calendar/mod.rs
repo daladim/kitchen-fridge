@@ -18,6 +18,19 @@ bitflags! {
     }
 }
 
+impl SupportedComponents {
+    pub fn to_xml_string(&self) -> String {
+        format!(r#"
+            <C:supported-calendar-component-set>
+                {} {}
+            </C:supported-calendar-component-set>
+            "#,
+            if self.contains(Self::EVENT) { "<C:comp name=\"VEVENT\"/>" } else { "" },
+            if self.contains(Self::TODO)  { "<C:comp name=\"VTODO\"/>"  } else { "" },
+        )
+    }
+}
+
 impl TryFrom<minidom::Element> for SupportedComponents {
     type Error = Box<dyn Error>;
 

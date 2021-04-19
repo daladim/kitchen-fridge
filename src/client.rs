@@ -6,6 +6,7 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
+use reqwest::Method;
 use reqwest::header::CONTENT_TYPE;
 use minidom::Element;
 use url::Url;
@@ -233,8 +234,36 @@ impl CalDavSource<RemoteCalendar> for Client {
     }
 
     async fn create_calendar(&mut self, id: CalendarId, name: String, supported_components: SupportedComponents) -> Result<Arc<Mutex<RemoteCalendar>>, Box<dyn Error>> {
-        todo!();
+        let creation_body = calendar_body(name, supported_components);
+
+        reqwest::Client::new()
+            .request(Method::from_bytes(b"MKCALENDAR").unwrap(), id.clone())
+            .header(CONTENT_TYPE, "application/xml")
+            .basic_auth(self.resource.username(), Some(self.resource.password()))
+            .body(creation_body)
+            .send()
+            .await?;
+
+        self.populate_calendars().await?;
+        self.get_calendar(&id).await.ok_or(format!("Unable to insert calendar {:?}", id).into())
+    }
     }
 
+fn calendar_body(name: String, supported_components: SupportedComponents) -> String {
+    // This is taken from https://tools.ietf.org/html/rfc4791#page-24
+    format!(r#"<?xml version="1.0" encoding="utf-8" ?>
+        <C:mkcalendar xmlns:D="DAV:"
+                    xmlns:C="urn:ietf:params:xml:ns:caldav">
+        <D:set>
+            <D:prop>
+            <D:displayname>{}</D:displayname>
+            {}
+            </D:prop>
+        </D:set>
+        </C:mkcalendar>
+        "#,
+        name,
+        supported_components.to_xml_string(),
+    )
 }
 
