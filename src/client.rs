@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
-use reqwest::Method;
+use reqwest::{Method, StatusCode};
 use reqwest::header::CONTENT_TYPE;
 use minidom::Element;
 use url::Url;
@@ -62,6 +62,10 @@ pub async fn sub_request(resource: &Resource, method: &str, body: String, depth:
         .body(body)
         .send()
         .await?;
+
+    if res.status().is_success() == false {
+        return Err(format!("Unexpected HTTP status code {:?}", res.status()).into());
+    }
 
     let text = res.text().await?;
     Ok(text)
@@ -252,13 +256,18 @@ impl CalDavSource<RemoteCalendar> for Client {
 
         let creation_body = calendar_body(name, supported_components);
 
-        reqwest::Client::new()
+        let response = reqwest::Client::new()
             .request(Method::from_bytes(b"MKCALENDAR").unwrap(), id.clone())
             .header(CONTENT_TYPE, "application/xml")
             .basic_auth(self.resource.username(), Some(self.resource.password()))
             .body(creation_body)
             .send()
             .await?;
+
+        let status = response.status();
+        if status != StatusCode::CREATED {
+            return Err(format!("Unexpected HTTP status code. Expected CREATED, got {}", status.as_u16()).into());
+        }
 
         self.get_calendar(&id).await.ok_or(format!("Unable to insert calendar {:?}", id).into())
     }

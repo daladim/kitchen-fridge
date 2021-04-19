@@ -51,7 +51,7 @@ impl BaseCalendar for RemoteCalendar {
     async fn add_item(&mut self, item: Item) -> Result<SyncStatus, Box<dyn Error>> {
         let ical_text = crate::ical::build_from(&item)?;
 
-        let request = reqwest::Client::new()
+        let response = reqwest::Client::new()
             .put(item.id().as_url().clone())
             .header("If-None-Match", "*")
             .header(CONTENT_TYPE, "text/calendar")
@@ -61,7 +61,11 @@ impl BaseCalendar for RemoteCalendar {
             .send()
             .await?;
 
-        let reply_hdrs = request.headers();
+        if response.status().is_success() == false {
+            return Err(format!("Unexpected HTTP status code {:?}", response.status()).into());
+        }
+
+        let reply_hdrs = response.headers();
         match reply_hdrs.get("ETag") {
             None => Err(format!("No ETag in these response headers: {:?} (request was {:?})", reply_hdrs, item.id()).into()),
             Some(etag) => {
@@ -90,6 +94,10 @@ impl BaseCalendar for RemoteCalendar {
             .body(ical_text)
             .send()
             .await?;
+
+        if request.status().is_success() == false {
+            return Err(format!("Unexpected HTTP status code {:?}", request.status()).into());
+        }
 
         let reply_hdrs = request.headers();
         match reply_hdrs.get("ETag") {
@@ -161,6 +169,10 @@ impl DavCalendar for RemoteCalendar {
             .send()
             .await?;
 
+        if res.status().is_success() == false {
+            return Err(format!("Unexpected HTTP status code {:?}", res.status()).into());
+        }
+
         let text = res.text().await?;
 
         // This is supposed to be cached
@@ -175,11 +187,16 @@ impl DavCalendar for RemoteCalendar {
     }
 
     async fn delete_item(&mut self, item_id: &ItemId) -> Result<(), Box<dyn Error>> {
-        reqwest::Client::new()
+        let del_response = reqwest::Client::new()
             .delete(item_id.as_url().clone())
             .basic_auth(self.resource.username(), Some(self.resource.password()))
             .send()
             .await?;
+
+        if del_response.status().is_success() == false {
+            return Err(format!("Unexpected HTTP status code {:?}", del_response.status()).into());
+        }
+
         Ok(())
     }
 }
