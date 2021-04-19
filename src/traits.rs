@@ -23,6 +23,8 @@ pub trait CalDavSource<T: BaseCalendar> {
     /// Create a calendar if it did not exist, and return it
     async fn create_calendar(&mut self, id: CalendarId, name: String, supported_components: SupportedComponents)
         -> Result<Arc<Mutex<T>>, Box<dyn Error>>;
+
+    // Removing a calendar is not supported yet
 }
 
 /// This trait contains functions that are common to all calendars
