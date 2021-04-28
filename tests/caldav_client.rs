@@ -6,14 +6,14 @@ use reqwest::header::CONTENT_TYPE;
 use minidom::Element;
 use url::Url;
 
-use my_tasks::client::Client;
+use my_tasks::{calendar::SupportedComponents, client::Client};
 use my_tasks::traits::CalDavSource;
 
 use my_tasks::settings::URL;
 use my_tasks::settings::USERNAME;
 use my_tasks::settings::PASSWORD;
 use my_tasks::settings::EXAMPLE_TASK_URL;
-use my_tasks::settings::EXAMPLE_CALENDAR_URL;
+use my_tasks::settings::EXAMPLE_CREATED_CALENDAR_URL;
 
 
 static EXAMPLE_TASKS_BODY_LAST_MODIFIED: &str = r#"
@@ -50,6 +50,17 @@ async fn show_calendars() {
 }
 
 #[tokio::test]
+async fn create_cal() {
+    let _ = env_logger::builder().is_test(true).try_init();
+
+    let mut client = Client::new(URL, USERNAME, PASSWORD).unwrap();
+    let id: Url = my_tasks::settings::EXAMPLE_CREATED_CALENDAR_URL.parse().unwrap();
+    let name = "prout".into();
+    let supported_components = SupportedComponents::TODO;
+    client.create_calendar(id, name, supported_components).await.unwrap();
+}
+
+#[tokio::test]
 #[ignore]
 async fn profind() {
     let _ = env_logger::builder().is_test(true).try_init();
@@ -77,7 +88,7 @@ async fn profind() {
 async fn last_modified() {
     let _ = env_logger::builder().is_test(true).try_init();
 
-    let url: Url = EXAMPLE_CALENDAR_URL.parse().unwrap();
+    let url: Url = EXAMPLE_CREATED_CALENDAR_URL.parse().unwrap();
 
     let method = Method::from_bytes(b"REPORT")
         .expect("cannot create REPORT method.");
