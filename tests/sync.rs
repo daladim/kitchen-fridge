@@ -4,7 +4,7 @@ mod scenarii;
 use std::sync::{Arc, Mutex};
 
 #[cfg(feature = "local_calendar_mocks_remote_calendars")]
-use my_tasks::mock_behaviour::MockBehaviour;
+use kitchen_fridge::mock_behaviour::MockBehaviour;
 
 
 
@@ -339,7 +339,7 @@ async fn test_errors_in_regular_sync12() {
 }
 
 #[cfg(feature = "integration_tests")]
-use my_tasks::{traits::CalDavSource,
+use kitchen_fridge::{traits::CalDavSource,
                Provider,
                cache::Cache,
                calendar::cached_calendar::CachedCalendar,
@@ -351,8 +351,8 @@ use my_tasks::{traits::CalDavSource,
 async fn print_provider(provider: &Provider<Cache, CachedCalendar, Cache, CachedCalendar>, title: &str) {
     let cals_server = provider.remote().get_calendars().await.unwrap();
     println!("----Server, {}-------", title);
-    my_tasks::utils::print_calendar_list(&cals_server).await;
+    kitchen_fridge::utils::print_calendar_list(&cals_server).await;
     let cals_local = provider.local().get_calendars().await.unwrap();
     println!("-----Local, {}-------", title);
-    my_tasks::utils::print_calendar_list(&cals_local).await;
+    kitchen_fridge::utils::print_calendar_list(&cals_local).await;
 }

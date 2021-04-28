@@ -14,21 +14,21 @@ use std::error::Error;
 
 use chrono::Utc;
 
-use my_tasks::calendar::CalendarId;
-use my_tasks::calendar::SupportedComponents;
-use my_tasks::traits::CalDavSource;
-use my_tasks::traits::BaseCalendar;
-use my_tasks::traits::CompleteCalendar;
-use my_tasks::traits::DavCalendar;
-use my_tasks::cache::Cache;
-use my_tasks::Item;
-use my_tasks::ItemId;
-use my_tasks::SyncStatus;
-use my_tasks::Task;
-use my_tasks::task::CompletionStatus;
-use my_tasks::calendar::cached_calendar::CachedCalendar;
-use my_tasks::Provider;
-use my_tasks::mock_behaviour::MockBehaviour;
+use kitchen_fridge::calendar::CalendarId;
+use kitchen_fridge::calendar::SupportedComponents;
+use kitchen_fridge::traits::CalDavSource;
+use kitchen_fridge::traits::BaseCalendar;
+use kitchen_fridge::traits::CompleteCalendar;
+use kitchen_fridge::traits::DavCalendar;
+use kitchen_fridge::cache::Cache;
+use kitchen_fridge::Item;
+use kitchen_fridge::ItemId;
+use kitchen_fridge::SyncStatus;
+use kitchen_fridge::Task;
+use kitchen_fridge::task::CompletionStatus;
+use kitchen_fridge::calendar::cached_calendar::CachedCalendar;
+use kitchen_fridge::Provider;
+use kitchen_fridge::mock_behaviour::MockBehaviour;
 
 pub enum LocatedState {
     /// Item does not exist yet or does not exist anymore

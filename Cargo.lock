@@ -375,6 +375,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "kitchen-fridge"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "bitflags",
+ "chrono",
+ "env_logger",
+ "ical",
+ "ics",
+ "log",
+ "minidom",
+ "reqwest",
+ "sanitize-filename",
+ "serde",
+ "serde_json",
+ "tokio",
+ "url",
+ "uuid",
+]
+
+[[package]]
 name = "lazy_static"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -443,27 +464,6 @@ checksum = "5a33c1b55807fbed163481b5ba66db4b2fa6cde694a5027be10fb724206c5897"
 dependencies = [
  "socket2",
  "winapi",
-]
-
-[[package]]
-name = "my-tasks"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "bitflags",
- "chrono",
- "env_logger",
- "ical",
- "ics",
- "log",
- "minidom",
- "reqwest",
- "sanitize-filename",
- "serde",
- "serde_json",
- "tokio",
- "url",
- "uuid",
 ]
 
 [[package]]

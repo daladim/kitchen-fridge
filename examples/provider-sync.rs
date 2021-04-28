@@ -2,24 +2,24 @@ use std::path::Path;
 
 use chrono::{Utc};
 
-use my_tasks::{client::Client, traits::CalDavSource};
-use my_tasks::calendar::{CalendarId, SupportedComponents};
-use my_tasks::calendar::cached_calendar::CachedCalendar;
-use my_tasks::calendar::remote_calendar::RemoteCalendar;
-use my_tasks::Item;
-use my_tasks::Task;
-use my_tasks::task::CompletionStatus;
-use my_tasks::ItemId;
-use my_tasks::cache::Cache;
-use my_tasks::Provider;
-use my_tasks::traits::BaseCalendar;
-use my_tasks::traits::CompleteCalendar;
-use my_tasks::settings::URL;
-use my_tasks::settings::USERNAME;
-use my_tasks::settings::PASSWORD;
-use my_tasks::settings::EXAMPLE_CREATED_CALENDAR_URL;
-use my_tasks::settings::EXAMPLE_EXISTING_CALENDAR_URL;
-use my_tasks::utils::pause;
+use kitchen_fridge::{client::Client, traits::CalDavSource};
+use kitchen_fridge::calendar::{CalendarId, SupportedComponents};
+use kitchen_fridge::calendar::cached_calendar::CachedCalendar;
+use kitchen_fridge::calendar::remote_calendar::RemoteCalendar;
+use kitchen_fridge::Item;
+use kitchen_fridge::Task;
+use kitchen_fridge::task::CompletionStatus;
+use kitchen_fridge::ItemId;
+use kitchen_fridge::cache::Cache;
+use kitchen_fridge::CalDavProvider;
+use kitchen_fridge::traits::BaseCalendar;
+use kitchen_fridge::traits::CompleteCalendar;
+use kitchen_fridge::settings::URL;
+use kitchen_fridge::settings::USERNAME;
+use kitchen_fridge::settings::PASSWORD;
+use kitchen_fridge::settings::EXAMPLE_CREATED_CALENDAR_URL;
+use kitchen_fridge::settings::EXAMPLE_EXISTING_CALENDAR_URL;
+use kitchen_fridge::utils::pause;
 
 const CACHE_FOLDER: &str = "test_cache/provider_sync";
 
@@ -47,7 +47,7 @@ async fn main() {
 
     let cals = provider.local().get_calendars().await.unwrap();
     println!("---- Local items, before sync -----");
-    my_tasks::utils::print_calendar_list(&cals).await;
+    kitchen_fridge::utils::print_calendar_list(&cals).await;
 
     println!("Starting a sync...");
     if provider.sync().await == false {
@@ -57,7 +57,7 @@ async fn main() {
 
     println!("---- Local items, after sync -----");
     let cals = provider.local().get_calendars().await.unwrap();
-    my_tasks::utils::print_calendar_list(&cals).await;
+    kitchen_fridge::utils::print_calendar_list(&cals).await;
 
     add_items_and_sync_again(&mut provider).await;
 }
