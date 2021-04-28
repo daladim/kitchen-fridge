@@ -1,16 +1,24 @@
 //! This crate provides a way to manage CalDAV data.
 //!
+//! Its initial implementation only supported TODO events, so that it could fetch and update a CalDAV-hosted todo-list...just like [sticky notes on a kitchen fridge](https://www.google.com/search?q=kitchen+fridge+todo+list&tbm=isch) would. \
+//! Supporting other items (and especially regular CalDAV calendar events) should be fairly trivial, as it should boil down to adding little logic in iCal files parsing, but any help is appreciated :-)
+//!
+//! ## Possible uses
+//!
 //! It provides a CalDAV client in the [`client`] module, that can be used as a stand-alone module.
 //!
-//! Because the connection to the server may be slow, and a user-frendly app may want to quicky display cached data on startup, this crate also provides a local cache for CalDAV data in the [`cache`] module.
+//! Because the connection to the server may be slow, this crate also provides a local cache for CalDAV data in the [`cache`] module.
+//! This way, user-frendly apps are able to quicky display cached data on startup.
 //!
-//! These two "data sources" (actual client and local cache) can be used together in a [`Provider`](provider::Provider). \
-//! A `Provider` abstracts these two sources by merging them together into one virtual source. \
+//! These two "data sources" (actual client and local cache) can be used together in a [`CalDavProvider`](CalDavProvider). \
+//! A `CalDavProvider` abstracts these two sources by merging them together into one virtual source. \
 //! It also handles synchronisation between the local cache and the server.
 //!
 //! Note that many methods are defined in common traits (see [`crate::traits`]).
 //!
-//! See example usage in the `examples/` folder
+//! ## Examples
+//!
+//! See example usage in the `examples/` folder, that you can run using `cargo run --example <example-name>`
 
 pub mod traits;
 
