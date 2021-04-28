@@ -1,4 +1,5 @@
 //! This module provides ways to tweak mocked calendars, so that they can return errors on some tests
+#![cfg(feature = "local_calendar_mocks_remote_calendars")]
 
 use std::error::Error;
 

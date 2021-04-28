@@ -1,3 +1,5 @@
+//! Various objects that implement Calendar-related traits
+
 pub mod cached_calendar;
 pub mod remote_calendar;
 

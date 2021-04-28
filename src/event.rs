@@ -1,4 +1,4 @@
-//! Calendar events
+//! Calendar events (iCal `VEVENT` items)
 
 use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
@@ -6,7 +6,7 @@ use chrono::{DateTime, Utc};
 use crate::item::ItemId;
 use crate::item::SyncStatus;
 
-/// TODO: implement Event one day.
+/// TODO: implement `Event` one day.
 /// This crate currently only supports tasks, not calendar events.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Event {

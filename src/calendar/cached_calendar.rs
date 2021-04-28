@@ -4,7 +4,7 @@ use std::error::Error;
 use serde::{Deserialize, Serialize};
 use async_trait::async_trait;
 
-use crate::SyncStatus;
+use crate::item::SyncStatus;
 use crate::traits::{BaseCalendar, CompleteCalendar};
 use crate::calendar::{CalendarId, SupportedComponents};
 use crate::Item;

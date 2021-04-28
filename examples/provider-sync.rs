@@ -4,12 +4,10 @@ use chrono::{Utc};
 
 use kitchen_fridge::{client::Client, traits::CalDavSource};
 use kitchen_fridge::calendar::{CalendarId, SupportedComponents};
-use kitchen_fridge::calendar::cached_calendar::CachedCalendar;
-use kitchen_fridge::calendar::remote_calendar::RemoteCalendar;
 use kitchen_fridge::Item;
 use kitchen_fridge::Task;
 use kitchen_fridge::task::CompletionStatus;
-use kitchen_fridge::ItemId;
+use kitchen_fridge::item::ItemId;
 use kitchen_fridge::cache::Cache;
 use kitchen_fridge::CalDavProvider;
 use kitchen_fridge::traits::BaseCalendar;
@@ -43,7 +41,7 @@ async fn main() {
             Cache::new(&cache_path)
         }
     };
-    let mut provider = Provider::new(client, cache);
+    let mut provider = CalDavProvider::new(client, cache);
 
     let cals = provider.local().get_calendars().await.unwrap();
     println!("---- Local items, before sync -----");
@@ -62,8 +60,7 @@ async fn main() {
     add_items_and_sync_again(&mut provider).await;
 }
 
-async fn add_items_and_sync_again(
-    provider: &mut Provider<Cache, CachedCalendar, Client, RemoteCalendar>)
+async fn add_items_and_sync_again(provider: &mut CalDavProvider)
 {
     println!("\nNow, we'll add a calendar and a few tasks and run the sync again.");
     pause();
@@ -104,7 +101,7 @@ async fn add_items_and_sync_again(
 }
 
 async fn complete_item_and_sync_again(
-    provider: &mut Provider<Cache, CachedCalendar, Client, RemoteCalendar>,
+    provider: &mut CalDavProvider,
     changed_calendar_id: &CalendarId,
     id_to_complete: &ItemId)
 {
@@ -128,7 +125,7 @@ async fn complete_item_and_sync_again(
 }
 
 async fn remove_items_and_sync_again(
-    provider: &mut Provider<Cache, CachedCalendar, Client, RemoteCalendar>,
+    provider: &mut CalDavProvider,
     changed_calendar_id: &CalendarId,
     id_to_remove: &ItemId)
 {

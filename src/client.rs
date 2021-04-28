@@ -50,7 +50,7 @@ static CAL_BODY: &str = r#"
 
 
 
-pub async fn sub_request(resource: &Resource, method: &str, body: String, depth: u32) -> Result<String, Box<dyn Error>> {
+pub(crate) async fn sub_request(resource: &Resource, method: &str, body: String, depth: u32) -> Result<String, Box<dyn Error>> {
     let method = method.parse()
         .expect("invalid method name");
 
@@ -71,7 +71,7 @@ pub async fn sub_request(resource: &Resource, method: &str, body: String, depth:
     Ok(text)
 }
 
-pub async fn sub_request_and_extract_elem(resource: &Resource, body: String, items: &[&str]) -> Result<String, Box<dyn Error>> {
+pub(crate) async fn sub_request_and_extract_elem(resource: &Resource, body: String, items: &[&str]) -> Result<String, Box<dyn Error>> {
     let text = sub_request(resource, "PROPFIND", body, 0).await?;
 
     let mut current_element: &Element = &text.parse()?;
@@ -84,7 +84,7 @@ pub async fn sub_request_and_extract_elem(resource: &Resource, body: String, ite
     Ok(current_element.text())
 }
 
-pub async fn sub_request_and_extract_elems(resource: &Resource, method: &str, body: String, item: &str) -> Result<Vec<Element>, Box<dyn Error>> {
+pub(crate) async fn sub_request_and_extract_elems(resource: &Resource, method: &str, body: String, item: &str) -> Result<Vec<Element>, Box<dyn Error>> {
     let text = sub_request(resource, method, body, 1).await?;
 
     let element: &Element = &text.parse()?;
@@ -96,7 +96,7 @@ pub async fn sub_request_and_extract_elems(resource: &Resource, method: &str, bo
 }
 
 
-/// A CalDAV source that fetches its data from a CalDAV server
+/// A CalDAV data source that fetches its data from a CalDAV server
 pub struct Client {
     resource: Resource,
 

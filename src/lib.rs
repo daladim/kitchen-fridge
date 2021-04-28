@@ -23,25 +23,24 @@
 pub mod traits;
 
 pub mod calendar;
-mod item;
+pub mod item;
 pub use item::Item;
-pub use item::ItemId;
-pub use item::VersionTag;
-pub use item::SyncStatus;
 pub mod task;
 pub use task::Task;
-mod event;
+pub mod event;
 pub use event::Event;
 pub mod provider;
-pub use provider::Provider;
 pub mod mock_behaviour;
 
 pub mod client;
 pub use client::Client;
 pub mod cache;
-pub use cache::Cache;
 pub mod ical;
 
 pub mod settings;
 pub mod utils;
 pub mod resource;
+
+/// Unless you want another kind of Provider to write integration tests, you'll probably want this kind of Provider. \
+/// See alse the [`Provider` documentation](crate::provider::Provider)
+pub type CalDavProvider = provider::Provider<cache::Cache, calendar::cached_calendar::CachedCalendar, Client, calendar::remote_calendar::RemoteCalendar>;

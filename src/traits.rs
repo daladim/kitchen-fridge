@@ -4,7 +4,7 @@ use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
 
-use crate::SyncStatus;
+use crate::item::SyncStatus;
 use crate::item::Item;
 use crate::item::ItemId;
 use crate::item::VersionTag;

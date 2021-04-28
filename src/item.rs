@@ -1,3 +1,4 @@
+//! CalDAV items (todo, events, journals...)
 // TODO: move Event and Task to nest them in crate::items::calendar::Calendar?
 
 use std::fmt::{Display, Formatter};

@@ -43,7 +43,7 @@ impl SyncResult {
 
 /// A data source that combines two `CalDavSource`s, which is able to sync both sources.
 ///
-/// Usually, you will only need to use a provider between a server and a local cache, that is to say `Provider<Cache, CachedCalendar, Client, RemoteCalendar>`
+/// Usually, you will only need to use a provider between a server and a local cache, that is to say a [`CalDavProvider`](crate::CalDavProvider), i.e. a `Provider<Cache, CachedCalendar, Client, RemoteCalendar>`. \
 /// However, providers can be used for integration tests, where the remote source is mocked by a `Cache`.
 pub struct Provider<L, T, R, U>
 where
@@ -372,7 +372,7 @@ where
 }
 
 
-pub async fn get_or_insert_counterpart_calendar<H, N, I>(haystack_descr: &str, haystack: &mut H, cal_id: &CalendarId, needle: Arc<Mutex<N>>)
+async fn get_or_insert_counterpart_calendar<H, N, I>(haystack_descr: &str, haystack: &mut H, cal_id: &CalendarId, needle: Arc<Mutex<N>>)
     -> Result<Arc<Mutex<I>>, Box<dyn Error>>
 where
     H: CalDavSource<I>,
