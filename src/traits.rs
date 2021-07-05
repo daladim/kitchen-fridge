@@ -100,6 +100,8 @@ pub trait CompleteCalendar : BaseCalendar {
     async fn get_item_ids(&self) -> Result<HashSet<ItemId>, Box<dyn Error>>;
 
     /// Returns all items that this calendar contains
+    ///
+    /// See [`crate::utils::comparison`] for helper functions that help sorting the results
     async fn get_items(&self) -> Result<HashMap<ItemId, &Item>, Box<dyn Error>>;
 
     /// Returns a particular item
