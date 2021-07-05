@@ -45,6 +45,7 @@ impl SyncResult {
 ///
 /// Usually, you will only need to use a provider between a server and a local cache, that is to say a [`CalDavProvider`](crate::CalDavProvider), i.e. a `Provider<Cache, CachedCalendar, Client, RemoteCalendar>`. \
 /// However, providers can be used for integration tests, where the remote source is mocked by a `Cache`.
+#[derive(Debug)]
 pub struct Provider<L, T, R, U>
 where
     L: CalDavSource<T>,

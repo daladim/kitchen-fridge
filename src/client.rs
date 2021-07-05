@@ -97,6 +97,7 @@ pub(crate) async fn sub_request_and_extract_elems(resource: &Resource, method: &
 
 
 /// A CalDAV data source that fetches its data from a CalDAV server
+#[derive(Debug)]
 pub struct Client {
     resource: Resource,
 
@@ -106,7 +107,7 @@ pub struct Client {
 }
 
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 struct CachedReplies {
     principal: Option<Resource>,
     calendar_home_set: Option<Resource>,

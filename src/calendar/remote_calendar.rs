@@ -32,6 +32,7 @@ static TASKS_BODY: &str = r#"
 
 
 /// A CalDAV calendar created by a [`Client`](crate::client::Client).
+#[derive(Debug)]
 pub struct RemoteCalendar {
     name: String,
     resource: Resource,

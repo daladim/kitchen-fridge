@@ -1,7 +1,7 @@
 use url::Url;
 
 /// Just a wrapper around a URL and credentials
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Resource {
     url: Url,
     username: String,
