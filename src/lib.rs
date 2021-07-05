@@ -35,6 +35,7 @@ pub mod mock_behaviour;
 pub mod client;
 pub use client::Client;
 pub mod cache;
+pub use cache::Cache;
 pub mod ical;
 
 pub mod settings;
