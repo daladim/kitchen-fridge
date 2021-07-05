@@ -103,7 +103,7 @@ pub trait CompleteCalendar : BaseCalendar {
     async fn get_items(&self) -> Result<HashMap<ItemId, &Item>, Box<dyn Error>>;
 
     /// Returns a particular item
-    async fn get_item_by_id_ref<'a>(&'a self, id: &ItemId) -> Option<&'a Item>;
+    async fn get_item_by_id<'a>(&'a self, id: &ItemId) -> Option<&'a Item>;
 
     /// Returns a particular item
     async fn get_item_by_id_mut<'a>(&'a mut self, id: &ItemId) -> Option<&'a mut Item>;

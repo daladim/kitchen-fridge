@@ -177,7 +177,7 @@ where
         let mut local_items_to_handle = cal_local.get_item_ids().await?;
         for (id, remote_tag) in remote_items {
             result.trace(&format!("***** Considering remote item {}...", id));
-            match cal_local.get_item_by_id_ref(&id).await {
+            match cal_local.get_item_by_id(&id).await {
                 None => {
                     // This was created on the remote
                     result.debug(&format!("*   {} is a remote addition", id));
@@ -230,7 +230,7 @@ where
         // Also iterate on the local tasks that are not on the remote
         for id in local_items_to_handle {
             result.trace(&format!("##### Considering local item {}...", id));
-            let local_item = match cal_local.get_item_by_id_ref(&id).await {
+            let local_item = match cal_local.get_item_by_id(&id).await {
                 None => {
                     result.error(&format!("Inconsistent state: missing task {} from the local tasks", id));
                     continue;

@@ -25,6 +25,8 @@ const MAIN_FILE: &str = "data.json";
 /// A CalDAV source that stores its items in a local folder.
 ///
 /// It automatically updates the content of the folder when dropped (see its `Drop` implementation), but you can also manually call [`Cache::save_to_folder`]
+///
+/// Most of its methods are part of the `CalDavSource` trait implementation
 #[derive(Debug)]
 pub struct Cache {
     backing_folder: PathBuf,
@@ -180,10 +182,8 @@ impl Drop for Cache {
     }
 }
 
-
-#[async_trait]
-impl CalDavSource<CachedCalendar> for Cache {
-    async fn get_calendars(&self) -> Result<HashMap<CalendarId, Arc<Mutex<CachedCalendar>>>, Box<dyn Error>> {
+impl Cache {
+    pub fn get_calendars_sync(&self) -> Result<HashMap<CalendarId, Arc<Mutex<CachedCalendar>>>, Box<dyn Error>> {
         #[cfg(feature = "local_calendar_mocks_remote_calendars")]
         self.mock_behaviour.as_ref().map_or(Ok(()), |b| b.lock().unwrap().can_get_calendars())?;
 
@@ -193,8 +193,19 @@ impl CalDavSource<CachedCalendar> for Cache {
         )
     }
 
-    async fn get_calendar(&self, id: &CalendarId) -> Option<Arc<Mutex<CachedCalendar>>> {
+    pub fn get_calendar_sync(&self, id: &CalendarId) -> Option<Arc<Mutex<CachedCalendar>>> {
         self.data.calendars.get(id).map(|arc| arc.clone())
+    }
+}
+
+#[async_trait]
+impl CalDavSource<CachedCalendar> for Cache {
+    async fn get_calendars(&self) -> Result<HashMap<CalendarId, Arc<Mutex<CachedCalendar>>>, Box<dyn Error>> {
+        self.get_calendars_sync()
+    }
+
+    async fn get_calendar(&self, id: &CalendarId) -> Option<Arc<Mutex<CachedCalendar>>> {
+        self.get_calendar_sync(id)
     }
 
     async fn create_calendar(&mut self, id: CalendarId, name: String, supported_components: SupportedComponents) -> Result<Arc<Mutex<CachedCalendar>>, Box<dyn Error>> {

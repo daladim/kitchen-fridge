@@ -17,6 +17,8 @@ use crate::mock_behaviour::MockBehaviour;
 
 
 /// A calendar used by the [`cache`](crate::cache) module
+///
+/// Most of its methods are part of traits implementations
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CachedCalendar {
     name: String,
@@ -111,6 +113,32 @@ impl CachedCalendar {
 
         Ok(true)
     }
+
+    /// The non-async version of [`Self::get_item_ids`]
+    pub fn get_item_ids_sync(&self) -> Result<HashSet<ItemId>, Box<dyn Error>> {
+        Ok(self.items.iter()
+            .map(|(id, _)| id.clone())
+            .collect()
+        )
+    }
+
+    /// The non-async version of [`Self::get_items`]
+    pub fn get_items_sync(&self) -> Result<HashMap<ItemId, &Item>, Box<dyn Error>> {
+        Ok(self.items.iter()
+            .map(|(id, item)| (id.clone(), item))
+            .collect()
+        )
+    }
+
+    /// The non-async version of [`Self::get_item_by_id`]
+    pub fn get_item_by_id_sync<'a>(&'a self, id: &ItemId) -> Option<&'a Item> {
+        self.items.get(id)
+    }
+
+    /// The non-async version of [`Self::get_item_by_id_mut`]
+    pub fn get_item_by_id_mut_sync<'a>(&'a mut self, id: &ItemId) -> Option<&'a mut Item> {
+        self.items.get_mut(id)
+    }
 }
 
 
@@ -163,25 +191,19 @@ impl CompleteCalendar for CachedCalendar {
     }
 
     async fn get_item_ids(&self) -> Result<HashSet<ItemId>, Box<dyn Error>> {
-        Ok(self.items.iter()
-            .map(|(id, _)| id.clone())
-            .collect()
-        )
+        self.get_item_ids_sync()
     }
 
     async fn get_items(&self) -> Result<HashMap<ItemId, &Item>, Box<dyn Error>> {
-        Ok(self.items.iter()
-            .map(|(id, item)| (id.clone(), item))
-            .collect()
-        )
+        self.get_items_sync()
     }
 
-    async fn get_item_by_id_ref<'a>(&'a self, id: &ItemId) -> Option<&'a Item> {
-        self.items.get(id)
+    async fn get_item_by_id<'a>(&'a self, id: &ItemId) -> Option<&'a Item> {
+        self.get_item_by_id_sync(id)
     }
 
     async fn get_item_by_id_mut<'a>(&'a mut self, id: &ItemId) -> Option<&'a mut Item> {
-        self.items.get_mut(id)
+        self.get_item_by_id_mut_sync(id)
     }
 
     async fn mark_for_deletion(&mut self, item_id: &ItemId) -> Result<(), Box<dyn Error>> {
