@@ -85,7 +85,7 @@ where
     pub fn local_mut(&mut self)  -> &mut L { &mut self.local }
     /// Returns the data source described as `remote`.
     ///
-    /// Apart in tests, there are very few (if any) reasons to access `remote` directly.
+    /// Apart from tests, there are very few (if any) reasons to access `remote` directly.
     /// Usually, you should rather use the `local` source, which (usually) is a much faster local cache.
     /// To be sure `local` accurately mirrors the `remote` source, you can run [`Provider::sync`]
     pub fn remote(&self) -> &R { &self.remote }
