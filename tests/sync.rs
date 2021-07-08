@@ -340,7 +340,7 @@ async fn test_errors_in_regular_sync12() {
 
 #[cfg(feature = "integration_tests")]
 use kitchen_fridge::{traits::CalDavSource,
-               Provider,
+               provider::Provider,
                cache::Cache,
                calendar::cached_calendar::CachedCalendar,
 };

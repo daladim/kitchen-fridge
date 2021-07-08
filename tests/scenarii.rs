@@ -22,12 +22,12 @@ use kitchen_fridge::traits::CompleteCalendar;
 use kitchen_fridge::traits::DavCalendar;
 use kitchen_fridge::cache::Cache;
 use kitchen_fridge::Item;
-use kitchen_fridge::ItemId;
-use kitchen_fridge::SyncStatus;
+use kitchen_fridge::item::ItemId;
+use kitchen_fridge::item::SyncStatus;
 use kitchen_fridge::Task;
 use kitchen_fridge::task::CompletionStatus;
 use kitchen_fridge::calendar::cached_calendar::CachedCalendar;
-use kitchen_fridge::Provider;
+use kitchen_fridge::provider::Provider;
 use kitchen_fridge::mock_behaviour::MockBehaviour;
 
 pub enum LocatedState {
