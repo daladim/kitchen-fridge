@@ -69,7 +69,7 @@ async fn add_items_and_sync_again(provider: &mut CalDavProvider)
     let new_calendar_id: CalendarId = EXAMPLE_CREATED_CALENDAR_URL.parse().unwrap();
     let new_calendar_name = "A brave new calendar".to_string();
     if let Err(_err) = provider.local_mut()
-        .create_calendar(new_calendar_id.clone(), new_calendar_name.clone(), SupportedComponents::TODO)
+        .create_calendar(new_calendar_id.clone(), new_calendar_name.clone(), SupportedComponents::TODO, None)
         .await {
             println!("Unable to add calendar, maybe it exists already. We're not adding it after all.");
     }

@@ -50,14 +50,15 @@ async fn show_calendars() {
 }
 
 #[tokio::test]
+#[ignore]
 async fn create_cal() {
     let _ = env_logger::builder().is_test(true).try_init();
 
     let mut client = Client::new(URL, USERNAME, PASSWORD).unwrap();
     let id: Url = kitchen_fridge::settings::EXAMPLE_CREATED_CALENDAR_URL.parse().unwrap();
-    let name = "prout".into();
+    let name = "a created calendar".into();
     let supported_components = SupportedComponents::TODO;
-    client.create_calendar(id, name, supported_components).await.unwrap();
+    client.create_calendar(id, name, supported_components, Some(csscolorparser::parse("gold").unwrap())).await.unwrap();
 }
 
 #[tokio::test]

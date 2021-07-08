@@ -3,6 +3,7 @@ use std::error::Error;
 
 use serde::{Deserialize, Serialize};
 use async_trait::async_trait;
+use csscolorparser::Color;
 
 use crate::item::SyncStatus;
 use crate::traits::{BaseCalendar, CompleteCalendar};
@@ -24,6 +25,7 @@ pub struct CachedCalendar {
     name: String,
     id: CalendarId,
     supported_components: SupportedComponents,
+    color: Option<Color>,
     #[cfg(feature = "local_calendar_mocks_remote_calendars")]
     #[serde(skip)]
     mock_behaviour: Option<Arc<Mutex<MockBehaviour>>>,
@@ -85,7 +87,9 @@ impl CachedCalendar {
     pub async fn has_same_observable_content_as(&self, other: &CachedCalendar) -> Result<bool, Box<dyn Error>> {
         if self.name != other.name
         || self.id != other.id
-        || self.supported_components != other.supported_components {
+        || self.supported_components != other.supported_components
+        || self.color != other.color
+        {
             log::debug!("Calendar properties mismatch");
             return Ok(false);
         }
@@ -156,6 +160,10 @@ impl BaseCalendar for CachedCalendar {
         self.supported_components
     }
 
+    fn color(&self) -> Option<&Color> {
+        self.color.as_ref()
+    }
+
     async fn add_item(&mut self, item: Item) -> Result<SyncStatus, Box<dyn Error>> {
         if self.items.contains_key(item.id()) {
             return Err(format!("Item {:?} cannot be added, it exists already", item.id()).into());
@@ -181,9 +189,9 @@ impl BaseCalendar for CachedCalendar {
 
 #[async_trait]
 impl CompleteCalendar for CachedCalendar {
-    fn new(name: String, id: CalendarId, supported_components: SupportedComponents) -> Self {
+    fn new(name: String, id: CalendarId, supported_components: SupportedComponents, color: Option<Color>) -> Self {
         Self {
-            name, id, supported_components,
+            name, id, supported_components, color,
             #[cfg(feature = "local_calendar_mocks_remote_calendars")]
             mock_behaviour: None,
             items: HashMap::new(),
@@ -253,8 +261,8 @@ use crate::{item::VersionTag,
 #[cfg(feature = "local_calendar_mocks_remote_calendars")]
 #[async_trait]
 impl DavCalendar for CachedCalendar {
-    fn new(name: String, resource: Resource, supported_components: SupportedComponents) -> Self {
-        crate::traits::CompleteCalendar::new(name, resource.url().clone(), supported_components)
+    fn new(name: String, resource: Resource, supported_components: SupportedComponents, color: Option<Color>) -> Self {
+        crate::traits::CompleteCalendar::new(name, resource.url().clone(), supported_components, color)
     }
 
     async fn get_item_version_tags(&self) -> Result<HashMap<ItemId, VersionTag>, Box<dyn Error>> {

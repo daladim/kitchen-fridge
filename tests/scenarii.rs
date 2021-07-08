@@ -692,11 +692,13 @@ async fn get_or_insert_calendar(source: &mut Cache, id: &CalendarId)
         None => {
             let new_name = format!("Test calendar for ID {}", id);
             let supported_components = SupportedComponents::TODO;
+            let color = csscolorparser::parse("#ff8000"); // TODO: we should rather have specific colors, depending on the calendars
 
             source.create_calendar(
                 id.clone(),
                 new_name.to_string(),
                 supported_components,
+                None,
             ).await
         }
     }

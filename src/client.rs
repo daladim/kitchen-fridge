@@ -10,6 +10,7 @@ use reqwest::{Method, StatusCode};
 use reqwest::header::CONTENT_TYPE;
 use minidom::Element;
 use url::Url;
+use csscolorparser::Color;
 
 use crate::resource::Resource;
 use crate::utils::{find_elem, find_elems};
@@ -42,6 +43,7 @@ static CAL_BODY: &str = r#"
     <d:propfind xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav" >
        <d:prop>
          <d:displayname />
+         <E:calendar-color xmlns:E="http://apple.com/ns/ical/"/>
          <d:resourcetype />
          <c:supported-calendar-component-set />
        </d:prop>
@@ -205,7 +207,14 @@ impl Client {
                 },
                 Ok(sc) => sc,
             };
-            let this_calendar = RemoteCalendar::new(display_name, this_calendar_url, supported_components);
+
+            let this_calendar_color = find_elem(&rep, "calendar-color")
+                .and_then(|col| {
+                    col.texts().next()
+                        .and_then(|t| csscolorparser::parse(t).ok())
+                });
+
+            let this_calendar = RemoteCalendar::new(display_name, this_calendar_url, supported_components, this_calendar_color);
             log::info!("Found calendar {}", this_calendar.name());
             calendars.insert(this_calendar.id().clone(), Arc::new(Mutex::new(this_calendar)));
         }
@@ -243,7 +252,7 @@ impl CalDavSource<RemoteCalendar> for Client {
             .map(|cal| cal.clone())
     }
 
-    async fn create_calendar(&mut self, id: CalendarId, name: String, supported_components: SupportedComponents) -> Result<Arc<Mutex<RemoteCalendar>>, Box<dyn Error>> {
+    async fn create_calendar(&mut self, id: CalendarId, name: String, supported_components: SupportedComponents, color: Option<Color>) -> Result<Arc<Mutex<RemoteCalendar>>, Box<dyn Error>> {
         self.populate_calendars().await?;
 
         match self.cached_replies.lock().unwrap().calendars.as_ref() {

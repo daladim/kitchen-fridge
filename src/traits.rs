@@ -3,6 +3,7 @@ use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
+use csscolorparser::Color;
 
 use crate::item::SyncStatus;
 use crate::item::Item;
@@ -21,7 +22,7 @@ pub trait CalDavSource<T: BaseCalendar> {
     /// Returns the calendar matching the ID
     async fn get_calendar(&self, id: &CalendarId) -> Option<Arc<Mutex<T>>>;
     /// Create a calendar if it did not exist, and return it
-    async fn create_calendar(&mut self, id: CalendarId, name: String, supported_components: SupportedComponents)
+    async fn create_calendar(&mut self, id: CalendarId, name: String, supported_components: SupportedComponents, color: Option<Color>)
         -> Result<Arc<Mutex<T>>, Box<dyn Error>>;
 
     // Removing a calendar is not supported yet
@@ -38,6 +39,9 @@ pub trait BaseCalendar {
 
     /// Returns the supported kinds of components for this calendar
     fn supported_components(&self) -> crate::calendar::SupportedComponents;
+
+    /// Returns the user-defined color of this calendar
+    fn color(&self) -> Option<&Color>;
 
     /// Add an item into this calendar, and return its new sync status.
     /// For local calendars, the sync status is not modified.
@@ -64,7 +68,7 @@ pub trait BaseCalendar {
 #[async_trait]
 pub trait DavCalendar : BaseCalendar {
     /// Create a new calendar
-    fn new(name: String, resource: Resource, supported_components: SupportedComponents) -> Self;
+    fn new(name: String, resource: Resource, supported_components: SupportedComponents, color: Option<Color>) -> Self;
 
     /// Get the IDs and the version tags of every item in this calendar
     async fn get_item_version_tags(&self) -> Result<HashMap<ItemId, VersionTag>, Box<dyn Error>>;
@@ -94,7 +98,7 @@ pub trait DavCalendar : BaseCalendar {
 #[async_trait]
 pub trait CompleteCalendar : BaseCalendar {
     /// Create a new calendar
-    fn new(name: String, id: CalendarId, supported_components: SupportedComponents) -> Self;
+    fn new(name: String, id: CalendarId, supported_components: SupportedComponents, color: Option<Color>) -> Self;
 
     /// Get the IDs of all current items in this calendar
     async fn get_item_ids(&self) -> Result<HashSet<ItemId>, Box<dyn Error>>;

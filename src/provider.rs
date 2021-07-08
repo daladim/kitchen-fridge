@@ -390,10 +390,12 @@ where
         let src = needle.lock().unwrap();
         let name = src.name().to_string();
         let supported_comps = src.supported_components();
+        let color = src.color();
         if let Err(err) = haystack.create_calendar(
             cal_id.clone(),
             name,
             supported_comps,
+            color.cloned(),
         ).await{
             return Err(err);
         }

@@ -9,6 +9,7 @@ use std::ffi::OsStr;
 
 use serde::{Deserialize, Serialize};
 use async_trait::async_trait;
+use csscolorparser::Color;
 
 use crate::traits::CalDavSource;
 use crate::traits::BaseCalendar;
@@ -208,12 +209,12 @@ impl CalDavSource<CachedCalendar> for Cache {
         self.get_calendar_sync(id)
     }
 
-    async fn create_calendar(&mut self, id: CalendarId, name: String, supported_components: SupportedComponents) -> Result<Arc<Mutex<CachedCalendar>>, Box<dyn Error>> {
+    async fn create_calendar(&mut self, id: CalendarId, name: String, supported_components: SupportedComponents, color: Option<Color>) -> Result<Arc<Mutex<CachedCalendar>>, Box<dyn Error>> {
         log::debug!("Inserting local calendar {}", id);
         #[cfg(feature = "local_calendar_mocks_remote_calendars")]
         self.mock_behaviour.as_ref().map_or(Ok(()), |b| b.lock().unwrap().can_create_calendar())?;
 
-        let new_calendar = CachedCalendar::new(name, id.clone(), supported_components);
+        let new_calendar = CachedCalendar::new(name, id.clone(), supported_components, color);
         let arc = Arc::new(Mutex::new(new_calendar));
 
         #[cfg(feature = "local_calendar_mocks_remote_calendars")]
@@ -244,12 +245,14 @@ mod tests {
             Url::parse("https://caldav.com/shopping").unwrap(),
             "My shopping list".to_string(),
             SupportedComponents::TODO,
+            Some(csscolorparser::parse("lime").unwrap()),
         ).await.unwrap();
 
         let bucket_list = cache.create_calendar(
             Url::parse("https://caldav.com/bucket-list").unwrap(),
             "My bucket list".to_string(),
             SupportedComponents::TODO,
+            Some(csscolorparser::parse("#ff8000").unwrap()),
         ).await.unwrap();
 
         {
@@ -288,11 +291,12 @@ mod tests {
         let cache_path = PathBuf::from(String::from("test_cache/sanity_tests"));
         let mut cache = populate_cache(&cache_path).await;
 
-        // We should not be able to add twice the same calendar
+        // We should not be able to add a second calendar with the same id
         let second_addition_same_calendar = cache.create_calendar(
             Url::parse("https://caldav.com/shopping").unwrap(),
             "My shopping list".to_string(),
             SupportedComponents::TODO,
+            None,
         ).await;
         assert!(second_addition_same_calendar.is_err());
     }

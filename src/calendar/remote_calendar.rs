@@ -4,6 +4,7 @@ use std::sync::Mutex;
 
 use async_trait::async_trait;
 use reqwest::{header::CONTENT_TYPE, header::CONTENT_LENGTH};
+use csscolorparser::Color;
 
 use crate::traits::BaseCalendar;
 use crate::traits::DavCalendar;
@@ -37,6 +38,7 @@ pub struct RemoteCalendar {
     name: String,
     resource: Resource,
     supported_components: SupportedComponents,
+    color: Option<Color>,
 
     cached_version_tags: Mutex<Option<HashMap<ItemId, VersionTag>>>,
 }
@@ -47,6 +49,9 @@ impl BaseCalendar for RemoteCalendar {
     fn id(&self) -> &CalendarId { &self.resource.url() }
     fn supported_components(&self) -> crate::calendar::SupportedComponents {
         self.supported_components
+    }
+    fn color(&self) -> Option<&Color> {
+        self.color.as_ref()
     }
 
     async fn add_item(&mut self, item: Item) -> Result<SyncStatus, Box<dyn Error>> {
@@ -114,9 +119,9 @@ impl BaseCalendar for RemoteCalendar {
 
 #[async_trait]
 impl DavCalendar for RemoteCalendar {
-    fn new(name: String, resource: Resource, supported_components: SupportedComponents) -> Self {
+    fn new(name: String, resource: Resource, supported_components: SupportedComponents, color: Option<Color>) -> Self {
         Self {
-            name, resource, supported_components,
+            name, resource, supported_components, color,
             cached_version_tags: Mutex::new(None),
         }
     }
