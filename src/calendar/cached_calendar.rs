@@ -143,6 +143,31 @@ impl CachedCalendar {
     pub fn get_item_by_id_mut_sync<'a>(&'a mut self, id: &ItemId) -> Option<&'a mut Item> {
         self.items.get_mut(id)
     }
+
+    /// The non-async version of [`Self::add_item`]
+    pub fn add_item_sync(&mut self, item: Item) -> Result<SyncStatus, Box<dyn Error>> {
+        if self.items.contains_key(item.id()) {
+            return Err(format!("Item {:?} cannot be added, it exists already", item.id()).into());
+        }
+        #[cfg(not(feature = "local_calendar_mocks_remote_calendars"))]
+        return self.regular_add_or_update_item(item);
+
+        #[cfg(feature = "local_calendar_mocks_remote_calendars")]
+        return self.add_item_maybe_mocked(item);
+    }
+
+    /// The non-async version of [`Self::update_item`]
+    pub fn update_item_sync(&mut self, item: Item) -> Result<SyncStatus, Box<dyn Error>> {
+        if self.items.contains_key(item.id()) == false {
+            return Err(format!("Item {:?} cannot be updated, it does not already exist", item.id()).into());
+        }
+        #[cfg(not(feature = "local_calendar_mocks_remote_calendars"))]
+        return self.regular_add_or_update_item(item);
+
+        #[cfg(feature = "local_calendar_mocks_remote_calendars")]
+        return self.update_item_maybe_mocked(item);
+    }
+
 }
 
 
@@ -165,25 +190,11 @@ impl BaseCalendar for CachedCalendar {
     }
 
     async fn add_item(&mut self, item: Item) -> Result<SyncStatus, Box<dyn Error>> {
-        if self.items.contains_key(item.id()) {
-            return Err(format!("Item {:?} cannot be added, it exists already", item.id()).into());
-        }
-        #[cfg(not(feature = "local_calendar_mocks_remote_calendars"))]
-        return self.regular_add_or_update_item(item).await;
-
-        #[cfg(feature = "local_calendar_mocks_remote_calendars")]
-        return self.add_item_maybe_mocked(item).await;
+        self.add_item_sync(item)
     }
 
     async fn update_item(&mut self, item: Item) -> Result<SyncStatus, Box<dyn Error>> {
-        if self.items.contains_key(item.id()) == false {
-            return Err(format!("Item {:?} cannot be updated, it does not already exist", item.id()).into());
-        }
-        #[cfg(not(feature = "local_calendar_mocks_remote_calendars"))]
-        return self.regular_add_or_update_item(item);
-
-        #[cfg(feature = "local_calendar_mocks_remote_calendars")]
-        return self.update_item_maybe_mocked(item);
+        self.update_item_sync(item)
     }
 }
 
