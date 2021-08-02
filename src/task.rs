@@ -69,7 +69,7 @@ impl Task {
         Self::new_with_parameters(name, new_uid, new_item_id, new_completion_status, new_sync_status, new_creation_date, new_last_modified)
     }
 
-    /// Create a new Task instance, that may be synced already
+    /// Create a new Task instance, that may be synced on the server already
     pub fn new_with_parameters(name: String, uid: String, id: ItemId,
                                completion_status: CompletionStatus,
                                sync_status: SyncStatus, creation_date: Option<DateTime<Utc>>, last_modified: DateTime<Utc>) -> Self
