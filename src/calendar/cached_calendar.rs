@@ -42,27 +42,27 @@ impl CachedCalendar {
 
 
     #[cfg(feature = "local_calendar_mocks_remote_calendars")]
-    async fn add_item_maybe_mocked(&mut self, item: Item) -> Result<SyncStatus, Box<dyn Error>> {
+    fn add_item_maybe_mocked(&mut self, item: Item) -> Result<SyncStatus, Box<dyn Error>> {
         if self.mock_behaviour.is_some() {
             self.mock_behaviour.as_ref().map_or(Ok(()), |b| b.lock().unwrap().can_add_item())?;
-            self.add_or_update_item_force_synced(item).await
+            self.add_or_update_item_force_synced(item)
         } else {
-            self.regular_add_or_update_item(item).await
+            self.regular_add_or_update_item(item)
         }
     }
 
     #[cfg(feature = "local_calendar_mocks_remote_calendars")]
-    async fn update_item_maybe_mocked(&mut self, item: Item) -> Result<SyncStatus, Box<dyn Error>> {
+    fn update_item_maybe_mocked(&mut self, item: Item) -> Result<SyncStatus, Box<dyn Error>> {
         if self.mock_behaviour.is_some() {
             self.mock_behaviour.as_ref().map_or(Ok(()), |b| b.lock().unwrap().can_update_item())?;
-            self.add_or_update_item_force_synced(item).await
+            self.add_or_update_item_force_synced(item)
         } else {
-            self.regular_add_or_update_item(item).await
+            self.regular_add_or_update_item(item)
         }
     }
 
     /// Add or update an item
-    async fn regular_add_or_update_item(&mut self, item: Item) -> Result<SyncStatus, Box<dyn Error>> {
+    fn regular_add_or_update_item(&mut self, item: Item) -> Result<SyncStatus, Box<dyn Error>> {
         let ss_clone = item.sync_status().clone();
         log::debug!("Adding or updating an item with {:?}", ss_clone);
         self.items.insert(item.id().clone(), item);
@@ -71,7 +71,7 @@ impl CachedCalendar {
 
     /// Add or update an item, but force a "synced" SyncStatus. This is the normal behaviour that would happen on a server
     #[cfg(feature = "local_calendar_mocks_remote_calendars")]
-    async fn add_or_update_item_force_synced(&mut self, mut item: Item) -> Result<SyncStatus, Box<dyn Error>> {
+    fn add_or_update_item_force_synced(&mut self, mut item: Item) -> Result<SyncStatus, Box<dyn Error>> {
         log::debug!("Adding or updating an item, but forces a synced SyncStatus");
         match item.sync_status() {
             SyncStatus::Synced(_) => (),
@@ -180,10 +180,10 @@ impl BaseCalendar for CachedCalendar {
             return Err(format!("Item {:?} cannot be updated, it does not already exist", item.id()).into());
         }
         #[cfg(not(feature = "local_calendar_mocks_remote_calendars"))]
-        return self.regular_add_or_update_item(item).await;
+        return self.regular_add_or_update_item(item);
 
         #[cfg(feature = "local_calendar_mocks_remote_calendars")]
-        return self.update_item_maybe_mocked(item).await;
+        return self.update_item_maybe_mocked(item);
     }
 }
 
