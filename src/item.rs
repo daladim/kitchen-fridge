@@ -206,7 +206,7 @@ impl VersionTag {
 
 
 
-/// Desribes whether this item has been synced already, or modified since the last time it was synced
+/// Describes whether this item has been synced already, or modified since the last time it was synced
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum SyncStatus {
     /// This item has ben locally created, and never synced yet
