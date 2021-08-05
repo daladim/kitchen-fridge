@@ -168,6 +168,42 @@ impl CachedCalendar {
         return self.update_item_maybe_mocked(item);
     }
 
+    /// The non-async version of [`Self::mark_for_deletion`]
+    pub fn mark_for_deletion_sync(&mut self, item_id: &ItemId) -> Result<(), Box<dyn Error>> {
+        match self.items.get_mut(item_id) {
+            None => Err("no item for this key".into()),
+            Some(item) => {
+                match item.sync_status() {
+                    SyncStatus::Synced(prev_ss) => {
+                        let prev_ss = prev_ss.clone();
+                        item.set_sync_status( SyncStatus::LocallyDeleted(prev_ss));
+                    },
+                    SyncStatus::LocallyModified(prev_ss) => {
+                        let prev_ss = prev_ss.clone();
+                        item.set_sync_status( SyncStatus::LocallyDeleted(prev_ss));
+                    },
+                    SyncStatus::LocallyDeleted(prev_ss) => {
+                        let prev_ss = prev_ss.clone();
+                        item.set_sync_status( SyncStatus::LocallyDeleted(prev_ss));
+                    },
+                    SyncStatus::NotSynced => {
+                        // This was never synced to the server, we can safely delete it as soon as now
+                        self.items.remove(item_id);
+                    },
+                };
+                Ok(())
+            }
+        }
+    }
+
+    /// The non-async version of [`Self::immediately_delete_item`]
+    pub fn immediately_delete_item_sync(&mut self, item_id: &ItemId) -> Result<(), Box<dyn Error>> {
+        match self.items.remove(item_id) {
+            None => Err(format!("Item {} is absent from this calendar", item_id).into()),
+            Some(_) => Ok(())
+        }
+    }
+
 }
 
 
@@ -226,37 +262,11 @@ impl CompleteCalendar for CachedCalendar {
     }
 
     async fn mark_for_deletion(&mut self, item_id: &ItemId) -> Result<(), Box<dyn Error>> {
-        match self.items.get_mut(item_id) {
-            None => Err("no item for this key".into()),
-            Some(item) => {
-                match item.sync_status() {
-                    SyncStatus::Synced(prev_ss) => {
-                        let prev_ss = prev_ss.clone();
-                        item.set_sync_status( SyncStatus::LocallyDeleted(prev_ss));
-                    },
-                    SyncStatus::LocallyModified(prev_ss) => {
-                        let prev_ss = prev_ss.clone();
-                        item.set_sync_status( SyncStatus::LocallyDeleted(prev_ss));
-                    },
-                    SyncStatus::LocallyDeleted(prev_ss) => {
-                        let prev_ss = prev_ss.clone();
-                        item.set_sync_status( SyncStatus::LocallyDeleted(prev_ss));
-                    },
-                    SyncStatus::NotSynced => {
-                        // This was never synced to the server, we can safely delete it as soon as now
-                        self.items.remove(item_id);
-                    },
-                };
-                Ok(())
-            }
-        }
+        self.mark_for_deletion_sync(item_id)
     }
 
     async fn immediately_delete_item(&mut self, item_id: &ItemId) -> Result<(), Box<dyn Error>> {
-        match self.items.remove(item_id) {
-            None => Err(format!("Item {} is absent from this calendar", item_id).into()),
-            Some(_) => Ok(())
-        }
+        self.immediately_delete_item_sync(item_id)
     }
 }
 
