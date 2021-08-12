@@ -13,8 +13,6 @@ use crate::calendar::CalendarId;
 use crate::Item;
 use crate::item::SyncStatus;
 
-pub mod comparison;
-
 /// Walks an XML tree and returns every element that has the given name
 pub fn find_elems<S: AsRef<str>>(root: &Element, searched_name: S) -> Vec<&Element> {
     let searched_name = searched_name.as_ref();
