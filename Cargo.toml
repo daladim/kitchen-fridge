@@ -3,6 +3,11 @@ name = "kitchen-fridge"
 version = "0.1.0"
 authors = ["daladim"]
 edition = "2018"
+description = "A CalDAV (ical file management over WebDAV) library"
+repository = "https://github.com/daladim/kitchen-fridge"
+license = "MIT"
+keywords = ["CalDAV", "client", "WebDAV", "todo", "RFC4791"]
+categories = ["network-programming", "web-programming::http-client"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
