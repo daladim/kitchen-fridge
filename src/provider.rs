@@ -106,7 +106,7 @@ where
     }
 
     async fn run_sync(&mut self, result: &mut SyncResult) -> Result<(), Box<dyn Error>> {
-        result.info("Starting a sync.");
+        result.info("Starting a sync");
 
         let mut handled_calendars = HashSet::new();
 
@@ -148,6 +148,8 @@ where
                 continue;
             }
         }
+
+        result.info("Sync ended");
 
         Ok(())
     }
