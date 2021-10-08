@@ -1,8 +1,8 @@
 /// A counter of errors that happen during a sync
-pub struct SyncResult {
+pub struct SyncProgress {
     n_errors: u32,
 }
-impl SyncResult {
+impl SyncProgress {
     pub fn new() -> Self {
         Self { n_errors: 0 }
     }
