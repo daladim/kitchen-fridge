@@ -14,6 +14,7 @@ use crate::calendar::CalendarId;
 
 mod sync_progress;
 use sync_progress::SyncProgress;
+pub use sync_progress::FeedbackSender;
 
 /// A data source that combines two `CalDavSource`s, which is able to sync both sources.
 ///
@@ -64,22 +65,34 @@ where
     /// To be sure `local` accurately mirrors the `remote` source, you can run [`Provider::sync`]
     pub fn remote(&self) -> &R { &self.remote }
 
-    /// Performs a synchronisation between `local` and `remote`.
+    /// Performs a synchronisation between `local` and `remote`, and provide feeedback to the user about the progress.
     ///
     /// This bidirectional sync applies additions/deletions made on a source to the other source.
     /// In case of conflicts (the same item has been modified on both ends since the last sync, `remote` always wins)
     ///
     /// It returns whether the sync was totally successful (details about errors are logged using the `log::*` macros).
     /// In case errors happened, the sync might have been partially executed, and you can safely run this function again, since it has been designed to gracefully recover from errors.
-    pub async fn sync(&mut self) -> bool {
-        let mut result = SyncProgress::new();
-        if let Err(err) = self.run_sync(&mut result).await {
-            result.error(&format!("Sync terminated because of an error: {}", err));
-        }
-        result.is_success()
+    pub async fn sync_with_feedback(&mut self, feedback_sender: FeedbackSender) -> bool {
+        let mut progress = SyncProgress::new_with_feedback_channel(feedback_sender);
+        self.run_sync(&mut progress).await
     }
 
-    async fn run_sync(&mut self, progress: &mut SyncProgress) -> Result<(), Box<dyn Error>> {
+    /// Performs a synchronisation between `local` and `remote`, without giving any feedback.
+    ///
+    /// See [sync_with_feedback]
+    pub async fn sync(&mut self) -> bool {
+        let mut progress = SyncProgress::new();
+        self.run_sync(&mut progress).await
+    }
+
+    async fn run_sync(&mut self, progress: &mut SyncProgress) -> bool {
+        if let Err(err) = self.run_sync_inner(progress).await {
+            progress.error(&format!("Sync terminated because of an error: {}", err));
+        }
+        progress.is_success()
+    }
+
+    async fn run_sync_inner(&mut self, progress: &mut SyncProgress) -> Result<(), Box<dyn Error>> {
         progress.info("Starting a sync.");
 
         let mut handled_calendars = HashSet::new();
