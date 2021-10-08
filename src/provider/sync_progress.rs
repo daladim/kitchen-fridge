@@ -64,21 +64,34 @@ impl SyncProgress {
         self.n_errors == 0
     }
 
+    /// Log an error
     pub fn error(&mut self, text: &str) {
         log::error!("{}", text);
         self.n_errors += 1;
     }
+    /// Log a warning
     pub fn warn(&mut self, text: &str) {
         log::warn!("{}", text);
         self.n_errors += 1;
     }
+    /// Log an info
     pub fn info(&mut self, text: &str) {
         log::info!("{}", text);
     }
+    /// Log a debug message
     pub fn debug(&mut self, text: &str) {
         log::debug!("{}", text);
     }
+    /// Log a trace message
     pub fn trace(&mut self, text: &str) {
         log::trace!("{}", text);
+    }
+    /// Send an event as a feedback to the listener (if any).
+    pub fn feedback(&mut self, event: SyncEvent) {
+        self.feedback_channel
+            .as_ref()
+            .map(|sender| {
+                sender.send(event)
+            });
     }
 }

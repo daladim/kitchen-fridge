@@ -9,12 +9,12 @@ use std::sync::{Arc, Mutex};
 
 use crate::traits::{BaseCalendar, CalDavSource, DavCalendar};
 use crate::traits::CompleteCalendar;
-use crate::item::SyncStatus;
+use crate::item::{ItemId, SyncStatus};
 use crate::calendar::CalendarId;
 
-mod sync_progress;
+pub mod sync_progress;
 use sync_progress::SyncProgress;
-pub use sync_progress::FeedbackSender;
+use sync_progress::{FeedbackSender, SyncEvent};
 
 /// A data source that combines two `CalDavSource`s, which is able to sync both sources.
 ///
@@ -89,11 +89,13 @@ where
         if let Err(err) = self.run_sync_inner(progress).await {
             progress.error(&format!("Sync terminated because of an error: {}", err));
         }
+        progress.feedback(SyncEvent::Finished{ success: progress.is_success() });
         progress.is_success()
     }
 
     async fn run_sync_inner(&mut self, progress: &mut SyncProgress) -> Result<(), Box<dyn Error>> {
         progress.info("Starting a sync.");
+        progress.feedback(SyncEvent::Started);
 
         let mut handled_calendars = HashSet::new();
 
@@ -151,6 +153,13 @@ where
     async fn sync_calendar_pair(cal_local: Arc<Mutex<T>>, cal_remote: Arc<Mutex<U>>, progress: &mut SyncProgress) -> Result<(), Box<dyn Error>> {
         let mut cal_remote = cal_remote.lock().unwrap();
         let mut cal_local = cal_local.lock().unwrap();
+        let cal_name = cal_local.name().to_string();
+
+        progress.info(&format!("Syncing calendar {}", cal_name));
+        progress.feedback(SyncEvent::InProgress{
+            calendar: cal_name.clone(),
+            details: "started".to_string()
+        });
 
         // Step 1 - find the differences
         progress.debug("Finding the differences to sync...");
@@ -162,6 +171,11 @@ where
         let mut remote_additions = HashSet::new();
 
         let remote_items = cal_remote.get_item_version_tags().await?;
+        progress.feedback(SyncEvent::InProgress{
+            calendar: cal_name.clone(),
+            details: format!("{} remote items", remote_items.len()),
+        });
+
         let mut local_items_to_handle = cal_local.get_item_ids().await?;
         for (id, remote_tag) in remote_items {
             progress.trace(&format!("***** Considering remote item {}...", id));
@@ -254,6 +268,10 @@ where
         progress.trace("Committing changes...");
         for id_del in local_del {
             progress.debug(&format!("> Pushing local deletion {} to the server", id_del));
+            progress.feedback(SyncEvent::InProgress{
+                calendar: cal_name.clone(),
+                details: Self::item_name(&cal_local, &id_del).await,
+            });
             match cal_remote.delete_item(&id_del).await {
                 Err(err) => {
                     progress.warn(&format!("Unable to delete remote item {}: {}", id_del, err));
@@ -269,6 +287,10 @@ where
 
         for id_del in remote_del {
             progress.debug(&format!("> Applying remote deletion {} locally", id_del));
+            progress.feedback(SyncEvent::InProgress{
+                calendar: cal_name.clone(),
+                details: Self::item_name(&cal_local, &id_del).await,
+            });
             if let Err(err) = cal_local.immediately_delete_item(&id_del).await {
                 progress.warn(&format!("Unable to delete local item {}: {}", id_del, err));
             }
@@ -276,6 +298,10 @@ where
 
         for id_add in remote_additions {
             progress.debug(&format!("> Applying remote addition {} locally", id_add));
+            progress.feedback(SyncEvent::InProgress{
+                calendar: cal_name.clone(),
+                details: Self::item_name(&cal_local, &id_add).await,
+            });
             match cal_remote.get_item_by_id(&id_add).await {
                 Err(err) => {
                     progress.warn(&format!("Unable to get remote item {}: {}. Skipping it.", id_add, err));
@@ -297,6 +323,10 @@ where
 
         for id_change in remote_changes {
             progress.debug(&format!("> Applying remote change {} locally", id_change));
+            progress.feedback(SyncEvent::InProgress{
+                calendar: cal_name.clone(),
+                details: Self::item_name(&cal_local, &id_change).await,
+            });
             match cal_remote.get_item_by_id(&id_change).await {
                 Err(err) => {
                     progress.warn(&format!("Unable to get remote item {}: {}. Skipping it", id_change, err));
@@ -319,6 +349,10 @@ where
 
         for id_add in local_additions {
             progress.debug(&format!("> Pushing local addition {} to the server", id_add));
+            progress.feedback(SyncEvent::InProgress{
+                calendar: cal_name.clone(),
+                details: Self::item_name(&cal_local, &id_add).await,
+            });
             match cal_local.get_item_by_id_mut(&id_add).await {
                 None => {
                     progress.error(&format!("Inconsistency: created item {} has been marked for upload but is locally missing", id_add));
@@ -338,6 +372,10 @@ where
 
         for id_change in local_changes {
             progress.debug(&format!("> Pushing local change {} to the server", id_change));
+            progress.feedback(SyncEvent::InProgress{
+                calendar: cal_name.clone(),
+                details: Self::item_name(&cal_local, &id_change).await,
+            });
             match cal_local.get_item_by_id_mut(&id_change).await {
                 None => {
                     progress.error(&format!("Inconsistency: modified item {} has been marked for upload but is locally missing", id_change));
@@ -357,6 +395,12 @@ where
 
         Ok(())
     }
+
+
+    async fn item_name(cal: &T, id: &ItemId) -> String {
+        cal.get_item_by_id(id).await.map(|item| item.name()).unwrap_or_default().to_string()
+    }
+
 }
 
 
