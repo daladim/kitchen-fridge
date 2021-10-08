@@ -1,4 +1,6 @@
 //! This modules abstracts data sources and merges them in a single virtual one
+//!
+//! It is also responsible for syncing them together
 
 use std::error::Error;
 use std::collections::HashSet;
