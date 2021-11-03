@@ -36,9 +36,12 @@ impl Default for SyncEvent {
 
 
 
+/// See [`feedback_channel`]
 pub type FeedbackSender = tokio::sync::watch::Sender<SyncEvent>;
+/// See [`feedback_channel`]
 pub type FeedbackReceiver = tokio::sync::watch::Receiver<SyncEvent>;
 
+/// Create a feeback channel, that can be used to retrieve the current progress of a sync operation
 pub fn feedback_channel() -> (FeedbackSender, FeedbackReceiver) {
     tokio::sync::watch::channel(SyncEvent::default())
 }

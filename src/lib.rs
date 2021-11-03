@@ -18,7 +18,8 @@
 //!
 //! ## Examples
 //!
-//! See example usage in the `examples/` folder, that you can run using `cargo run --example <example-name>`
+//! See example usage in the `examples/` folder, that you can run using `cargo run --example <example-name>`. \
+//! You can also have a look at `tasklist`, a GUI app that uses `kitchen-fridge` under the hood.
 
 pub mod traits;
 

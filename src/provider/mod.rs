@@ -68,10 +68,11 @@ where
     /// Performs a synchronisation between `local` and `remote`, and provide feeedback to the user about the progress.
     ///
     /// This bidirectional sync applies additions/deletions made on a source to the other source.
-    /// In case of conflicts (the same item has been modified on both ends since the last sync, `remote` always wins)
+    /// In case of conflicts (the same item has been modified on both ends since the last sync, `remote` always wins).
     ///
     /// It returns whether the sync was totally successful (details about errors are logged using the `log::*` macros).
-    /// In case errors happened, the sync might have been partially executed, and you can safely run this function again, since it has been designed to gracefully recover from errors.
+    /// In case errors happened, the sync might have been partially executed but your data will never be correupted (either locally nor in the server).
+    /// Simply run this function again, it will re-start a sync, picking up where it failed.
     pub async fn sync_with_feedback(&mut self, feedback_sender: FeedbackSender) -> bool {
         let mut progress = SyncProgress::new_with_feedback_channel(feedback_sender);
         self.run_sync(&mut progress).await
@@ -79,7 +80,7 @@ where
 
     /// Performs a synchronisation between `local` and `remote`, without giving any feedback.
     ///
-    /// See [sync_with_feedback]
+    /// See [`Self::sync_with_feedback`]
     pub async fn sync(&mut self) -> bool {
         let mut progress = SyncProgress::new();
         self.run_sync(&mut progress).await
