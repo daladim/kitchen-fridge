@@ -17,9 +17,9 @@ use crate::Event;
 pub fn parse(content: &str, item_id: ItemId, sync_status: SyncStatus) -> Result<Item, Box<dyn Error>> {
     let mut reader = ical::IcalParser::new(content.as_bytes());
     let parsed_item = match reader.next() {
-        None => return Err(format!("Invalid uCal data to parse for item {}", item_id).into()),
+        None => return Err(format!("Invalid iCal data to parse for item {}", item_id).into()),
         Some(item) => match item {
-            Err(err) => return Err(format!("Unable to parse uCal data for item {}: {}", item_id, err).into()),
+            Err(err) => return Err(format!("Unable to parse iCal data for item {}: {}", item_id, err).into()),
             Ok(item) => item,
         }
     };
