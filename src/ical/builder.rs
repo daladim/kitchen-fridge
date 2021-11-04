@@ -5,7 +5,11 @@ use std::error::Error;
 use chrono::{DateTime, Utc};
 use ics::properties::{Completed, Created, LastModified, PercentComplete, Status, Summary};
 use ics::{ICalendar, ToDo};
+use ics::components::Parameter as IcsParameter;
+use ics::components::Property as IcsProperty;
+use ical::property::Property as IcalProperty;
 
+use crate::Task;
 use crate::item::Item;
 use crate::task::CompletionStatus;
 use crate::settings::{ORG_NAME, PRODUCT_NAME};
@@ -16,37 +20,43 @@ fn ical_product_id() -> String {
 
 /// Create an iCal item from a `crate::item::Item`
 pub fn build_from(item: &Item) -> Result<String, Box<dyn Error>> {
-    let s_last_modified = format_date_time(item.last_modified());
+    match item {
+        Item::Task(t) => build_from_task(t),
+        _ => unimplemented!(),
+    }
+}
+
+pub fn build_from_task(task: &Task) -> Result<String, Box<dyn Error>> {
+    let s_last_modified = format_date_time(task.last_modified());
 
     let mut todo = ToDo::new(
-        item.uid(),
+        task.uid(),
         s_last_modified.clone(),
     );
 
-    item.creation_date().map(|dt|
+    task.creation_date().map(|dt|
         todo.push(Created::new(format_date_time(dt)))
     );
     todo.push(LastModified::new(s_last_modified));
-    todo.push(Summary::new(item.name()));
+    todo.push(Summary::new(task.name()));
 
-    match item {
-        Item::Task(t) => {
-            match t.completion_status() {
-                CompletionStatus::Uncompleted => {
-                    todo.push(Status::needs_action());
-                },
-                CompletionStatus::Completed(completion_date) => {
-                    todo.push(PercentComplete::new("100"));
-                    completion_date.as_ref().map(|dt| todo.push(
-                        Completed::new(format_date_time(dt))
-                    ));
-                    todo.push(Status::completed());
-                }
-            }
+    match task.completion_status() {
+        CompletionStatus::Uncompleted => {
+            todo.push(Status::needs_action());
         },
-        _ => {
-            unimplemented!()
-        },
+        CompletionStatus::Completed(completion_date) => {
+            todo.push(PercentComplete::new("100"));
+            completion_date.as_ref().map(|dt| todo.push(
+                Completed::new(format_date_time(dt))
+            ));
+            todo.push(Status::completed());
+        }
+    }
+
+    // Also add fields that we have not handled
+    for ical_property in task.extra_parameters() {
+        let ics_property = ical_to_ics_property(ical_property.clone());
+        todo.push(ics_property);
     }
 
     let mut calendar = ICalendar::new("2.0", ical_product_id());
@@ -57,6 +67,21 @@ pub fn build_from(item: &Item) -> Result<String, Box<dyn Error>> {
 
 fn format_date_time(dt: &DateTime<Utc>) -> String {
     dt.format("%Y%m%dT%H%M%S").to_string()
+}
+
+
+fn ical_to_ics_property(prop: IcalProperty) -> IcsProperty<'static> {
+    let mut ics_prop = match prop.value {
+        Some(value) => IcsProperty::new(prop.name, value),
+        None =>        IcsProperty::new(prop.name, ""),
+    };
+    prop.params.map(|v| {
+        for (key, vec_values) in v {
+            let values = vec_values.join(";");
+            ics_prop.add(IcsParameter::new(key, values));
+        }
+    });
+    ics_prop
 }
 
 

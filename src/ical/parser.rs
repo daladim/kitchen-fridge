@@ -36,6 +36,8 @@ pub fn parse(content: &str, item_id: ItemId, sync_status: SyncStatus) -> Result<
             let mut last_modified = None;
             let mut completion_date = None;
             let mut creation_date = None;
+            let mut extra_parameters = Vec::new();
+
             for prop in &todo.properties {
                 match prop.name.as_str() {
                     "SUMMARY" => { name = prop.value.clone() },
@@ -67,7 +69,8 @@ pub fn parse(content: &str, item_id: ItemId, sync_status: SyncStatus) -> Result<
                         }
                     }
                     _ => {
-                        // This field is not supported.
+                        // This field is not supported. Let's store it anyway, so that we are able to re-create an identical iCal file
+                        extra_parameters.push(prop.clone());
                     }
                 }
             }
@@ -93,7 +96,7 @@ pub fn parse(content: &str, item_id: ItemId, sync_status: SyncStatus) -> Result<
                 true => CompletionStatus::Completed(completion_date),
             };
 
-            Item::Task(Task::new_with_parameters(name, uid, item_id, completion_status, sync_status, creation_date, last_modified))
+            Item::Task(Task::new_with_parameters(name, uid, item_id, completion_status, sync_status, creation_date, last_modified, extra_parameters))
         },
     };
 

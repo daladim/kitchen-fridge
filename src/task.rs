@@ -3,6 +3,7 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use chrono::{DateTime, Utc};
+use ical::property::Property;
 
 use crate::item::ItemId;
 use crate::item::SyncStatus;
@@ -51,6 +52,9 @@ pub struct Task {
     /// The display name of the task
     name: String,
 
+    /// Extra parameters that have not been parsed from the iCal file (because they're not supported (yet) by this crate).
+    /// They are needed to serialize this item into an equivalent iCal file
+    extra_parameters: Vec<Property>,
 }
 
 
@@ -66,13 +70,16 @@ impl Task {
         let new_completion_status = if completed {
                 CompletionStatus::Completed(Some(Utc::now()))
             } else { CompletionStatus::Uncompleted };
-        Self::new_with_parameters(name, new_uid, new_item_id, new_completion_status, new_sync_status, new_creation_date, new_last_modified)
+        let extra_parameters = Vec::new();
+        Self::new_with_parameters(name, new_uid, new_item_id, new_completion_status, new_sync_status, new_creation_date, new_last_modified, extra_parameters)
     }
 
     /// Create a new Task instance, that may be synced on the server already
     pub fn new_with_parameters(name: String, uid: String, id: ItemId,
                                completion_status: CompletionStatus,
-                               sync_status: SyncStatus, creation_date: Option<DateTime<Utc>>, last_modified: DateTime<Utc>) -> Self
+                               sync_status: SyncStatus, creation_date: Option<DateTime<Utc>>, last_modified: DateTime<Utc>,
+                               extra_parameters: Vec<Property>,
+                            ) -> Self
     {
         Self {
             id,
@@ -82,6 +89,7 @@ impl Task {
             sync_status,
             creation_date,
             last_modified,
+            extra_parameters,
         }
     }
 
@@ -93,6 +101,7 @@ impl Task {
     pub fn last_modified(&self) -> &DateTime<Utc> { &self.last_modified }
     pub fn creation_date(&self) -> Option<&DateTime<Utc>>   { self.creation_date.as_ref() }
     pub fn completion_status(&self) -> &CompletionStatus    { &self.completion_status }
+    pub fn extra_parameters(&self) -> &[Property]           { &self.extra_parameters }
 
     #[cfg(any(test, feature = "integration_tests"))]
     pub fn has_same_observable_content_as(&self, other: &Task) -> bool {
