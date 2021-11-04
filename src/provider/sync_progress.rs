@@ -3,6 +3,7 @@
 use std::fmt::{Display, Error, Formatter};
 
 /// An event that happens during a sync
+#[derive(Clone, Debug)]
 pub enum SyncEvent {
     /// Sync has not started
     NotStarted,
@@ -18,8 +19,8 @@ impl Display for SyncEvent {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
         match self {
             SyncEvent::NotStarted => write!(f, "Not started"),
-            SyncEvent::Started => write!(f, "Sync has started"),
-            SyncEvent::InProgress{calendar, details} => write!(f, "[{}] {}", calendar, details),
+            SyncEvent::Started => write!(f, "Sync has started..."),
+            SyncEvent::InProgress{calendar, details} => write!(f, "[{}] {}...", calendar, details),
             SyncEvent::Finished{success} => match success {
                 true => write!(f, "Sync successfully finished"),
                 false => write!(f, "Sync finished with errors"),
