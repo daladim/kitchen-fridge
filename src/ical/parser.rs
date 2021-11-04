@@ -37,37 +37,38 @@ pub fn parse(content: &str, item_id: ItemId, sync_status: SyncStatus) -> Result<
             let mut completion_date = None;
             let mut creation_date = None;
             for prop in &todo.properties {
-                if prop.name == "SUMMARY" {
-                    name = prop.value.clone();
-                }
-                if prop.name == "STATUS" {
-                    // Possible values:
-                    //   "NEEDS-ACTION" ;Indicates to-do needs action.
-                    //   "COMPLETED"    ;Indicates to-do completed.
-                    //   "IN-PROCESS"   ;Indicates to-do in process of.
-                    //   "CANCELLED"    ;Indicates to-do was cancelled.
-                    if prop.value.as_ref().map(|s| s.as_str()) == Some("COMPLETED") {
-                        completed = true;
+                match prop.name.as_str() {
+                    "SUMMARY" => { name = prop.value.clone() },
+                    "UID" => { uid = prop.value.clone() },
+                    "DTSTAMP" => {
+                        // The property can be specified once, but is not mandatory
+                        // "This property specifies the date and time that the information associated with
+                        //  the calendar component was last revised in the calendar store."
+                        last_modified = parse_date_time_from_property(&prop.value)
+                    },
+                    "COMPLETED" => {
+                        // The property can be specified once, but is not mandatory
+                        // "This property defines the date and time that a to-do was
+                        //  actually completed."
+                        completion_date = parse_date_time_from_property(&prop.value)
+                    },
+                    "CREATED" => {
+                        // The property can be specified once, but is not mandatory
+                        creation_date = parse_date_time_from_property(&prop.value)
+                    },
+                    "STATUS" => {
+                        // Possible values:
+                        //   "NEEDS-ACTION" ;Indicates to-do needs action.
+                        //   "COMPLETED"    ;Indicates to-do completed.
+                        //   "IN-PROCESS"   ;Indicates to-do in process of.
+                        //   "CANCELLED"    ;Indicates to-do was cancelled.
+                        if prop.value.as_ref().map(|s| s.as_str()) == Some("COMPLETED") {
+                            completed = true;
+                        }
                     }
-                }
-                if prop.name == "UID" {
-                    uid = prop.value.clone();
-                }
-                if prop.name == "DTSTAMP" {
-                    // The property can be specified once, but is not mandatory
-                    // "This property specifies the date and time that the information associated with
-                    //  the calendar component was last revised in the calendar store."
-                    last_modified = parse_date_time_from_property(&prop.value)
-                }
-                if prop.name == "COMPLETED" {
-                    // The property can be specified once, but is not mandatory
-                    // "This property defines the date and time that a to-do was
-                    //  actually completed."
-                    completion_date = parse_date_time_from_property(&prop.value)
-                }
-                if prop.name == "CREATED" {
-                    // The property can be specified once, but is not mandatory
-                    creation_date = parse_date_time_from_property(&prop.value)
+                    _ => {
+                        // This field is not supported.
+                    }
                 }
             }
             let name = match name {
