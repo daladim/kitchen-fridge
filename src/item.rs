@@ -19,48 +19,26 @@ pub enum Item {
     Task(crate::task::Task),
 }
 
+/// Returns `task.$property_name` or `event.$property_name`, depending on whether self is a Task or an Event
+macro_rules! synthetise_common_getter {
+    ($property_name:ident, $return_type:ty) => {
+        pub fn $property_name(&self) -> $return_type {
+            match self {
+                Item::Event(e) => e.$property_name(),
+                Item::Task(t) => t.$property_name(),
+            }
+        }
+    }
+}
+
 impl Item {
-    pub fn id(&self) -> &ItemId {
-        match self {
-            Item::Event(e) => e.id(),
-            Item::Task(t) => t.id(),
-        }
-    }
+    synthetise_common_getter!(id, &ItemId);
+    synthetise_common_getter!(uid, &str);
+    synthetise_common_getter!(name, &str);
+    synthetise_common_getter!(creation_date, Option<&DateTime<Utc>>);
+    synthetise_common_getter!(last_modified, &DateTime<Utc>);
+    synthetise_common_getter!(sync_status, &SyncStatus);
 
-    pub fn uid(&self) -> &str {
-        match self {
-            Item::Event(e) => e.uid(),
-            Item::Task(t) => t.uid(),
-        }
-    }
-
-    pub fn name(&self) -> &str {
-        match self {
-            Item::Event(e) => e.name(),
-            Item::Task(t) => t.name(),
-        }
-    }
-
-    pub fn creation_date(&self) -> Option<&DateTime<Utc>> {
-        match self {
-            Item::Event(e) => e.creation_date(),
-            Item::Task(t) => t.creation_date(),
-        }
-    }
-
-    pub fn last_modified(&self) -> &DateTime<Utc> {
-        match self {
-            Item::Event(e) => e.last_modified(),
-            Item::Task(t) => t.last_modified(),
-        }
-    }
-
-    pub fn sync_status(&self) -> &SyncStatus {
-        match self {
-            Item::Event(e) => e.sync_status(),
-            Item::Task(t) => t.sync_status(),
-        }
-    }
     pub fn set_sync_status(&mut self, new_status: SyncStatus) {
         match self {
             Item::Event(e) => e.set_sync_status(new_status),
