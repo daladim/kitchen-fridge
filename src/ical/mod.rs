@@ -6,3 +6,10 @@ mod parser;
 pub use parser::parse;
 mod builder;
 pub use builder::build_from;
+
+use crate::settings::{ORG_NAME, PRODUCT_NAME};
+
+pub fn default_prod_id() -> String {
+    format!("-//{}//{}//EN", ORG_NAME, PRODUCT_NAME)
+}
+

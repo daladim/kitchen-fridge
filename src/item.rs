@@ -38,6 +38,7 @@ impl Item {
     synthetise_common_getter!(creation_date, Option<&DateTime<Utc>>);
     synthetise_common_getter!(last_modified, &DateTime<Utc>);
     synthetise_common_getter!(sync_status, &SyncStatus);
+    synthetise_common_getter!(ical_prod_id, &str);
 
     pub fn set_sync_status(&mut self, new_status: SyncStatus) {
         match self {

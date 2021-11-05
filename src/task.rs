@@ -52,6 +52,10 @@ pub struct Task {
     /// The display name of the task
     name: String,
 
+
+    /// The PRODID, as defined in iCal files
+    ical_prod_id: String,
+
     /// Extra parameters that have not been parsed from the iCal file (because they're not supported (yet) by this crate).
     /// They are needed to serialize this item into an equivalent iCal file
     extra_parameters: Vec<Property>,
@@ -70,15 +74,16 @@ impl Task {
         let new_completion_status = if completed {
                 CompletionStatus::Completed(Some(Utc::now()))
             } else { CompletionStatus::Uncompleted };
+        let ical_prod_id = crate::ical::default_prod_id();
         let extra_parameters = Vec::new();
-        Self::new_with_parameters(name, new_uid, new_item_id, new_completion_status, new_sync_status, new_creation_date, new_last_modified, extra_parameters)
+        Self::new_with_parameters(name, new_uid, new_item_id, new_completion_status, new_sync_status, new_creation_date, new_last_modified, ical_prod_id, extra_parameters)
     }
 
     /// Create a new Task instance, that may be synced on the server already
     pub fn new_with_parameters(name: String, uid: String, id: ItemId,
                                completion_status: CompletionStatus,
                                sync_status: SyncStatus, creation_date: Option<DateTime<Utc>>, last_modified: DateTime<Utc>,
-                               extra_parameters: Vec<Property>,
+                               ical_prod_id: String, extra_parameters: Vec<Property>,
                             ) -> Self
     {
         Self {
@@ -89,6 +94,7 @@ impl Task {
             sync_status,
             creation_date,
             last_modified,
+            ical_prod_id,
             extra_parameters,
         }
     }
@@ -97,6 +103,7 @@ impl Task {
     pub fn uid(&self) -> &str       { &self.uid         }
     pub fn name(&self) -> &str      { &self.name        }
     pub fn completed(&self) -> bool { self.completion_status.is_completed() }
+    pub fn ical_prod_id(&self) -> &str            { &self.ical_prod_id }
     pub fn sync_status(&self) -> &SyncStatus      { &self.sync_status  }
     pub fn last_modified(&self) -> &DateTime<Utc> { &self.last_modified }
     pub fn creation_date(&self) -> Option<&DateTime<Utc>>   { self.creation_date.as_ref() }

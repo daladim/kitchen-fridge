@@ -24,6 +24,10 @@ pub fn parse(content: &str, item_id: ItemId, sync_status: SyncStatus) -> Result<
         }
     };
 
+    let ical_prod_id = extract_ical_prod_id(&parsed_item)
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| super::default_prod_id());
+
     let item = match assert_single_type(&parsed_item)? {
         CurrentType::Event(_) => {
             Item::Event(Event::new())
@@ -96,7 +100,7 @@ pub fn parse(content: &str, item_id: ItemId, sync_status: SyncStatus) -> Result<
                 true => CompletionStatus::Completed(completion_date),
             };
 
-            Item::Task(Task::new_with_parameters(name, uid, item_id, completion_status, sync_status, creation_date, last_modified, extra_parameters))
+            Item::Task(Task::new_with_parameters(name, uid, item_id, completion_status, sync_status, creation_date, last_modified, ical_prod_id, extra_parameters))
         },
     };
 
@@ -123,6 +127,16 @@ fn parse_date_time_from_property(value: &Option<String>) -> Option<DateTime<Utc>
             })
             .ok()
         })
+}
+
+
+fn extract_ical_prod_id(item: &IcalCalendar) -> Option<&str> {
+    for prop in &item.properties {
+        if &prop.name == "PRODID" {
+            return prop.value.as_ref().map(|s| s.as_str())
+        }
+    }
+    None
 }
 
 

@@ -12,11 +12,7 @@ use ical::property::Property as IcalProperty;
 use crate::Task;
 use crate::item::Item;
 use crate::task::CompletionStatus;
-use crate::settings::{ORG_NAME, PRODUCT_NAME};
 
-fn ical_product_id() -> String {
-    format!("-//{}//{}//EN", ORG_NAME, PRODUCT_NAME)
-}
 
 /// Create an iCal item from a `crate::item::Item`
 pub fn build_from(item: &Item) -> Result<String, Box<dyn Error>> {
@@ -59,7 +55,7 @@ pub fn build_from_task(task: &Task) -> Result<String, Box<dyn Error>> {
         todo.push(ics_property);
     }
 
-    let mut calendar = ICalendar::new("2.0", ical_product_id());
+    let mut calendar = ICalendar::new("2.0", task.ical_prod_id());
     calendar.add_todo(todo);
 
     Ok(calendar.to_string())
@@ -89,6 +85,7 @@ fn ical_to_ics_property(prop: IcalProperty) -> IcsProperty<'static> {
 mod tests {
     use super::*;
     use crate::Task;
+    use crate::settings::{ORG_NAME, PRODUCT_NAME};
 
     #[test]
     fn test_ical_from_completed_task() {
