@@ -39,7 +39,7 @@ pub mod cache;
 pub use cache::Cache;
 pub mod ical;
 
-pub mod settings;
+pub mod config;
 pub mod utils;
 pub mod resource;
 

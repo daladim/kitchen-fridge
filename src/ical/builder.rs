@@ -85,7 +85,7 @@ fn ical_to_ics_property(prop: IcalProperty) -> IcsProperty<'static> {
 mod tests {
     use super::*;
     use crate::Task;
-    use crate::settings::{ORG_NAME, PRODUCT_NAME};
+    use crate::config::{ORG_NAME, PRODUCT_NAME};
 
     #[test]
     fn test_ical_from_completed_task() {
@@ -104,7 +104,7 @@ mod tests {
             COMPLETED:{}\r\n\
             STATUS:COMPLETED\r\n\
             END:VTODO\r\n\
-            END:VCALENDAR\r\n", ORG_NAME, PRODUCT_NAME, uid, s_now, s_now, s_now, s_now);
+            END:VCALENDAR\r\n", *ORG_NAME, *PRODUCT_NAME, uid, s_now, s_now, s_now, s_now);
 
         assert_eq!(ical, expected_ical);
     }
@@ -124,7 +124,7 @@ mod tests {
             SUMMARY:This is a task with ÜTF-8 characters\r\n\
             STATUS:NEEDS-ACTION\r\n\
             END:VTODO\r\n\
-            END:VCALENDAR\r\n", ORG_NAME, PRODUCT_NAME, uid, s_now, s_now, s_now);
+            END:VCALENDAR\r\n", *ORG_NAME, *PRODUCT_NAME, uid, s_now, s_now, s_now);
 
         assert_eq!(ical, expected_ical);
     }
