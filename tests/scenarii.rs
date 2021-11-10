@@ -380,7 +380,7 @@ pub fn scenarii_basic() -> Vec<ItemScenario> {
                     String::from("Task Q, created on the server"),
                     id_q.to_string(), id_q,
                     CompletionStatus::Uncompleted,
-                    SyncStatus::random_synced(), Some(Utc::now()), Utc::now() )
+                    SyncStatus::random_synced(), Some(Utc::now()), Utc::now(), "prod_id".to_string(), Vec::new() )
             ))],
             after_sync: LocatedState::BothSynced( ItemState{
                 calendar: third_cal.clone(),
@@ -400,7 +400,7 @@ pub fn scenarii_basic() -> Vec<ItemScenario> {
                     String::from("Task R, created locally"),
                     id_r.to_string(), id_r,
                     CompletionStatus::Uncompleted,
-                    SyncStatus::NotSynced, Some(Utc::now()), Utc::now() )
+                    SyncStatus::NotSynced, Some(Utc::now()), Utc::now(), "prod_id".to_string(), Vec::new() )
             ))],
             remote_changes_to_apply: Vec::new(),
             after_sync: LocatedState::BothSynced( ItemState{
@@ -578,7 +578,8 @@ pub fn scenarii_transient_task() -> Vec<ItemScenario> {
                         String::from("A transient task that will be deleted before the sync"),
                         id_transient.to_string(), id_transient,
                         CompletionStatus::Uncompleted,
-                        SyncStatus::NotSynced, Some(Utc::now()), Utc::now() )
+                        SyncStatus::NotSynced, Some(Utc::now()), Utc::now(),
+                        "prod_id".to_string(), Vec::new() )
                 )),
 
                 ChangeToApply::Rename(String::from("A new name")),
@@ -642,6 +643,7 @@ async fn populate_test_provider(scenarii: &[ItemScenario], mock_behaviour: Arc<M
                 sync_status,
                 Some(now),
                 now,
+                "prod_id".to_string(), Vec::new(),
             ));
 
         match required_state {
