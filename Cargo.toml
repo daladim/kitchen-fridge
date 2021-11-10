@@ -28,7 +28,10 @@ serde_json = "1.0"
 async-trait = "0.1"
 uuid = { version = "0.8", features = ["v4"] }
 sanitize-filename = "0.3"
-ical = "0.7"
+ical = { version = "0.6", features = ["serde-derive"] }
 ics = "0.5"
 chrono = { version = "0.4", features = ["serde"] }
 csscolorparser = { version = "0.5", features = ["serde"] }
+
+[patch.crates-io]
+ical = { git = "https://github.com/daladim/ical-rs.git", branch = "ical_serde" }
