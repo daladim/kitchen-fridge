@@ -32,6 +32,10 @@ impl Event {
         &self.name
     }
 
+    pub fn ical_prod_id(&self) -> &str {
+        unimplemented!()
+    }
+
     pub fn creation_date(&self) -> Option<&DateTime<Utc>> {
         unimplemented!()
     }

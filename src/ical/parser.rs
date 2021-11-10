@@ -17,12 +17,16 @@ use crate::Event;
 pub fn parse(content: &str, item_id: ItemId, sync_status: SyncStatus) -> Result<Item, Box<dyn Error>> {
     let mut reader = ical::IcalParser::new(content.as_bytes());
     let parsed_item = match reader.next() {
-        None => return Err(format!("Invalid uCal data to parse for item {}", item_id).into()),
+        None => return Err(format!("Invalid iCal data to parse for item {}", item_id).into()),
         Some(item) => match item {
-            Err(err) => return Err(format!("Unable to parse uCal data for item {}: {}", item_id, err).into()),
+            Err(err) => return Err(format!("Unable to parse iCal data for item {}: {}", item_id, err).into()),
             Ok(item) => item,
         }
     };
+
+    let ical_prod_id = extract_ical_prod_id(&parsed_item)
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| super::default_prod_id());
 
     let item = match assert_single_type(&parsed_item)? {
         CurrentType::Event(_) => {
@@ -36,38 +40,42 @@ pub fn parse(content: &str, item_id: ItemId, sync_status: SyncStatus) -> Result<
             let mut last_modified = None;
             let mut completion_date = None;
             let mut creation_date = None;
+            let mut extra_parameters = Vec::new();
+
             for prop in &todo.properties {
-                if prop.name == "SUMMARY" {
-                    name = prop.value.clone();
-                }
-                if prop.name == "STATUS" {
-                    // Possible values:
-                    //   "NEEDS-ACTION" ;Indicates to-do needs action.
-                    //   "COMPLETED"    ;Indicates to-do completed.
-                    //   "IN-PROCESS"   ;Indicates to-do in process of.
-                    //   "CANCELLED"    ;Indicates to-do was cancelled.
-                    if prop.value.as_ref().map(|s| s.as_str()) == Some("COMPLETED") {
-                        completed = true;
+                match prop.name.as_str() {
+                    "SUMMARY" => { name = prop.value.clone() },
+                    "UID" => { uid = prop.value.clone() },
+                    "DTSTAMP" => {
+                        // The property can be specified once, but is not mandatory
+                        // "This property specifies the date and time that the information associated with
+                        //  the calendar component was last revised in the calendar store."
+                        last_modified = parse_date_time_from_property(&prop.value)
+                    },
+                    "COMPLETED" => {
+                        // The property can be specified once, but is not mandatory
+                        // "This property defines the date and time that a to-do was
+                        //  actually completed."
+                        completion_date = parse_date_time_from_property(&prop.value)
+                    },
+                    "CREATED" => {
+                        // The property can be specified once, but is not mandatory
+                        creation_date = parse_date_time_from_property(&prop.value)
+                    },
+                    "STATUS" => {
+                        // Possible values:
+                        //   "NEEDS-ACTION" ;Indicates to-do needs action.
+                        //   "COMPLETED"    ;Indicates to-do completed.
+                        //   "IN-PROCESS"   ;Indicates to-do in process of.
+                        //   "CANCELLED"    ;Indicates to-do was cancelled.
+                        if prop.value.as_ref().map(|s| s.as_str()) == Some("COMPLETED") {
+                            completed = true;
+                        }
                     }
-                }
-                if prop.name == "UID" {
-                    uid = prop.value.clone();
-                }
-                if prop.name == "DTSTAMP" {
-                    // The property can be specified once, but is not mandatory
-                    // "This property specifies the date and time that the information associated with
-                    //  the calendar component was last revised in the calendar store."
-                    last_modified = parse_date_time_from_property(&prop.value)
-                }
-                if prop.name == "COMPLETED" {
-                    // The property can be specified once, but is not mandatory
-                    // "This property defines the date and time that a to-do was
-                    //  actually completed."
-                    completion_date = parse_date_time_from_property(&prop.value)
-                }
-                if prop.name == "CREATED" {
-                    // The property can be specified once, but is not mandatory
-                    creation_date = parse_date_time_from_property(&prop.value)
+                    _ => {
+                        // This field is not supported. Let's store it anyway, so that we are able to re-create an identical iCal file
+                        extra_parameters.push(prop.clone());
+                    }
                 }
             }
             let name = match name {
@@ -92,7 +100,7 @@ pub fn parse(content: &str, item_id: ItemId, sync_status: SyncStatus) -> Result<
                 true => CompletionStatus::Completed(completion_date),
             };
 
-            Item::Task(Task::new_with_parameters(name, uid, item_id, completion_status, sync_status, creation_date, last_modified))
+            Item::Task(Task::new_with_parameters(name, uid, item_id, completion_status, sync_status, creation_date, last_modified, ical_prod_id, extra_parameters))
         },
     };
 
@@ -119,6 +127,16 @@ fn parse_date_time_from_property(value: &Option<String>) -> Option<DateTime<Utc>
             })
             .ok()
         })
+}
+
+
+fn extract_ical_prod_id(item: &IcalCalendar) -> Option<&str> {
+    for prop in &item.properties {
+        if &prop.name == "PRODID" {
+            return prop.value.as_ref().map(|s| s.as_str())
+        }
+    }
+    None
 }
 
 
