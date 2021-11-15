@@ -35,8 +35,15 @@ async fn main() {
     env_logger::init();
 
     println!("This examples show how to sync a remote server with a local cache, using a Provider.");
-    println!("Make sure you have edited your settings.rs to include correct URLs and credentials.");
+    println!("Make sure you have edited the constants in this file to include correct URLs and credentials.");
     println!("You can also set the RUST_LOG environment variable to display more info about the sync.");
+    println!("");
+    println!("This will use the following settings:");
+    println!("  * URL = {}", URL);
+    println!("  * USERNAME = {}", USERNAME);
+    println!("  * EXAMPLE_TASK_URL = {}", EXAMPLE_TASK_URL);
+    println!("  * EXAMPLE_EXISTING_CALENDAR_URL = {}", EXAMPLE_EXISTING_CALENDAR_URL);
+    println!("  * EXAMPLE_CREATED_CALENDAR_URL = {}", EXAMPLE_CREATED_CALENDAR_URL);
     pause();
 
     let cache_path = Path::new(CACHE_FOLDER);

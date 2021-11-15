@@ -175,7 +175,7 @@ impl VersionTag {
         &self.tag
     }
 
-    /// Generate a random VesionTag
+    /// Generate a random VersionTag
     #[cfg(feature = "local_calendar_mocks_remote_calendars")]
     pub fn random() -> Self {
         let random = uuid::Uuid::new_v4().to_hyphenated().to_string();

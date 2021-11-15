@@ -184,6 +184,7 @@ impl Drop for Cache {
 }
 
 impl Cache {
+    /// The non-async version of [`crate::traits::CalDavSource::get_calendars`]
     pub fn get_calendars_sync(&self) -> Result<HashMap<CalendarId, Arc<Mutex<CachedCalendar>>>, Box<dyn Error>> {
         #[cfg(feature = "local_calendar_mocks_remote_calendars")]
         self.mock_behaviour.as_ref().map_or(Ok(()), |b| b.lock().unwrap().can_get_calendars())?;
@@ -194,6 +195,7 @@ impl Cache {
         )
     }
 
+    /// The non-async version of [`crate::traits::CalDavSource::get_calendar`]
     pub fn get_calendar_sync(&self, id: &CalendarId) -> Option<Arc<Mutex<CachedCalendar>>> {
         self.data.calendars.get(id).map(|arc| arc.clone())
     }

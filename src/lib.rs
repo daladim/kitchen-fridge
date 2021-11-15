@@ -1,6 +1,7 @@
-//! This crate provides a way to manage CalDAV data.
+//! This crate provides a CalDAV client.
+//! CalDAV is described as "Calendaring Extensions to WebDAV" in [RFC 4791](https://datatracker.ietf.org/doc/html/rfc4791) and [RFC 7986](https://datatracker.ietf.org/doc/html/rfc7986) and the underlying iCal format is described at least in [RFC 5545](https://datatracker.ietf.org/doc/html/rfc5545).
 //!
-//! Its initial implementation only supported TODO events, so that it could fetch and update a CalDAV-hosted todo-list...just like [sticky notes on a kitchen fridge](https://www.google.com/search?q=kitchen+fridge+todo+list&tbm=isch) would. \
+//! This initial implementation only supports TODO events. This it can fetch and update a CalDAV-hosted todo-list...just like [sticky notes on a kitchen fridge](https://www.google.com/search?q=kitchen+fridge+todo+list&tbm=isch) would. \
 //! Supporting other items (and especially regular CalDAV calendar events) should be fairly trivial, as it should boil down to adding little logic in iCal files parsing, but any help is appreciated :-)
 //!
 //! ## Possible uses
@@ -12,7 +13,7 @@
 //!
 //! These two "data sources" (actual client and local cache) can be used together in a [`CalDavProvider`](CalDavProvider). \
 //! A `CalDavProvider` abstracts these two sources by merging them together into one virtual source. \
-//! It also handles synchronisation between the local cache and the server.
+//! It also handles synchronisation between the local cache and the server, and robustly recovers from any network error (so that it never corrupts the local or remote source).
 //!
 //! Note that many methods are defined in common traits (see [`crate::traits`]).
 //!
@@ -21,7 +22,7 @@
 //! See example usage in the `examples/` folder, that you can run using `cargo run --example <example-name>`. \
 //! You can also have a look at `tasklist`, a GUI app that uses `kitchen-fridge` under the hood.
 //!
-//! # Compile-time configuration options
+//! ## Compile-time configuration options
 //!
 //! Have a look at the [`config`] module to see what options can be overridden at compile-time.
 

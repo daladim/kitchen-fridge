@@ -1,3 +1,5 @@
+//! Traits used by multiple structs in this crate
+
 use std::error::Error;
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
@@ -14,6 +16,8 @@ use crate::calendar::SupportedComponents;
 use crate::resource::Resource;
 
 /// This trait must be implemented by data sources (either local caches or remote CalDAV clients)
+///
+/// Note that some concrete types (e.g. [`crate::cache::Cache`]) can also provide non-async versions of these functions
 #[async_trait]
 pub trait CalDavSource<T: BaseCalendar> {
     /// Returns the current calendars that this source contains
@@ -29,6 +33,8 @@ pub trait CalDavSource<T: BaseCalendar> {
 }
 
 /// This trait contains functions that are common to all calendars
+///
+/// Note that some concrete types (e.g. [`crate::calendar::cached_calendar::CachedCalendar`]) can also provide non-async versions of these functions
 #[async_trait]
 pub trait BaseCalendar {
     /// Returns the calendar name
@@ -65,6 +71,8 @@ pub trait BaseCalendar {
 
 
 /// Functions availabe for calendars that are backed by a CalDAV server
+///
+/// Note that some concrete types (e.g. [`crate::calendar::cached_calendar::CachedCalendar`]) can also provide non-async versions of these functions
 #[async_trait]
 pub trait DavCalendar : BaseCalendar {
     /// Create a new calendar
@@ -95,6 +103,8 @@ pub trait DavCalendar : BaseCalendar {
 /// Functions availabe for calendars we have full knowledge of
 ///
 /// Usually, these are local calendars fully backed by a local folder
+///
+/// Note that some concrete types (e.g. [`crate::calendar::cached_calendar::CachedCalendar`]) can also provide non-async versions of these functions
 #[async_trait]
 pub trait CompleteCalendar : BaseCalendar {
     /// Create a new calendar
@@ -104,8 +114,6 @@ pub trait CompleteCalendar : BaseCalendar {
     async fn get_item_ids(&self) -> Result<HashSet<ItemId>, Box<dyn Error>>;
 
     /// Returns all items that this calendar contains
-    ///
-    /// See [`crate::utils::comparison`] for helper functions that help sorting the results
     async fn get_items(&self) -> Result<HashMap<ItemId, &Item>, Box<dyn Error>>;
 
     /// Returns a particular item
