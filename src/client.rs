@@ -216,7 +216,7 @@ impl Client {
 
             let this_calendar = RemoteCalendar::new(display_name, this_calendar_url, supported_components, this_calendar_color);
             log::info!("Found calendar {}", this_calendar.name());
-            calendars.insert(this_calendar.id().clone(), Arc::new(Mutex::new(this_calendar)));
+            calendars.insert(this_calendar.url().clone(), Arc::new(Mutex::new(this_calendar)));
         }
 
         let mut replies = self.cached_replies.lock().unwrap();

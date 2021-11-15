@@ -6,6 +6,7 @@ use std::hash::Hash;
 use std::io::{stdin, stdout, Read, Write};
 
 use minidom::Element;
+use url::Url;
 
 use crate::traits::CompleteCalendar;
 use crate::traits::DavCalendar;
@@ -107,7 +108,7 @@ pub fn print_task(item: &Item) {
                 SyncStatus::LocallyModified(_) => "~",
                 SyncStatus::LocallyDeleted(_) =>  "x",
             };
-            println!("    {}{} {}\t{}", completion, sync, task.name(), task.id());
+            println!("    {}{} {}\t{}", completion, sync, task.name(), task.url());
         },
         _ => return,
     }
@@ -147,4 +148,11 @@ pub fn pause() {
     stdout.write_all(b"Press Enter to continue...").unwrap();
     stdout.flush().unwrap();
     stdin().read_exact(&mut [0]).unwrap();
+}
+
+
+/// Generate a random URL with a given prefix
+pub fn random_url(parent_calendar: &Url) -> Url {
+    let random = uuid::Uuid::new_v4().to_hyphenated().to_string();
+    parent_calendar.join(&random).unwrap(/* this cannot panic since we've just created a string that is a valid URL */)
 }

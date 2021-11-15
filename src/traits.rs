@@ -6,10 +6,10 @@ use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
 use csscolorparser::Color;
+use url::Url;
 
 use crate::item::SyncStatus;
 use crate::item::Item;
-use crate::item::ItemId;
 use crate::item::VersionTag;
 use crate::calendar::CalendarId;
 use crate::calendar::SupportedComponents;
@@ -40,8 +40,8 @@ pub trait BaseCalendar {
     /// Returns the calendar name
     fn name(&self) -> &str;
 
-    /// Returns the calendar unique ID
-    fn id(&self) -> &CalendarId;
+    /// Returns the calendar URL
+    fn url(&self) -> &Url;
 
     /// Returns the supported kinds of components for this calendar
     fn supported_components(&self) -> crate::calendar::SupportedComponents;
@@ -79,16 +79,16 @@ pub trait DavCalendar : BaseCalendar {
     fn new(name: String, resource: Resource, supported_components: SupportedComponents, color: Option<Color>) -> Self;
 
     /// Get the IDs and the version tags of every item in this calendar
-    async fn get_item_version_tags(&self) -> Result<HashMap<ItemId, VersionTag>, Box<dyn Error>>;
+    async fn get_item_version_tags(&self) -> Result<HashMap<Url, VersionTag>, Box<dyn Error>>;
 
     /// Returns a particular item
-    async fn get_item_by_id(&self, id: &ItemId) -> Result<Option<Item>, Box<dyn Error>>;
+    async fn get_item_by_id(&self, id: &Url) -> Result<Option<Item>, Box<dyn Error>>;
 
     /// Delete an item
-    async fn delete_item(&mut self, item_id: &ItemId) -> Result<(), Box<dyn Error>>;
+    async fn delete_item(&mut self, item_id: &Url) -> Result<(), Box<dyn Error>>;
 
     /// Get the IDs of all current items in this calendar
-    async fn get_item_ids(&self) -> Result<HashSet<ItemId>, Box<dyn Error>> {
+    async fn get_item_ids(&self) -> Result<HashSet<Url>, Box<dyn Error>> {
         let items = self.get_item_version_tags().await?;
         Ok(items.iter()
             .map(|(id, _tag)| id.clone())
@@ -111,22 +111,22 @@ pub trait CompleteCalendar : BaseCalendar {
     fn new(name: String, id: CalendarId, supported_components: SupportedComponents, color: Option<Color>) -> Self;
 
     /// Get the IDs of all current items in this calendar
-    async fn get_item_ids(&self) -> Result<HashSet<ItemId>, Box<dyn Error>>;
+    async fn get_item_ids(&self) -> Result<HashSet<Url>, Box<dyn Error>>;
 
     /// Returns all items that this calendar contains
-    async fn get_items(&self) -> Result<HashMap<ItemId, &Item>, Box<dyn Error>>;
+    async fn get_items(&self) -> Result<HashMap<Url, &Item>, Box<dyn Error>>;
 
     /// Returns a particular item
-    async fn get_item_by_id<'a>(&'a self, id: &ItemId) -> Option<&'a Item>;
+    async fn get_item_by_id<'a>(&'a self, id: &Url) -> Option<&'a Item>;
 
     /// Returns a particular item
-    async fn get_item_by_id_mut<'a>(&'a mut self, id: &ItemId) -> Option<&'a mut Item>;
+    async fn get_item_by_id_mut<'a>(&'a mut self, id: &Url) -> Option<&'a mut Item>;
 
     /// Mark an item for deletion.
     /// This is required so that the upcoming sync will know it should also also delete this task from the server
     /// (and then call [`CompleteCalendar::immediately_delete_item`] once it has been successfully deleted on the server)
-    async fn mark_for_deletion(&mut self, item_id: &ItemId) -> Result<(), Box<dyn Error>>;
+    async fn mark_for_deletion(&mut self, item_id: &Url) -> Result<(), Box<dyn Error>>;
 
     /// Immediately remove an item. See [`CompleteCalendar::mark_for_deletion`]
-    async fn immediately_delete_item(&mut self, item_id: &ItemId) -> Result<(), Box<dyn Error>>;
+    async fn immediately_delete_item(&mut self, item_id: &Url) -> Result<(), Box<dyn Error>>;
 }

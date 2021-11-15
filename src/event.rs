@@ -2,15 +2,15 @@
 
 use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
+use url::Url;
 
-use crate::item::ItemId;
 use crate::item::SyncStatus;
 
 /// TODO: implement `Event` one day.
 /// This crate currently only supports tasks, not calendar events.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Event {
-    id: ItemId,
+    uid: String,
     name: String,
     sync_status: SyncStatus,
 }
@@ -20,12 +20,12 @@ impl Event {
         unimplemented!();
     }
 
-    pub fn id(&self) -> &ItemId {
-        &self.id
+    pub fn url(&self) -> &Url {
+        unimplemented!();
     }
 
     pub fn uid(&self) -> &str {
-        unimplemented!()
+        &self.uid
     }
 
     pub fn name(&self) -> &str {

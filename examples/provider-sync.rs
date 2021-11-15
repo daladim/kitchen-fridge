@@ -3,13 +3,13 @@
 use std::path::Path;
 
 use chrono::{Utc};
+use url::Url;
 
 use kitchen_fridge::{client::Client, traits::CalDavSource};
 use kitchen_fridge::calendar::{CalendarId, SupportedComponents};
 use kitchen_fridge::Item;
 use kitchen_fridge::Task;
 use kitchen_fridge::task::CompletionStatus;
-use kitchen_fridge::item::ItemId;
 use kitchen_fridge::cache::Cache;
 use kitchen_fridge::CalDavProvider;
 use kitchen_fridge::traits::BaseCalendar;
@@ -100,7 +100,7 @@ async fn add_items_and_sync_again(provider: &mut CalDavProvider)
     let changed_calendar_id: CalendarId = EXAMPLE_EXISTING_CALENDAR_URL.parse().unwrap();
     let new_task_name = "This is a new task we're adding as an example, with ÜTF-8 characters";
     let new_task = Task::new(String::from(new_task_name), false, &changed_calendar_id);
-    let new_id = new_task.id().clone();
+    let new_url = new_task.url().clone();
     provider.local().get_calendar(&changed_calendar_id).await.unwrap()
         .lock().unwrap().add_item(Item::Task(new_task)).await.unwrap();
 
@@ -112,20 +112,20 @@ async fn add_items_and_sync_again(provider: &mut CalDavProvider)
     }
     provider.local().save_to_folder().unwrap();
 
-    complete_item_and_sync_again(provider, &changed_calendar_id, &new_id).await;
+    complete_item_and_sync_again(provider, &changed_calendar_id, &new_url).await;
 }
 
 async fn complete_item_and_sync_again(
     provider: &mut CalDavProvider,
     changed_calendar_id: &CalendarId,
-    id_to_complete: &ItemId)
+    url_to_complete: &Url)
 {
     println!("\nNow, we'll mark this last task as completed, and run the sync again.");
     pause();
 
     let completion_status = CompletionStatus::Completed(Some(Utc::now()));
     provider.local().get_calendar(changed_calendar_id).await.unwrap()
-        .lock().unwrap().get_item_by_id_mut(id_to_complete).await.unwrap()
+        .lock().unwrap().get_item_by_id_mut(url_to_complete).await.unwrap()
         .unwrap_task_mut()
         .set_completion_status(completion_status);
 
@@ -136,13 +136,13 @@ async fn complete_item_and_sync_again(
     }
     provider.local().save_to_folder().unwrap();
 
-    remove_items_and_sync_again(provider, changed_calendar_id, id_to_complete).await;
+    remove_items_and_sync_again(provider, changed_calendar_id, url_to_complete).await;
 }
 
 async fn remove_items_and_sync_again(
     provider: &mut CalDavProvider,
     changed_calendar_id: &CalendarId,
-    id_to_remove: &ItemId)
+    id_to_remove: &Url)
 {
     println!("\nNow, we'll delete this last task, and run the sync again.");
     pause();

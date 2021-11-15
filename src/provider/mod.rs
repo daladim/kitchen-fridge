@@ -6,10 +6,11 @@ use std::error::Error;
 use std::collections::HashSet;
 use std::marker::PhantomData;
 use std::sync::{Arc, Mutex};
+use url::Url;
 
 use crate::traits::{BaseCalendar, CalDavSource, DavCalendar};
 use crate::traits::CompleteCalendar;
-use crate::item::{ItemId, SyncStatus};
+use crate::item::SyncStatus;
 use crate::calendar::CalendarId;
 
 pub mod sync_progress;
@@ -400,7 +401,7 @@ where
     }
 
 
-    async fn item_name(cal: &T, id: &ItemId) -> String {
+    async fn item_name(cal: &T, id: &Url) -> String {
         cal.get_item_by_id(id).await.map(|item| item.name()).unwrap_or_default().to_string()
     }
 

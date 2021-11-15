@@ -86,7 +86,7 @@ impl Cache {
                                 continue;
                             },
                             Ok(cal) =>
-                                data.calendars.insert(cal.id().clone(), Arc::new(Mutex::new(cal))),
+                                data.calendars.insert(cal.url().clone(), Arc::new(Mutex::new(cal))),
                         };
                     }
                 },
@@ -259,13 +259,13 @@ mod tests {
 
         {
             let mut bucket_list = bucket_list.lock().unwrap();
-            let cal_id = bucket_list.id().clone();
+            let cal_url = bucket_list.url().clone();
             bucket_list.add_item(Item::Task(Task::new(
-                String::from("Attend a concert of JS Bach"), false, &cal_id
+                String::from("Attend a concert of JS Bach"), false, &cal_url
             ))).await.unwrap();
 
             bucket_list.add_item(Item::Task(Task::new(
-                String::from("Climb the Lighthouse of Alexandria"), true, &cal_id
+                String::from("Climb the Lighthouse of Alexandria"), true, &cal_url
             ))).await.unwrap();
         }
 
