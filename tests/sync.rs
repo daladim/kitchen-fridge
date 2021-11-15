@@ -124,7 +124,7 @@ impl TestFlavour {
         Self {
             scenarii: scenarii::scenarii_basic(),
             mock_behaviour: Arc::new(Mutex::new(MockBehaviour{
-                get_item_by_id_behaviour: (3,2),
+                get_item_by_url_behaviour: (3,2),
                 ..MockBehaviour::default()
             })),
         }
@@ -145,7 +145,7 @@ impl TestFlavour {
             scenarii: scenarii::scenarii_basic(),
             mock_behaviour: Arc::new(Mutex::new(MockBehaviour{
                 add_item_behaviour: (2,3),
-                get_item_by_id_behaviour: (1,4),
+                get_item_by_url_behaviour: (1,4),
                 ..MockBehaviour::default()
             })),
         }
@@ -183,7 +183,7 @@ impl TestFlavour {
                 delete_item_behaviour: (1,1),
                 create_calendar_behaviour: (1,4),
                 get_item_version_tags_behaviour: (3,1),
-                get_item_by_id_behaviour: (0,41),
+                get_item_by_url_behaviour: (0,41),
                 ..MockBehaviour::default()
             })),
         }

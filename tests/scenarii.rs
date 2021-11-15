@@ -15,7 +15,6 @@ use url::Url;
 
 use chrono::Utc;
 
-use kitchen_fridge::calendar::CalendarId;
 use kitchen_fridge::calendar::SupportedComponents;
 use kitchen_fridge::traits::CalDavSource;
 use kitchen_fridge::traits::BaseCalendar;
@@ -45,7 +44,7 @@ pub enum LocatedState {
 pub struct ItemState {
     // TODO: if/when this crate supports Events as well, we could add such events here
     /// The calendar it is in
-    calendar: CalendarId,
+    calendar: Url,
     /// Its name
     name: String,
     /// Its completion status
@@ -55,10 +54,10 @@ pub struct ItemState {
 pub enum ChangeToApply {
     Rename(String),
     SetCompletion(bool),
-    Create(CalendarId, Item),
+    Create(Url, Item),
     /// "remove" means "mark for deletion" in the local calendar, or "immediately delete" on the remote calendar
     Remove,
-    // ChangeCalendar(CalendarId) is useless, as long as changing a calendar is implemented as "delete in one calendar and re-create it in another one"
+    // ChangeCalendar(Url) is useless, as long as changing a calendar is implemented as "delete in one calendar and re-create it in another one"
 }
 
 
@@ -88,9 +87,9 @@ pub struct ItemScenario {
 pub fn scenarii_basic() -> Vec<ItemScenario> {
     let mut tasks = Vec::new();
 
-    let first_cal = CalendarId::from("https://some.calend.ar/calendar-1/".parse().unwrap());
-    let second_cal = CalendarId::from("https://some.calend.ar/calendar-2/".parse().unwrap());
-    let third_cal = CalendarId::from("https://some.calend.ar/calendar-3/".parse().unwrap());
+    let first_cal = Url::from("https://some.calend.ar/calendar-1/".parse().unwrap());
+    let second_cal = Url::from("https://some.calend.ar/calendar-2/".parse().unwrap());
+    let third_cal = Url::from("https://some.calend.ar/calendar-3/".parse().unwrap());
 
     tasks.push(
         ItemScenario {
@@ -419,8 +418,8 @@ pub fn scenarii_basic() -> Vec<ItemScenario> {
 pub fn scenarii_first_sync_to_local() -> Vec<ItemScenario> {
     let mut tasks = Vec::new();
 
-    let cal1 = CalendarId::from("https://some.calend.ar/first/".parse().unwrap());
-    let cal2 = CalendarId::from("https://some.calend.ar/second/".parse().unwrap());
+    let cal1 = Url::from("https://some.calend.ar/first/".parse().unwrap());
+    let cal2 = Url::from("https://some.calend.ar/second/".parse().unwrap());
 
     tasks.push(
         ItemScenario {
@@ -483,8 +482,8 @@ pub fn scenarii_first_sync_to_local() -> Vec<ItemScenario> {
 pub fn scenarii_first_sync_to_server() -> Vec<ItemScenario> {
     let mut tasks = Vec::new();
 
-    let cal3 = CalendarId::from("https://some.calend.ar/third/".parse().unwrap());
-    let cal4 = CalendarId::from("https://some.calend.ar/fourth/".parse().unwrap());
+    let cal3 = Url::from("https://some.calend.ar/third/".parse().unwrap());
+    let cal4 = Url::from("https://some.calend.ar/fourth/".parse().unwrap());
 
     tasks.push(
         ItemScenario {
@@ -548,7 +547,7 @@ pub fn scenarii_first_sync_to_server() -> Vec<ItemScenario> {
 pub fn scenarii_transient_task() -> Vec<ItemScenario> {
     let mut tasks = Vec::new();
 
-    let cal = CalendarId::from("https://some.calend.ar/transient/".parse().unwrap());
+    let cal = Url::from("https://some.calend.ar/transient/".parse().unwrap());
 
     tasks.push(
         ItemScenario {
@@ -668,37 +667,37 @@ async fn populate_test_provider(scenarii: &[ItemScenario], mock_behaviour: Arc<M
 async fn apply_changes_on_provider(provider: &mut Provider<Cache, CachedCalendar, Cache, CachedCalendar>, scenarii: &[ItemScenario]) {
     // Apply changes to each item
     for item in scenarii {
-        let initial_calendar_id = match &item.initial_state {
+        let initial_calendar_url = match &item.initial_state {
             LocatedState::None => None,
             LocatedState::Local(state) => Some(state.calendar.clone()),
             LocatedState::Remote(state) => Some(state.calendar.clone()),
             LocatedState::BothSynced(state) => Some(state.calendar.clone()),
         };
 
-        let mut calendar_id = initial_calendar_id.clone();
+        let mut calendar_url = initial_calendar_url.clone();
         for local_change in &item.local_changes_to_apply {
-            calendar_id = Some(apply_change(provider.local(), calendar_id, &item.url, local_change, false).await);
+            calendar_url = Some(apply_change(provider.local(), calendar_url, &item.url, local_change, false).await);
         }
 
-        let mut calendar_id = initial_calendar_id;
+        let mut calendar_url = initial_calendar_url;
         for remote_change in &item.remote_changes_to_apply {
-            calendar_id = Some(apply_change(provider.remote(), calendar_id, &item.url, remote_change, true).await);
+            calendar_url = Some(apply_change(provider.remote(), calendar_url, &item.url, remote_change, true).await);
         }
     }
 }
 
-async fn get_or_insert_calendar(source: &mut Cache, id: &CalendarId)
+async fn get_or_insert_calendar(source: &mut Cache, url: &Url)
     -> Result<Arc<Mutex<CachedCalendar>>, Box<dyn Error>>
 {
-    match source.get_calendar(id).await {
+    match source.get_calendar(url).await {
         Some(cal) => Ok(cal),
         None => {
-            let new_name = format!("Test calendar for ID {}", id);
+            let new_name = format!("Test calendar for URL {}", url);
             let supported_components = SupportedComponents::TODO;
             let color = csscolorparser::parse("#ff8000"); // TODO: we should rather have specific colors, depending on the calendars
 
             source.create_calendar(
-                id.clone(),
+                url.clone(),
                 new_name.to_string(),
                 supported_components,
                 None,
@@ -707,13 +706,13 @@ async fn get_or_insert_calendar(source: &mut Cache, id: &CalendarId)
     }
 }
 
-/// Apply a single change on a given source, and returns the calendar ID that was modified
-async fn apply_change<S, C>(source: &S, calendar_id: Option<CalendarId>, item_url: &Url, change: &ChangeToApply, is_remote: bool) -> CalendarId
+/// Apply a single change on a given source, and returns the calendar URL that was modified
+async fn apply_change<S, C>(source: &S, calendar_url: Option<Url>, item_url: &Url, change: &ChangeToApply, is_remote: bool) -> Url
 where
     S: CalDavSource<C>,
     C: CompleteCalendar + DavCalendar, // in this test, we're using a calendar that mocks both kinds
 {
-    match calendar_id {
+    match calendar_url {
         Some(cal) => {
             apply_changes_on_an_existing_item(source, &cal, item_url, change, is_remote).await;
             cal
@@ -724,14 +723,14 @@ where
     }
 }
 
-async fn apply_changes_on_an_existing_item<S, C>(source: &S, calendar_id: &CalendarId, item_url: &Url, change: &ChangeToApply, is_remote: bool)
+async fn apply_changes_on_an_existing_item<S, C>(source: &S, calendar_url: &Url, item_url: &Url, change: &ChangeToApply, is_remote: bool)
 where
     S: CalDavSource<C>,
     C: CompleteCalendar + DavCalendar, // in this test, we're using a calendar that mocks both kinds
 {
-    let cal = source.get_calendar(calendar_id).await.unwrap();
+    let cal = source.get_calendar(calendar_url).await.unwrap();
     let mut cal = cal.lock().unwrap();
-    let task = cal.get_item_by_id_mut(item_url).await.unwrap().unwrap_task_mut();
+    let task = cal.get_item_by_url_mut(item_url).await.unwrap().unwrap_task_mut();
 
     match change {
         ChangeToApply::Rename(new_name) => {
@@ -758,14 +757,14 @@ where
                 true => cal.delete_item(item_url).await.unwrap(),
             };
         },
-        ChangeToApply::Create(_calendar_id, _item) => {
+        ChangeToApply::Create(_calendar_url, _item) => {
             panic!("This function only handles already existing items");
         },
     }
 }
 
-/// Create an item, and returns the calendar ID it was inserted in
-async fn create_test_item<S, C>(source: &S, change: &ChangeToApply) -> CalendarId
+/// Create an item, and returns the URL of the calendar it was inserted in
+async fn create_test_item<S, C>(source: &S, change: &ChangeToApply) -> Url
 where
     S: CalDavSource<C>,
     C: CompleteCalendar + DavCalendar, // in this test, we're using a calendar that mocks both kinds
@@ -776,10 +775,10 @@ where
         ChangeToApply::Remove => {
             panic!("This function only creates items that do not exist yet");
         }
-        ChangeToApply::Create(calendar_id, item) => {
-            let cal = source.get_calendar(calendar_id).await.unwrap();
+        ChangeToApply::Create(calendar_url, item) => {
+            let cal = source.get_calendar(calendar_url).await.unwrap();
             cal.lock().unwrap().add_item(item.clone()).await.unwrap();
-            calendar_id.clone()
+            calendar_url.clone()
         },
     }
 }

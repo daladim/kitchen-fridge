@@ -11,7 +11,6 @@ use url::Url;
 use crate::traits::{BaseCalendar, CalDavSource, DavCalendar};
 use crate::traits::CompleteCalendar;
 use crate::item::SyncStatus;
-use crate::calendar::CalendarId;
 
 pub mod sync_progress;
 use sync_progress::SyncProgress;
@@ -103,39 +102,39 @@ where
 
         // Sync every remote calendar
         let cals_remote = self.remote.get_calendars().await?;
-        for (cal_id, cal_remote) in cals_remote {
-            let counterpart = match self.get_or_insert_local_counterpart_calendar(&cal_id, cal_remote.clone()).await {
+        for (cal_url, cal_remote) in cals_remote {
+            let counterpart = match self.get_or_insert_local_counterpart_calendar(&cal_url, cal_remote.clone()).await {
                 Err(err) => {
-                    progress.warn(&format!("Unable to get or insert local counterpart calendar for {} ({}). Skipping this time", cal_id, err));
+                    progress.warn(&format!("Unable to get or insert local counterpart calendar for {} ({}). Skipping this time", cal_url, err));
                     continue;
                 },
                 Ok(arc) => arc,
             };
 
             if let Err(err) = Self::sync_calendar_pair(counterpart, cal_remote, progress).await {
-                progress.warn(&format!("Unable to sync calendar {}: {}, skipping this time.", cal_id, err));
+                progress.warn(&format!("Unable to sync calendar {}: {}, skipping this time.", cal_url, err));
                 continue;
             }
-            handled_calendars.insert(cal_id);
+            handled_calendars.insert(cal_url);
         }
 
         // Sync every local calendar that would not be in the remote yet
         let cals_local = self.local.get_calendars().await?;
-        for (cal_id, cal_local) in cals_local {
-            if handled_calendars.contains(&cal_id) {
+        for (cal_url, cal_local) in cals_local {
+            if handled_calendars.contains(&cal_url) {
                 continue;
             }
 
-            let counterpart = match self.get_or_insert_remote_counterpart_calendar(&cal_id, cal_local.clone()).await {
+            let counterpart = match self.get_or_insert_remote_counterpart_calendar(&cal_url, cal_local.clone()).await {
                 Err(err) => {
-                    progress.warn(&format!("Unable to get or insert remote counterpart calendar for {} ({}). Skipping this time", cal_id, err));
+                    progress.warn(&format!("Unable to get or insert remote counterpart calendar for {} ({}). Skipping this time", cal_url, err));
                     continue;
                 },
                 Ok(arc) => arc,
             };
 
             if let Err(err) = Self::sync_calendar_pair(cal_local, counterpart, progress).await {
-                progress.warn(&format!("Unable to sync calendar {}: {}, skipping this time.", cal_id, err));
+                progress.warn(&format!("Unable to sync calendar {}: {}, skipping this time.", cal_url, err));
                 continue;
             }
         }
@@ -146,11 +145,11 @@ where
     }
 
 
-    async fn get_or_insert_local_counterpart_calendar(&mut self, cal_id: &CalendarId, needle: Arc<Mutex<U>>) -> Result<Arc<Mutex<T>>, Box<dyn Error>> {
-        get_or_insert_counterpart_calendar("local", &mut self.local, cal_id, needle).await
+    async fn get_or_insert_local_counterpart_calendar(&mut self, cal_url: &Url, needle: Arc<Mutex<U>>) -> Result<Arc<Mutex<T>>, Box<dyn Error>> {
+        get_or_insert_counterpart_calendar("local", &mut self.local, cal_url, needle).await
     }
-    async fn get_or_insert_remote_counterpart_calendar(&mut self, cal_id: &CalendarId, needle: Arc<Mutex<T>>) -> Result<Arc<Mutex<U>>, Box<dyn Error>> {
-        get_or_insert_counterpart_calendar("remote", &mut self.remote, cal_id, needle).await
+    async fn get_or_insert_remote_counterpart_calendar(&mut self, cal_url: &Url, needle: Arc<Mutex<T>>) -> Result<Arc<Mutex<U>>, Box<dyn Error>> {
+        get_or_insert_counterpart_calendar("remote", &mut self.remote, cal_url, needle).await
     }
 
 
@@ -180,52 +179,52 @@ where
             details: format!("{} remote items", remote_items.len()),
         });
 
-        let mut local_items_to_handle = cal_local.get_item_ids().await?;
-        for (id, remote_tag) in remote_items {
-            progress.trace(&format!("***** Considering remote item {}...", id));
-            match cal_local.get_item_by_id(&id).await {
+        let mut local_items_to_handle = cal_local.get_item_urls().await?;
+        for (url, remote_tag) in remote_items {
+            progress.trace(&format!("***** Considering remote item {}...", url));
+            match cal_local.get_item_by_url(&url).await {
                 None => {
                     // This was created on the remote
-                    progress.debug(&format!("*   {} is a remote addition", id));
-                    remote_additions.insert(id);
+                    progress.debug(&format!("*   {} is a remote addition", url));
+                    remote_additions.insert(url);
                 },
                 Some(local_item) => {
-                    if local_items_to_handle.remove(&id) == false {
-                        progress.error(&format!("Inconsistent state: missing task {} from the local tasks", id));
+                    if local_items_to_handle.remove(&url) == false {
+                        progress.error(&format!("Inconsistent state: missing task {} from the local tasks", url));
                     }
 
                     match local_item.sync_status() {
                         SyncStatus::NotSynced => {
-                            progress.error(&format!("ID reuse between remote and local sources ({}). Ignoring this item in the sync", id));
+                            progress.error(&format!("URL reuse between remote and local sources ({}). Ignoring this item in the sync", url));
                             continue;
                         },
                         SyncStatus::Synced(local_tag) => {
                             if &remote_tag != local_tag {
                                 // This has been modified on the remote
-                                progress.debug(&format!("*   {} is a remote change", id));
-                                remote_changes.insert(id);
+                                progress.debug(&format!("*   {} is a remote change", url));
+                                remote_changes.insert(url);
                             }
                         },
                         SyncStatus::LocallyModified(local_tag) => {
                             if &remote_tag == local_tag {
                                 // This has been changed locally
-                                progress.debug(&format!("*   {} is a local change", id));
-                                local_changes.insert(id);
+                                progress.debug(&format!("*   {} is a local change", url));
+                                local_changes.insert(url);
                             } else {
-                                progress.info(&format!("Conflict: task {} has been modified in both sources. Using the remote version.", id));
-                                progress.debug(&format!("*   {} is considered a remote change", id));
-                                remote_changes.insert(id);
+                                progress.info(&format!("Conflict: task {} has been modified in both sources. Using the remote version.", url));
+                                progress.debug(&format!("*   {} is considered a remote change", url));
+                                remote_changes.insert(url);
                             }
                         },
                         SyncStatus::LocallyDeleted(local_tag) => {
                             if &remote_tag == local_tag {
                                 // This has been locally deleted
-                                progress.debug(&format!("*   {} is a local deletion", id));
-                                local_del.insert(id);
+                                progress.debug(&format!("*   {} is a local deletion", url));
+                                local_del.insert(url);
                             } else {
-                                progress.info(&format!("Conflict: task {} has been locally deleted and remotely modified. Reverting to the remote version.", id));
-                                progress.debug(&format!("*   {} is a considered a remote change", id));
-                                remote_changes.insert(id);
+                                progress.info(&format!("Conflict: task {} has been locally deleted and remotely modified. Reverting to the remote version.", url));
+                                progress.debug(&format!("*   {} is a considered a remote change", url));
+                                remote_changes.insert(url);
                             }
                         },
                     }
@@ -234,11 +233,11 @@ where
         }
 
         // Also iterate on the local tasks that are not on the remote
-        for id in local_items_to_handle {
-            progress.trace(&format!("##### Considering local item {}...", id));
-            let local_item = match cal_local.get_item_by_id(&id).await {
+        for url in local_items_to_handle {
+            progress.trace(&format!("##### Considering local item {}...", url));
+            let local_item = match cal_local.get_item_by_url(&url).await {
                 None => {
-                    progress.error(&format!("Inconsistent state: missing task {} from the local tasks", id));
+                    progress.error(&format!("Inconsistent state: missing task {} from the local tasks", url));
                     continue;
                 },
                 Some(item) => item,
@@ -247,22 +246,22 @@ where
             match local_item.sync_status() {
                 SyncStatus::Synced(_) => {
                     // This item has been removed from the remote
-                    progress.debug(&format!("#   {} is a deletion from the server", id));
-                    remote_del.insert(id);
+                    progress.debug(&format!("#   {} is a deletion from the server", url));
+                    remote_del.insert(url);
                 },
                 SyncStatus::NotSynced => {
                     // This item has just been locally created
-                    progress.debug(&format!("#   {} has been locally created", id));
-                    local_additions.insert(id);
+                    progress.debug(&format!("#   {} has been locally created", url));
+                    local_additions.insert(url);
                 },
                 SyncStatus::LocallyDeleted(_) => {
                     // This item has been deleted from both sources
-                    progress.debug(&format!("#   {} has been deleted from both sources", id));
-                    remote_del.insert(id);
+                    progress.debug(&format!("#   {} has been deleted from both sources", url));
+                    remote_del.insert(url);
                 },
                 SyncStatus::LocallyModified(_) => {
-                    progress.info(&format!("Conflict: item {} has been deleted from the server and locally modified. Deleting the local copy", id));
-                    remote_del.insert(id);
+                    progress.info(&format!("Conflict: item {} has been deleted from the server and locally modified. Deleting the local copy", url));
+                    remote_del.insert(url);
                 },
             }
         }
@@ -270,80 +269,80 @@ where
 
         // Step 2 - commit changes
         progress.trace("Committing changes...");
-        for id_del in local_del {
-            progress.debug(&format!("> Pushing local deletion {} to the server", id_del));
+        for url_del in local_del {
+            progress.debug(&format!("> Pushing local deletion {} to the server", url_del));
             progress.feedback(SyncEvent::InProgress{
                 calendar: cal_name.clone(),
-                details: Self::item_name(&cal_local, &id_del).await,
+                details: Self::item_name(&cal_local, &url_del).await,
             });
-            match cal_remote.delete_item(&id_del).await {
+            match cal_remote.delete_item(&url_del).await {
                 Err(err) => {
-                    progress.warn(&format!("Unable to delete remote item {}: {}", id_del, err));
+                    progress.warn(&format!("Unable to delete remote item {}: {}", url_del, err));
                 },
                 Ok(()) => {
                     // Change the local copy from "marked to deletion" to "actually deleted"
-                    if let Err(err) = cal_local.immediately_delete_item(&id_del).await {
-                        progress.error(&format!("Unable to permanently delete local item {}: {}", id_del, err));
+                    if let Err(err) = cal_local.immediately_delete_item(&url_del).await {
+                        progress.error(&format!("Unable to permanently delete local item {}: {}", url_del, err));
                     }
                 },
             }
         }
 
-        for id_del in remote_del {
-            progress.debug(&format!("> Applying remote deletion {} locally", id_del));
+        for url_del in remote_del {
+            progress.debug(&format!("> Applying remote deletion {} locally", url_del));
             progress.feedback(SyncEvent::InProgress{
                 calendar: cal_name.clone(),
-                details: Self::item_name(&cal_local, &id_del).await,
+                details: Self::item_name(&cal_local, &url_del).await,
             });
-            if let Err(err) = cal_local.immediately_delete_item(&id_del).await {
-                progress.warn(&format!("Unable to delete local item {}: {}", id_del, err));
+            if let Err(err) = cal_local.immediately_delete_item(&url_del).await {
+                progress.warn(&format!("Unable to delete local item {}: {}", url_del, err));
             }
         }
 
-        for id_add in remote_additions {
-            progress.debug(&format!("> Applying remote addition {} locally", id_add));
+        for url_add in remote_additions {
+            progress.debug(&format!("> Applying remote addition {} locally", url_add));
             progress.feedback(SyncEvent::InProgress{
                 calendar: cal_name.clone(),
-                details: Self::item_name(&cal_local, &id_add).await,
+                details: Self::item_name(&cal_local, &url_add).await,
             });
-            match cal_remote.get_item_by_id(&id_add).await {
+            match cal_remote.get_item_by_url(&url_add).await {
                 Err(err) => {
-                    progress.warn(&format!("Unable to get remote item {}: {}. Skipping it.", id_add, err));
+                    progress.warn(&format!("Unable to get remote item {}: {}. Skipping it.", url_add, err));
                     continue;
                 },
                 Ok(item) => match item {
                     None => {
-                        progress.error(&format!("Inconsistency: new item {} has vanished from the remote end", id_add));
+                        progress.error(&format!("Inconsistency: new item {} has vanished from the remote end", url_add));
                         continue;
                     },
                     Some(new_item) => {
                         if let Err(err) = cal_local.add_item(new_item.clone()).await {
-                            progress.error(&format!("Not able to add item {} to local calendar: {}", id_add, err));
+                            progress.error(&format!("Not able to add item {} to local calendar: {}", url_add, err));
                         }
                     },
                 },
             }
         }
 
-        for id_change in remote_changes {
-            progress.debug(&format!("> Applying remote change {} locally", id_change));
+        for url_change in remote_changes {
+            progress.debug(&format!("> Applying remote change {} locally", url_change));
             progress.feedback(SyncEvent::InProgress{
                 calendar: cal_name.clone(),
-                details: Self::item_name(&cal_local, &id_change).await,
+                details: Self::item_name(&cal_local, &url_change).await,
             });
-            match cal_remote.get_item_by_id(&id_change).await {
+            match cal_remote.get_item_by_url(&url_change).await {
                 Err(err) => {
-                    progress.warn(&format!("Unable to get remote item {}: {}. Skipping it", id_change, err));
+                    progress.warn(&format!("Unable to get remote item {}: {}. Skipping it", url_change, err));
                     continue;
                 },
                 Ok(item) => match item {
                     None => {
-                        progress.error(&format!("Inconsistency: modified item {} has vanished from the remote end", id_change));
+                        progress.error(&format!("Inconsistency: modified item {} has vanished from the remote end", url_change));
                         continue;
                     },
                     Some(item) => {
                         if let Err(err) = cal_local.update_item(item.clone()).await {
-                            progress.error(&format!("Unable to update item {} in local calendar: {}", id_change, err));
+                            progress.error(&format!("Unable to update item {} in local calendar: {}", url_change, err));
                         }
                     },
                 }
@@ -351,20 +350,20 @@ where
         }
 
 
-        for id_add in local_additions {
-            progress.debug(&format!("> Pushing local addition {} to the server", id_add));
+        for url_add in local_additions {
+            progress.debug(&format!("> Pushing local addition {} to the server", url_add));
             progress.feedback(SyncEvent::InProgress{
                 calendar: cal_name.clone(),
-                details: Self::item_name(&cal_local, &id_add).await,
+                details: Self::item_name(&cal_local, &url_add).await,
             });
-            match cal_local.get_item_by_id_mut(&id_add).await {
+            match cal_local.get_item_by_url_mut(&url_add).await {
                 None => {
-                    progress.error(&format!("Inconsistency: created item {} has been marked for upload but is locally missing", id_add));
+                    progress.error(&format!("Inconsistency: created item {} has been marked for upload but is locally missing", url_add));
                     continue;
                 },
                 Some(item) => {
                     match cal_remote.add_item(item.clone()).await {
-                        Err(err) => progress.error(&format!("Unable to add item {} to remote calendar: {}", id_add, err)),
+                        Err(err) => progress.error(&format!("Unable to add item {} to remote calendar: {}", url_add, err)),
                         Ok(new_ss) => {
                             // Update local sync status
                             item.set_sync_status(new_ss);
@@ -374,20 +373,20 @@ where
             };
         }
 
-        for id_change in local_changes {
-            progress.debug(&format!("> Pushing local change {} to the server", id_change));
+        for url_change in local_changes {
+            progress.debug(&format!("> Pushing local change {} to the server", url_change));
             progress.feedback(SyncEvent::InProgress{
                 calendar: cal_name.clone(),
-                details: Self::item_name(&cal_local, &id_change).await,
+                details: Self::item_name(&cal_local, &url_change).await,
             });
-            match cal_local.get_item_by_id_mut(&id_change).await {
+            match cal_local.get_item_by_url_mut(&url_change).await {
                 None => {
-                    progress.error(&format!("Inconsistency: modified item {} has been marked for upload but is locally missing", id_change));
+                    progress.error(&format!("Inconsistency: modified item {} has been marked for upload but is locally missing", url_change));
                     continue;
                 },
                 Some(item) => {
                     match cal_remote.update_item(item.clone()).await {
-                        Err(err) => progress.error(&format!("Unable to update item {} in remote calendar: {}", id_change, err)),
+                        Err(err) => progress.error(&format!("Unable to update item {} in remote calendar: {}", url_change, err)),
                         Ok(new_ss) => {
                             // Update local sync status
                             item.set_sync_status(new_ss);
@@ -401,14 +400,14 @@ where
     }
 
 
-    async fn item_name(cal: &T, id: &Url) -> String {
-        cal.get_item_by_id(id).await.map(|item| item.name()).unwrap_or_default().to_string()
+    async fn item_name(cal: &T, url: &Url) -> String {
+        cal.get_item_by_url(url).await.map(|item| item.name()).unwrap_or_default().to_string()
     }
 
 }
 
 
-async fn get_or_insert_counterpart_calendar<H, N, I>(haystack_descr: &str, haystack: &mut H, cal_id: &CalendarId, needle: Arc<Mutex<N>>)
+async fn get_or_insert_counterpart_calendar<H, N, I>(haystack_descr: &str, haystack: &mut H, cal_url: &Url, needle: Arc<Mutex<N>>)
     -> Result<Arc<Mutex<I>>, Box<dyn Error>>
 where
     H: CalDavSource<I>,
@@ -416,18 +415,18 @@ where
     N: BaseCalendar,
 {
     loop {
-        if let Some(cal) = haystack.get_calendar(&cal_id).await {
+        if let Some(cal) = haystack.get_calendar(&cal_url).await {
             break Ok(cal);
         }
 
         // This calendar does not exist locally yet, let's add it
-        log::debug!("Adding a {} calendar {}", haystack_descr, cal_id);
+        log::debug!("Adding a {} calendar {}", haystack_descr, cal_url);
         let src = needle.lock().unwrap();
         let name = src.name().to_string();
         let supported_comps = src.supported_components();
         let color = src.color();
         if let Err(err) = haystack.create_calendar(
-            cal_id.clone(),
+            cal_url.clone(),
             name,
             supported_comps,
             color.cloned(),

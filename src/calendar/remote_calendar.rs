@@ -138,7 +138,7 @@ impl DavCalendar for RemoteCalendar {
         for response in responses {
             let item_url = crate::utils::find_elem(&response, "href")
                 .map(|elem| self.resource.combine(&elem.text()));
-            let item_id = match item_url {
+            let item_url = match item_url {
                 None => {
                     log::warn!("Unable to extract HREF");
                     continue;
@@ -150,7 +150,7 @@ impl DavCalendar for RemoteCalendar {
 
             let version_tag = match crate::utils::find_elem(&response, "getetag") {
                 None => {
-                    log::warn!("Unable to extract ETAG for item {}, ignoring it", item_id);
+                    log::warn!("Unable to extract ETAG for item {}, ignoring it", item_url);
                     continue;
                 },
                 Some(etag) => {
@@ -158,7 +158,7 @@ impl DavCalendar for RemoteCalendar {
                 }
             };
 
-            items.insert(item_id.clone(), version_tag);
+            items.insert(item_url.clone(), version_tag);
         }
 
         // Note: the mutex cannot be locked during this whole async function, but it can safely be re-entrant (this will just waste an unnecessary request)
@@ -166,9 +166,9 @@ impl DavCalendar for RemoteCalendar {
         Ok(items)
     }
 
-    async fn get_item_by_id(&self, id: &Url) -> Result<Option<Item>, Box<dyn Error>> {
+    async fn get_item_by_url(&self, url: &Url) -> Result<Option<Item>, Box<dyn Error>> {
         let res = reqwest::Client::new()
-            .get(id.clone())
+            .get(url.clone())
             .header(CONTENT_TYPE, "text/calendar")
             .basic_auth(self.resource.username(), Some(self.resource.password()))
             .send()
@@ -182,18 +182,18 @@ impl DavCalendar for RemoteCalendar {
 
         // This is supposed to be cached
         let version_tags = self.get_item_version_tags().await?;
-        let vt = match version_tags.get(id) {
-            None => return Err(format!("Inconsistent data: {} has no version tag", id).into()),
+        let vt = match version_tags.get(url) {
+            None => return Err(format!("Inconsistent data: {} has no version tag", url).into()),
             Some(vt) => vt,
         };
 
-        let item = crate::ical::parse(&text, id.clone(), SyncStatus::Synced(vt.clone()))?;
+        let item = crate::ical::parse(&text, url.clone(), SyncStatus::Synced(vt.clone()))?;
         Ok(Some(item))
     }
 
-    async fn delete_item(&mut self, item_id: &Url) -> Result<(), Box<dyn Error>> {
+    async fn delete_item(&mut self, item_url: &Url) -> Result<(), Box<dyn Error>> {
         let del_response = reqwest::Client::new()
-            .delete(item_id.clone())
+            .delete(item_url.clone())
             .basic_auth(self.resource.username(), Some(self.resource.password()))
             .send()
             .await?;

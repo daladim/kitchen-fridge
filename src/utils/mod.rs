@@ -10,7 +10,6 @@ use url::Url;
 
 use crate::traits::CompleteCalendar;
 use crate::traits::DavCalendar;
-use crate::calendar::CalendarId;
 use crate::Item;
 use crate::item::SyncStatus;
 
@@ -63,12 +62,12 @@ pub fn print_xml(element: &Element) {
 }
 
 /// A debug utility that pretty-prints calendars
-pub async fn print_calendar_list<C>(cals: &HashMap<CalendarId, Arc<Mutex<C>>>)
+pub async fn print_calendar_list<C>(cals: &HashMap<Url, Arc<Mutex<C>>>)
 where
     C: CompleteCalendar,
 {
-    for (id, cal) in cals {
-        println!("CAL {} ({})", cal.lock().unwrap().name(), id);
+    for (url, cal) in cals {
+        println!("CAL {} ({})", cal.lock().unwrap().name(), url);
         match cal.lock().unwrap().get_items().await {
             Err(_err) => continue,
             Ok(map) => {
@@ -81,17 +80,17 @@ where
 }
 
 /// A debug utility that pretty-prints calendars
-pub async fn print_dav_calendar_list<C>(cals: &HashMap<CalendarId, Arc<Mutex<C>>>)
+pub async fn print_dav_calendar_list<C>(cals: &HashMap<Url, Arc<Mutex<C>>>)
 where
     C: DavCalendar,
 {
-    for (id, cal) in cals {
-        println!("CAL {} ({})", cal.lock().unwrap().name(), id);
+    for (url, cal) in cals {
+        println!("CAL {} ({})", cal.lock().unwrap().name(), url);
         match cal.lock().unwrap().get_item_version_tags().await {
             Err(_err) => continue,
             Ok(map) => {
-                for (id, version_tag) in map {
-                    println!("    * {} (version {:?})", id, version_tag);
+                for (url, version_tag) in map {
+                    println!("    * {} (version {:?})", url, version_tag);
                 }
             },
         }

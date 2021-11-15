@@ -15,7 +15,6 @@ use csscolorparser::Color;
 use crate::resource::Resource;
 use crate::utils::{find_elem, find_elems};
 use crate::calendar::remote_calendar::RemoteCalendar;
-use crate::calendar::CalendarId;
 use crate::calendar::SupportedComponents;
 use crate::traits::CalDavSource;
 use crate::traits::BaseCalendar;
@@ -113,7 +112,7 @@ pub struct Client {
 struct CachedReplies {
     principal: Option<Resource>,
     calendar_home_set: Option<Resource>,
-    calendars: Option<HashMap<CalendarId, Arc<Mutex<RemoteCalendar>>>>,
+    calendars: Option<HashMap<Url, Arc<Mutex<RemoteCalendar>>>>,
 }
 
 impl Client {
@@ -228,7 +227,7 @@ impl Client {
 
 #[async_trait]
 impl CalDavSource<RemoteCalendar> for Client {
-    async fn get_calendars(&self) -> Result<HashMap<CalendarId, Arc<Mutex<RemoteCalendar>>>, Box<dyn Error>> {
+    async fn get_calendars(&self) -> Result<HashMap<Url, Arc<Mutex<RemoteCalendar>>>, Box<dyn Error>> {
         self.populate_calendars().await?;
 
         match &self.cached_replies.lock().unwrap().calendars {
@@ -239,7 +238,7 @@ impl CalDavSource<RemoteCalendar> for Client {
         };
     }
 
-    async fn get_calendar(&self, id: &CalendarId) -> Option<Arc<Mutex<RemoteCalendar>>> {
+    async fn get_calendar(&self, url: &Url) -> Option<Arc<Mutex<RemoteCalendar>>> {
         if let Err(err) = self.populate_calendars().await {
             log::warn!("Unable to fetch calendars: {}", err);
             return None;
@@ -248,17 +247,17 @@ impl CalDavSource<RemoteCalendar> for Client {
         self.cached_replies.lock().unwrap()
             .calendars
             .as_ref()
-            .and_then(|cals| cals.get(id))
+            .and_then(|cals| cals.get(url))
             .map(|cal| cal.clone())
     }
 
-    async fn create_calendar(&mut self, id: CalendarId, name: String, supported_components: SupportedComponents, color: Option<Color>) -> Result<Arc<Mutex<RemoteCalendar>>, Box<dyn Error>> {
+    async fn create_calendar(&mut self, url: Url, name: String, supported_components: SupportedComponents, color: Option<Color>) -> Result<Arc<Mutex<RemoteCalendar>>, Box<dyn Error>> {
         self.populate_calendars().await?;
 
         match self.cached_replies.lock().unwrap().calendars.as_ref() {
             None => return Err("No calendars have been fetched".into()),
             Some(cals) => {
-                if cals.contains_key(&id) {
+                if cals.contains_key(&url) {
                     return Err("This calendar already exists".into());
                 }
             },
@@ -267,7 +266,7 @@ impl CalDavSource<RemoteCalendar> for Client {
         let creation_body = calendar_body(name, supported_components);
 
         let response = reqwest::Client::new()
-            .request(Method::from_bytes(b"MKCALENDAR").unwrap(), id.clone())
+            .request(Method::from_bytes(b"MKCALENDAR").unwrap(), url.clone())
             .header(CONTENT_TYPE, "application/xml")
             .basic_auth(self.resource.username(), Some(self.resource.password()))
             .body(creation_body)
@@ -279,7 +278,7 @@ impl CalDavSource<RemoteCalendar> for Client {
             return Err(format!("Unexpected HTTP status code. Expected CREATED, got {}", status.as_u16()).into());
         }
 
-        self.get_calendar(&id).await.ok_or(format!("Unable to insert calendar {:?}", id).into())
+        self.get_calendar(&url).await.ok_or(format!("Unable to insert calendar {:?}", url).into())
     }
 }
 

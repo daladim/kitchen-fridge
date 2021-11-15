@@ -7,7 +7,6 @@ use ical::property::Property;
 use url::Url;
 
 use crate::item::SyncStatus;
-use crate::calendar::CalendarId;
 use crate::utils::random_url;
 
 /// RFC5545 defines the completion as several optional fields, yet some combinations make no sense.
@@ -67,7 +66,7 @@ pub struct Task {
 impl Task {
     /// Create a brand new Task that is not on a server yet.
     /// This will pick a new (random) task ID.
-    pub fn new(name: String, completed: bool, parent_calendar_url: &CalendarId) -> Self {
+    pub fn new(name: String, completed: bool, parent_calendar_url: &Url) -> Self {
         let new_url = random_url(parent_calendar_url);
         let new_sync_status = SyncStatus::NotSynced;
         let new_uid = Uuid::new_v4().to_hyphenated().to_string();

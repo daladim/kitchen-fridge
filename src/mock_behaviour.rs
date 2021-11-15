@@ -22,7 +22,7 @@ pub struct MockBehaviour {
 
     // From the DavCalendar trait
     pub get_item_version_tags_behaviour: (u32, u32),
-    pub get_item_by_id_behaviour: (u32, u32),
+    pub get_item_by_url_behaviour: (u32, u32),
     pub delete_item_behaviour: (u32, u32),
 }
 
@@ -41,7 +41,7 @@ impl MockBehaviour {
             add_item_behaviour: (0, n_fails),
             update_item_behaviour: (0, n_fails),
             get_item_version_tags_behaviour: (0, n_fails),
-            get_item_by_id_behaviour: (0, n_fails),
+            get_item_by_url_behaviour: (0, n_fails),
             delete_item_behaviour: (0, n_fails),
         }
     }
@@ -84,9 +84,9 @@ impl MockBehaviour {
         if self.is_suspended { return Ok(()) }
         decrement(&mut self.get_item_version_tags_behaviour, "get_item_version_tags")
     }
-    pub fn can_get_item_by_id(&mut self) -> Result<(), Box<dyn Error>> {
+    pub fn can_get_item_by_url(&mut self) -> Result<(), Box<dyn Error>> {
         if self.is_suspended { return Ok(()) }
-        decrement(&mut self.get_item_by_id_behaviour, "get_item_by_id")
+        decrement(&mut self.get_item_by_url_behaviour, "get_item_by_url")
     }
     pub fn can_delete_item(&mut self) -> Result<(), Box<dyn Error>> {
         if self.is_suspended { return Ok(()) }
