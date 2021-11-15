@@ -5,13 +5,12 @@ use std::sync::Mutex;
 use async_trait::async_trait;
 use reqwest::{header::CONTENT_TYPE, header::CONTENT_LENGTH};
 use csscolorparser::Color;
+use url::Url;
 
 use crate::traits::BaseCalendar;
 use crate::traits::DavCalendar;
 use crate::calendar::SupportedComponents;
-use crate::calendar::CalendarId;
 use crate::item::Item;
-use crate::item::ItemId;
 use crate::item::VersionTag;
 use crate::item::SyncStatus;
 use crate::resource::Resource;
@@ -40,13 +39,13 @@ pub struct RemoteCalendar {
     supported_components: SupportedComponents,
     color: Option<Color>,
 
-    cached_version_tags: Mutex<Option<HashMap<ItemId, VersionTag>>>,
+    cached_version_tags: Mutex<Option<HashMap<Url, VersionTag>>>,
 }
 
 #[async_trait]
 impl BaseCalendar for RemoteCalendar {
     fn name(&self) -> &str { &self.name }
-    fn id(&self) -> &CalendarId { &self.resource.url() }
+    fn url(&self) -> &Url { &self.resource.url() }
     fn supported_components(&self) -> crate::calendar::SupportedComponents {
         self.supported_components
     }
@@ -58,7 +57,7 @@ impl BaseCalendar for RemoteCalendar {
         let ical_text = crate::ical::build_from(&item)?;
 
         let response = reqwest::Client::new()
-            .put(item.id().as_url().clone())
+            .put(item.url().clone())
             .header("If-None-Match", "*")
             .header(CONTENT_TYPE, "text/calendar")
             .header(CONTENT_LENGTH, ical_text.len())
@@ -73,7 +72,7 @@ impl BaseCalendar for RemoteCalendar {
 
         let reply_hdrs = response.headers();
         match reply_hdrs.get("ETag") {
-            None => Err(format!("No ETag in these response headers: {:?} (request was {:?})", reply_hdrs, item.id()).into()),
+            None => Err(format!("No ETag in these response headers: {:?} (request was {:?})", reply_hdrs, item.url()).into()),
             Some(etag) => {
                 let vtag_str = etag.to_str()?;
                 let vtag = VersionTag::from(String::from(vtag_str));
@@ -92,7 +91,7 @@ impl BaseCalendar for RemoteCalendar {
         let ical_text = crate::ical::build_from(&item)?;
 
         let request = reqwest::Client::new()
-            .put(item.id().as_url().clone())
+            .put(item.url().clone())
             .header("If-Match", old_etag.as_str())
             .header(CONTENT_TYPE, "text/calendar")
             .header(CONTENT_LENGTH, ical_text.len())
@@ -107,7 +106,7 @@ impl BaseCalendar for RemoteCalendar {
 
         let reply_hdrs = request.headers();
         match reply_hdrs.get("ETag") {
-            None => Err(format!("No ETag in these response headers: {:?} (request was {:?})", reply_hdrs, item.id()).into()),
+            None => Err(format!("No ETag in these response headers: {:?} (request was {:?})", reply_hdrs, item.url()).into()),
             Some(etag) => {
                 let vtag_str = etag.to_str()?;
                 let vtag = VersionTag::from(String::from(vtag_str));
@@ -127,7 +126,7 @@ impl DavCalendar for RemoteCalendar {
     }
 
 
-    async fn get_item_version_tags(&self) -> Result<HashMap<ItemId, VersionTag>, Box<dyn Error>> {
+    async fn get_item_version_tags(&self) -> Result<HashMap<Url, VersionTag>, Box<dyn Error>> {
         if let Some(map) = &*self.cached_version_tags.lock().unwrap() {
             log::debug!("Version tags are already cached.");
             return Ok(map.clone());
@@ -139,19 +138,19 @@ impl DavCalendar for RemoteCalendar {
         for response in responses {
             let item_url = crate::utils::find_elem(&response, "href")
                 .map(|elem| self.resource.combine(&elem.text()));
-            let item_id = match item_url {
+            let item_url = match item_url {
                 None => {
                     log::warn!("Unable to extract HREF");
                     continue;
                 },
                 Some(resource) => {
-                    ItemId::from(&resource)
+                    resource.url().clone()
                 },
             };
 
             let version_tag = match crate::utils::find_elem(&response, "getetag") {
                 None => {
-                    log::warn!("Unable to extract ETAG for item {}, ignoring it", item_id);
+                    log::warn!("Unable to extract ETAG for item {}, ignoring it", item_url);
                     continue;
                 },
                 Some(etag) => {
@@ -159,7 +158,7 @@ impl DavCalendar for RemoteCalendar {
                 }
             };
 
-            items.insert(item_id, version_tag);
+            items.insert(item_url.clone(), version_tag);
         }
 
         // Note: the mutex cannot be locked during this whole async function, but it can safely be re-entrant (this will just waste an unnecessary request)
@@ -167,9 +166,9 @@ impl DavCalendar for RemoteCalendar {
         Ok(items)
     }
 
-    async fn get_item_by_id(&self, id: &ItemId) -> Result<Option<Item>, Box<dyn Error>> {
+    async fn get_item_by_url(&self, url: &Url) -> Result<Option<Item>, Box<dyn Error>> {
         let res = reqwest::Client::new()
-            .get(id.as_url().clone())
+            .get(url.clone())
             .header(CONTENT_TYPE, "text/calendar")
             .basic_auth(self.resource.username(), Some(self.resource.password()))
             .send()
@@ -183,18 +182,18 @@ impl DavCalendar for RemoteCalendar {
 
         // This is supposed to be cached
         let version_tags = self.get_item_version_tags().await?;
-        let vt = match version_tags.get(id) {
-            None => return Err(format!("Inconsistent data: {} has no version tag", id).into()),
+        let vt = match version_tags.get(url) {
+            None => return Err(format!("Inconsistent data: {} has no version tag", url).into()),
             Some(vt) => vt,
         };
 
-        let item = crate::ical::parse(&text, id.clone(), SyncStatus::Synced(vt.clone()))?;
+        let item = crate::ical::parse(&text, url.clone(), SyncStatus::Synced(vt.clone()))?;
         Ok(Some(item))
     }
 
-    async fn delete_item(&mut self, item_id: &ItemId) -> Result<(), Box<dyn Error>> {
+    async fn delete_item(&mut self, item_url: &Url) -> Result<(), Box<dyn Error>> {
         let del_response = reqwest::Client::new()
-            .delete(item_id.as_url().clone())
+            .delete(item_url.clone())
             .basic_auth(self.resource.username(), Some(self.resource.password()))
             .send()
             .await?;

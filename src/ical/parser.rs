@@ -4,22 +4,22 @@ use std::error::Error;
 
 use ical::parser::ical::component::{IcalCalendar, IcalEvent, IcalTodo};
 use chrono::{DateTime, TimeZone, Utc};
+use url::Url;
 
 use crate::Item;
 use crate::item::SyncStatus;
-use crate::item::ItemId;
 use crate::Task;
 use crate::task::CompletionStatus;
 use crate::Event;
 
 
 /// Parse an iCal file into the internal representation [`crate::Item`]
-pub fn parse(content: &str, item_id: ItemId, sync_status: SyncStatus) -> Result<Item, Box<dyn Error>> {
+pub fn parse(content: &str, item_url: Url, sync_status: SyncStatus) -> Result<Item, Box<dyn Error>> {
     let mut reader = ical::IcalParser::new(content.as_bytes());
     let parsed_item = match reader.next() {
-        None => return Err(format!("Invalid iCal data to parse for item {}", item_id).into()),
+        None => return Err(format!("Invalid iCal data to parse for item {}", item_url).into()),
         Some(item) => match item {
-            Err(err) => return Err(format!("Unable to parse iCal data for item {}: {}", item_id, err).into()),
+            Err(err) => return Err(format!("Unable to parse iCal data for item {}: {}", item_url, err).into()),
             Ok(item) => item,
         }
     };
@@ -80,15 +80,15 @@ pub fn parse(content: &str, item_id: ItemId, sync_status: SyncStatus) -> Result<
             }
             let name = match name {
                 Some(name) => name,
-                None => return Err(format!("Missing name for item {}", item_id).into()),
+                None => return Err(format!("Missing name for item {}", item_url).into()),
             };
             let uid = match uid {
                 Some(uid) => uid,
-                None => return Err(format!("Missing UID for item {}", item_id).into()),
+                None => return Err(format!("Missing UID for item {}", item_url).into()),
             };
             let last_modified = match last_modified {
                 Some(dt) => dt,
-                None => return Err(format!("Missing DTSTAMP for item {}, but this is required by RFC5545", item_id).into()),
+                None => return Err(format!("Missing DTSTAMP for item {}, but this is required by RFC5545", item_url).into()),
             };
             let completion_status = match completed {
                 false => {
@@ -100,7 +100,7 @@ pub fn parse(content: &str, item_id: ItemId, sync_status: SyncStatus) -> Result<
                 true => CompletionStatus::Completed(completion_date),
             };
 
-            Item::Task(Task::new_with_parameters(name, uid, item_id, completion_status, sync_status, creation_date, last_modified, ical_prod_id, extra_parameters))
+            Item::Task(Task::new_with_parameters(name, uid, item_url, completion_status, sync_status, creation_date, last_modified, ical_prod_id, extra_parameters))
         },
     };
 
@@ -244,13 +244,13 @@ END:VCALENDAR
     fn test_ical_parsing() {
         let version_tag = VersionTag::from(String::from("test-tag"));
         let sync_status = SyncStatus::Synced(version_tag);
-        let item_id: ItemId = "http://some.id/for/testing".parse().unwrap();
+        let item_url: Url = "http://some.id/for/testing".parse().unwrap();
 
-        let item = parse(EXAMPLE_ICAL, item_id.clone(), sync_status.clone()).unwrap();
+        let item = parse(EXAMPLE_ICAL, item_url.clone(), sync_status.clone()).unwrap();
         let task = item.unwrap_task();
 
         assert_eq!(task.name(), "Do not forget to do this");
-        assert_eq!(task.id(), &item_id);
+        assert_eq!(task.url(), &item_url);
         assert_eq!(task.uid(), "0633de27-8c32-42be-bcb8-63bc879c6185@some-domain.com");
         assert_eq!(task.completed(), false);
         assert_eq!(task.completion_status(), &CompletionStatus::Uncompleted);
@@ -262,9 +262,9 @@ END:VCALENDAR
     fn test_completed_ical_parsing() {
         let version_tag = VersionTag::from(String::from("test-tag"));
         let sync_status = SyncStatus::Synced(version_tag);
-        let item_id: ItemId = "http://some.id/for/testing".parse().unwrap();
+        let item_url: Url = "http://some.id/for/testing".parse().unwrap();
 
-        let item = parse(EXAMPLE_ICAL_COMPLETED, item_id.clone(), sync_status.clone()).unwrap();
+        let item = parse(EXAMPLE_ICAL_COMPLETED, item_url.clone(), sync_status.clone()).unwrap();
         let task = item.unwrap_task();
 
         assert_eq!(task.completed(), true);
@@ -275,9 +275,9 @@ END:VCALENDAR
     fn test_completed_without_date_ical_parsing() {
         let version_tag = VersionTag::from(String::from("test-tag"));
         let sync_status = SyncStatus::Synced(version_tag);
-        let item_id: ItemId = "http://some.id/for/testing".parse().unwrap();
+        let item_url: Url = "http://some.id/for/testing".parse().unwrap();
 
-        let item = parse(EXAMPLE_ICAL_COMPLETED_WITHOUT_A_COMPLETION_DATE, item_id.clone(), sync_status.clone()).unwrap();
+        let item = parse(EXAMPLE_ICAL_COMPLETED_WITHOUT_A_COMPLETION_DATE, item_url.clone(), sync_status.clone()).unwrap();
         let task = item.unwrap_task();
 
         assert_eq!(task.completed(), true);
@@ -288,9 +288,9 @@ END:VCALENDAR
     fn test_multiple_items_in_ical() {
         let version_tag = VersionTag::from(String::from("test-tag"));
         let sync_status = SyncStatus::Synced(version_tag);
-        let item_id: ItemId = "http://some.id/for/testing".parse().unwrap();
+        let item_url: Url = "http://some.id/for/testing".parse().unwrap();
 
-        let item = parse(EXAMPLE_MULTIPLE_ICAL, item_id.clone(), sync_status.clone());
+        let item = parse(EXAMPLE_MULTIPLE_ICAL, item_url.clone(), sync_status.clone());
         assert!(item.is_err());
     }
 }

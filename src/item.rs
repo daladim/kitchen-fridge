@@ -1,16 +1,9 @@
 //! CalDAV items (todo, events, journals...)
 // TODO: move Event and Task to nest them in crate::items::calendar::Calendar?
 
-use std::fmt::{Display, Formatter};
-use std::str::FromStr;
-
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Serialize};
 use url::Url;
 use chrono::{DateTime, Utc};
-
-use crate::resource::Resource;
-use crate::calendar::CalendarId;
-
 
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -32,7 +25,7 @@ macro_rules! synthetise_common_getter {
 }
 
 impl Item {
-    synthetise_common_getter!(id, &ItemId);
+    synthetise_common_getter!(url, &Url);
     synthetise_common_getter!(uid, &str);
     synthetise_common_getter!(name, &str);
     synthetise_common_getter!(creation_date, Option<&DateTime<Utc>>);
@@ -93,67 +86,6 @@ impl Item {
     }
 }
 
-
-#[derive(Clone, Debug, PartialEq, Hash)]
-pub struct ItemId {
-    content: Url,
-}
-impl ItemId{
-    /// Generate a random ItemId.
-    pub fn random(parent_calendar: &CalendarId) -> Self {
-        let random = uuid::Uuid::new_v4().to_hyphenated().to_string();
-        let u = parent_calendar.join(&random).unwrap(/* this cannot panic since we've just created a string that is a valid URL */);
-        Self { content:u }
-    }
-
-    pub fn as_url(&self) -> &Url {
-        &self.content
-    }
-}
-impl From<Url> for ItemId {
-    fn from(url: Url) -> Self {
-        Self { content: url }
-    }
-}
-impl From<&Resource> for ItemId {
-    fn from(resource: &Resource) -> Self {
-        Self { content: resource.url().clone() }
-    }
-}
-impl FromStr for ItemId {
-    type Err = url::ParseError;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let u: Url = s.parse()?;
-        Ok(Self::from(u))
-    }
-}
-
-impl Eq for ItemId {}
-impl Display for ItemId {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
-        write!(f, "{}", self.content)
-    }
-}
-
-/// Used to support serde
-impl Serialize for ItemId {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        serializer.serialize_str(self.content.as_str())
-    }
-}
-/// Used to support serde
-impl<'de> Deserialize<'de> for ItemId {
-    fn deserialize<D>(deserializer: D) -> Result<ItemId, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let u = Url::deserialize(deserializer)?;
-        Ok(ItemId{ content: u })
-    }
-}
 
 
 

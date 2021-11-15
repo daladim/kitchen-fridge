@@ -10,12 +10,12 @@ use std::ffi::OsStr;
 use serde::{Deserialize, Serialize};
 use async_trait::async_trait;
 use csscolorparser::Color;
+use url::Url;
 
 use crate::traits::CalDavSource;
 use crate::traits::BaseCalendar;
 use crate::traits::CompleteCalendar;
 use crate::calendar::cached_calendar::CachedCalendar;
-use crate::calendar::CalendarId;
 use crate::calendar::SupportedComponents;
 
 #[cfg(feature = "local_calendar_mocks_remote_calendars")]
@@ -41,7 +41,7 @@ pub struct Cache {
 #[derive(Default, Debug, Serialize, Deserialize)]
 struct CachedData {
     #[serde(skip)]
-    calendars: HashMap<CalendarId, Arc<Mutex<CachedCalendar>>>,
+    calendars: HashMap<Url, Arc<Mutex<CachedCalendar>>>,
 }
 
 impl Cache {
@@ -86,7 +86,7 @@ impl Cache {
                                 continue;
                             },
                             Ok(cal) =>
-                                data.calendars.insert(cal.id().clone(), Arc::new(Mutex::new(cal))),
+                                data.calendars.insert(cal.url().clone(), Arc::new(Mutex::new(cal))),
                         };
                     }
                 },
@@ -131,8 +131,8 @@ impl Cache {
         serde_json::to_writer(file, &self.data)?;
 
         // Save each calendar
-        for (cal_id, cal_mutex) in &self.data.calendars {
-            let file_name = sanitize_filename::sanitize(cal_id.as_str()) + ".cal";
+        for (cal_url, cal_mutex) in &self.data.calendars {
+            let file_name = sanitize_filename::sanitize(cal_url.as_str()) + ".cal";
             let cal_file = folder.join(file_name);
             let file = std::fs::File::create(&cal_file)?;
             let cal = cal_mutex.lock().unwrap();
@@ -156,10 +156,10 @@ impl Cache {
             return Ok(false);
         }
 
-        for (calendar_id, cal_l) in calendars_l {
-            log::debug!("Comparing calendars {}", calendar_id);
+        for (calendar_url, cal_l) in calendars_l {
+            log::debug!("Comparing calendars {}", calendar_url);
             let cal_l = cal_l.lock().unwrap();
-            let cal_r = match calendars_r.get(&calendar_id) {
+            let cal_r = match calendars_r.get(&calendar_url) {
                 Some(c) => c.lock().unwrap(),
                 None => return Err("should not happen, we've just tested keys are the same".into()),
             };
@@ -185,38 +185,38 @@ impl Drop for Cache {
 
 impl Cache {
     /// The non-async version of [`crate::traits::CalDavSource::get_calendars`]
-    pub fn get_calendars_sync(&self) -> Result<HashMap<CalendarId, Arc<Mutex<CachedCalendar>>>, Box<dyn Error>> {
+    pub fn get_calendars_sync(&self) -> Result<HashMap<Url, Arc<Mutex<CachedCalendar>>>, Box<dyn Error>> {
         #[cfg(feature = "local_calendar_mocks_remote_calendars")]
         self.mock_behaviour.as_ref().map_or(Ok(()), |b| b.lock().unwrap().can_get_calendars())?;
 
         Ok(self.data.calendars.iter()
-            .map(|(id, cal)| (id.clone(), cal.clone()))
+            .map(|(url, cal)| (url.clone(), cal.clone()))
             .collect()
         )
     }
 
     /// The non-async version of [`crate::traits::CalDavSource::get_calendar`]
-    pub fn get_calendar_sync(&self, id: &CalendarId) -> Option<Arc<Mutex<CachedCalendar>>> {
-        self.data.calendars.get(id).map(|arc| arc.clone())
+    pub fn get_calendar_sync(&self, url: &Url) -> Option<Arc<Mutex<CachedCalendar>>> {
+        self.data.calendars.get(url).map(|arc| arc.clone())
     }
 }
 
 #[async_trait]
 impl CalDavSource<CachedCalendar> for Cache {
-    async fn get_calendars(&self) -> Result<HashMap<CalendarId, Arc<Mutex<CachedCalendar>>>, Box<dyn Error>> {
+    async fn get_calendars(&self) -> Result<HashMap<Url, Arc<Mutex<CachedCalendar>>>, Box<dyn Error>> {
         self.get_calendars_sync()
     }
 
-    async fn get_calendar(&self, id: &CalendarId) -> Option<Arc<Mutex<CachedCalendar>>> {
-        self.get_calendar_sync(id)
+    async fn get_calendar(&self, url: &Url) -> Option<Arc<Mutex<CachedCalendar>>> {
+        self.get_calendar_sync(url)
     }
 
-    async fn create_calendar(&mut self, id: CalendarId, name: String, supported_components: SupportedComponents, color: Option<Color>) -> Result<Arc<Mutex<CachedCalendar>>, Box<dyn Error>> {
-        log::debug!("Inserting local calendar {}", id);
+    async fn create_calendar(&mut self, url: Url, name: String, supported_components: SupportedComponents, color: Option<Color>) -> Result<Arc<Mutex<CachedCalendar>>, Box<dyn Error>> {
+        log::debug!("Inserting local calendar {}", url);
         #[cfg(feature = "local_calendar_mocks_remote_calendars")]
         self.mock_behaviour.as_ref().map_or(Ok(()), |b| b.lock().unwrap().can_create_calendar())?;
 
-        let new_calendar = CachedCalendar::new(name, id.clone(), supported_components, color);
+        let new_calendar = CachedCalendar::new(name, url.clone(), supported_components, color);
         let arc = Arc::new(Mutex::new(new_calendar));
 
         #[cfg(feature = "local_calendar_mocks_remote_calendars")]
@@ -224,7 +224,7 @@ impl CalDavSource<CachedCalendar> for Cache {
             arc.lock().unwrap().set_mock_behaviour(Some(Arc::clone(behaviour)));
         };
 
-        match self.data.calendars.insert(id, arc.clone()) {
+        match self.data.calendars.insert(url, arc.clone()) {
             Some(_) => Err("Attempt to insert calendar failed: there is alredy such a calendar.".into()),
             None => Ok(arc),
         }
@@ -259,13 +259,13 @@ mod tests {
 
         {
             let mut bucket_list = bucket_list.lock().unwrap();
-            let cal_id = bucket_list.id().clone();
+            let cal_url = bucket_list.url().clone();
             bucket_list.add_item(Item::Task(Task::new(
-                String::from("Attend a concert of JS Bach"), false, &cal_id
+                String::from("Attend a concert of JS Bach"), false, &cal_url
             ))).await.unwrap();
 
             bucket_list.add_item(Item::Task(Task::new(
-                String::from("Climb the Lighthouse of Alexandria"), true, &cal_id
+                String::from("Climb the Lighthouse of Alexandria"), true, &cal_url
             ))).await.unwrap();
         }
 
@@ -293,7 +293,7 @@ mod tests {
         let cache_path = PathBuf::from(String::from("test_cache/sanity_tests"));
         let mut cache = populate_cache(&cache_path).await;
 
-        // We should not be able to add a second calendar with the same id
+        // We should not be able to add a second calendar with the same URL
         let second_addition_same_calendar = cache.create_calendar(
             Url::parse("https://caldav.com/shopping").unwrap(),
             "My shopping list".to_string(),

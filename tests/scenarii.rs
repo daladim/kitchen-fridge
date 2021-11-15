@@ -11,10 +11,10 @@
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::error::Error;
+use url::Url;
 
 use chrono::Utc;
 
-use kitchen_fridge::calendar::CalendarId;
 use kitchen_fridge::calendar::SupportedComponents;
 use kitchen_fridge::traits::CalDavSource;
 use kitchen_fridge::traits::BaseCalendar;
@@ -22,13 +22,13 @@ use kitchen_fridge::traits::CompleteCalendar;
 use kitchen_fridge::traits::DavCalendar;
 use kitchen_fridge::cache::Cache;
 use kitchen_fridge::Item;
-use kitchen_fridge::item::ItemId;
 use kitchen_fridge::item::SyncStatus;
 use kitchen_fridge::Task;
 use kitchen_fridge::task::CompletionStatus;
 use kitchen_fridge::calendar::cached_calendar::CachedCalendar;
 use kitchen_fridge::provider::Provider;
 use kitchen_fridge::mock_behaviour::MockBehaviour;
+use kitchen_fridge::utils::random_url;
 
 pub enum LocatedState {
     /// Item does not exist yet or does not exist anymore
@@ -44,7 +44,7 @@ pub enum LocatedState {
 pub struct ItemState {
     // TODO: if/when this crate supports Events as well, we could add such events here
     /// The calendar it is in
-    calendar: CalendarId,
+    calendar: Url,
     /// Its name
     name: String,
     /// Its completion status
@@ -54,15 +54,15 @@ pub struct ItemState {
 pub enum ChangeToApply {
     Rename(String),
     SetCompletion(bool),
-    Create(CalendarId, Item),
+    Create(Url, Item),
     /// "remove" means "mark for deletion" in the local calendar, or "immediately delete" on the remote calendar
     Remove,
-    // ChangeCalendar(CalendarId) is useless, as long as changing a calendar is implemented as "delete in one calendar and re-create it in another one"
+    // ChangeCalendar(Url) is useless, as long as changing a calendar is implemented as "delete in one calendar and re-create it in another one"
 }
 
 
 pub struct ItemScenario {
-    id: ItemId,
+    url: Url,
     initial_state: LocatedState,
     local_changes_to_apply:  Vec<ChangeToApply>,
     remote_changes_to_apply: Vec<ChangeToApply>,
@@ -87,13 +87,13 @@ pub struct ItemScenario {
 pub fn scenarii_basic() -> Vec<ItemScenario> {
     let mut tasks = Vec::new();
 
-    let first_cal = CalendarId::from("https://some.calend.ar/calendar-1/".parse().unwrap());
-    let second_cal = CalendarId::from("https://some.calend.ar/calendar-2/".parse().unwrap());
-    let third_cal = CalendarId::from("https://some.calend.ar/calendar-3/".parse().unwrap());
+    let first_cal = Url::from("https://some.calend.ar/calendar-1/".parse().unwrap());
+    let second_cal = Url::from("https://some.calend.ar/calendar-2/".parse().unwrap());
+    let third_cal = Url::from("https://some.calend.ar/calendar-3/".parse().unwrap());
 
     tasks.push(
         ItemScenario {
-            id: ItemId::random(&first_cal),
+            url: random_url(&first_cal),
             initial_state: LocatedState::BothSynced( ItemState{
                 calendar: first_cal.clone(),
                 name: String::from("Task A"),
@@ -111,7 +111,7 @@ pub fn scenarii_basic() -> Vec<ItemScenario> {
 
     tasks.push(
         ItemScenario {
-            id: ItemId::random(&first_cal),
+            url: random_url(&first_cal),
             initial_state: LocatedState::BothSynced( ItemState{
                 calendar: first_cal.clone(),
                 name: String::from("Task B"),
@@ -125,7 +125,7 @@ pub fn scenarii_basic() -> Vec<ItemScenario> {
 
     tasks.push(
         ItemScenario {
-            id: ItemId::random(&first_cal),
+            url: random_url(&first_cal),
             initial_state: LocatedState::BothSynced( ItemState{
                 calendar: first_cal.clone(),
                 name: String::from("Task C"),
@@ -139,7 +139,7 @@ pub fn scenarii_basic() -> Vec<ItemScenario> {
 
     tasks.push(
         ItemScenario {
-            id: ItemId::random(&first_cal),
+            url: random_url(&first_cal),
             initial_state: LocatedState::BothSynced( ItemState{
                 calendar: first_cal.clone(),
                 name: String::from("Task D"),
@@ -157,7 +157,7 @@ pub fn scenarii_basic() -> Vec<ItemScenario> {
 
     tasks.push(
         ItemScenario {
-            id: ItemId::random(&first_cal),
+            url: random_url(&first_cal),
             initial_state: LocatedState::BothSynced( ItemState{
                 calendar: first_cal.clone(),
                 name: String::from("Task E"),
@@ -175,7 +175,7 @@ pub fn scenarii_basic() -> Vec<ItemScenario> {
 
     tasks.push(
         ItemScenario {
-            id: ItemId::random(&first_cal),
+            url: random_url(&first_cal),
             initial_state: LocatedState::BothSynced( ItemState{
                 calendar: first_cal.clone(),
                 name: String::from("Task F"),
@@ -194,7 +194,7 @@ pub fn scenarii_basic() -> Vec<ItemScenario> {
 
     tasks.push(
         ItemScenario {
-            id: ItemId::random(&second_cal),
+            url: random_url(&second_cal),
             initial_state: LocatedState::BothSynced( ItemState{
                 calendar: second_cal.clone(),
                 name: String::from("Task G"),
@@ -212,7 +212,7 @@ pub fn scenarii_basic() -> Vec<ItemScenario> {
 
     tasks.push(
         ItemScenario {
-            id: ItemId::random(&second_cal),
+            url: random_url(&second_cal),
             initial_state: LocatedState::BothSynced( ItemState{
                 calendar: second_cal.clone(),
                 name: String::from("Task H"),
@@ -230,7 +230,7 @@ pub fn scenarii_basic() -> Vec<ItemScenario> {
 
     tasks.push(
         ItemScenario {
-            id: ItemId::random(&second_cal),
+            url: random_url(&second_cal),
             initial_state: LocatedState::BothSynced( ItemState{
                 calendar: second_cal.clone(),
                 name: String::from("Task I"),
@@ -249,7 +249,7 @@ pub fn scenarii_basic() -> Vec<ItemScenario> {
 
     tasks.push(
         ItemScenario {
-            id: ItemId::random(&second_cal),
+            url: random_url(&second_cal),
             initial_state: LocatedState::BothSynced( ItemState{
                 calendar: second_cal.clone(),
                 name: String::from("Task J"),
@@ -263,7 +263,7 @@ pub fn scenarii_basic() -> Vec<ItemScenario> {
 
     tasks.push(
         ItemScenario {
-            id: ItemId::random(&second_cal),
+            url: random_url(&second_cal),
             initial_state: LocatedState::BothSynced( ItemState{
                 calendar: second_cal.clone(),
                 name: String::from("Task K"),
@@ -281,7 +281,7 @@ pub fn scenarii_basic() -> Vec<ItemScenario> {
 
     tasks.push(
         ItemScenario {
-            id: ItemId::random(&second_cal),
+            url: random_url(&second_cal),
             initial_state: LocatedState::BothSynced( ItemState{
                 calendar: second_cal.clone(),
                 name: String::from("Task L"),
@@ -295,7 +295,7 @@ pub fn scenarii_basic() -> Vec<ItemScenario> {
 
     tasks.push(
         ItemScenario {
-            id: ItemId::random(&second_cal),
+            url: random_url(&second_cal),
             initial_state: LocatedState::BothSynced( ItemState{
                 calendar: second_cal.clone(),
                 name: String::from("Task M"),
@@ -313,7 +313,7 @@ pub fn scenarii_basic() -> Vec<ItemScenario> {
 
     tasks.push(
         ItemScenario {
-            id: ItemId::random(&third_cal),
+            url: random_url(&third_cal),
             initial_state: LocatedState::BothSynced( ItemState{
                 calendar: third_cal.clone(),
                 name: String::from("Task N"),
@@ -331,7 +331,7 @@ pub fn scenarii_basic() -> Vec<ItemScenario> {
 
     tasks.push(
         ItemScenario {
-            id: ItemId::random(&third_cal),
+            url: random_url(&third_cal),
             initial_state: LocatedState::BothSynced( ItemState{
                 calendar: third_cal.clone(),
                 name: String::from("Task O"),
@@ -347,10 +347,10 @@ pub fn scenarii_basic() -> Vec<ItemScenario> {
         }
     );
 
-    let id_p = ItemId::random(&third_cal);
+    let url_p = random_url(&third_cal);
     tasks.push(
         ItemScenario {
-            id: id_p.clone(),
+            url: url_p.clone(),
             initial_state: LocatedState::BothSynced( ItemState{
                 calendar: third_cal.clone(),
                 name: String::from("Task P"),
@@ -369,16 +369,16 @@ pub fn scenarii_basic() -> Vec<ItemScenario> {
         }
     );
 
-    let id_q = ItemId::random(&third_cal);
+    let url_q = random_url(&third_cal);
     tasks.push(
         ItemScenario {
-            id: id_q.clone(),
+            url: url_q.clone(),
             initial_state: LocatedState::None,
             local_changes_to_apply: Vec::new(),
             remote_changes_to_apply: vec![ChangeToApply::Create(third_cal.clone(), Item::Task(
                 Task::new_with_parameters(
                     String::from("Task Q, created on the server"),
-                    id_q.to_string(), id_q,
+                    url_q.to_string(), url_q,
                     CompletionStatus::Uncompleted,
                     SyncStatus::random_synced(), Some(Utc::now()), Utc::now(), "prod_id".to_string(), Vec::new() )
             ))],
@@ -390,15 +390,15 @@ pub fn scenarii_basic() -> Vec<ItemScenario> {
         }
     );
 
-    let id_r = ItemId::random(&third_cal);
+    let url_r = random_url(&third_cal);
     tasks.push(
         ItemScenario {
-            id: id_r.clone(),
+            url: url_r.clone(),
             initial_state: LocatedState::None,
             local_changes_to_apply: vec![ChangeToApply::Create(third_cal.clone(), Item::Task(
                 Task::new_with_parameters(
                     String::from("Task R, created locally"),
-                    id_r.to_string(), id_r,
+                    url_r.to_string(), url_r,
                     CompletionStatus::Uncompleted,
                     SyncStatus::NotSynced, Some(Utc::now()), Utc::now(), "prod_id".to_string(), Vec::new() )
             ))],
@@ -418,12 +418,12 @@ pub fn scenarii_basic() -> Vec<ItemScenario> {
 pub fn scenarii_first_sync_to_local() -> Vec<ItemScenario> {
     let mut tasks = Vec::new();
 
-    let cal1 = CalendarId::from("https://some.calend.ar/first/".parse().unwrap());
-    let cal2 = CalendarId::from("https://some.calend.ar/second/".parse().unwrap());
+    let cal1 = Url::from("https://some.calend.ar/first/".parse().unwrap());
+    let cal2 = Url::from("https://some.calend.ar/second/".parse().unwrap());
 
     tasks.push(
         ItemScenario {
-            id: ItemId::random(&cal1),
+            url: random_url(&cal1),
             initial_state: LocatedState::Remote( ItemState{
                 calendar: cal1.clone(),
                 name: String::from("Task A1"),
@@ -441,7 +441,7 @@ pub fn scenarii_first_sync_to_local() -> Vec<ItemScenario> {
 
     tasks.push(
         ItemScenario {
-            id: ItemId::random(&cal2),
+            url: random_url(&cal2),
             initial_state: LocatedState::Remote( ItemState{
                 calendar: cal2.clone(),
                 name: String::from("Task A2"),
@@ -459,7 +459,7 @@ pub fn scenarii_first_sync_to_local() -> Vec<ItemScenario> {
 
     tasks.push(
         ItemScenario {
-            id: ItemId::random(&cal1),
+            url: random_url(&cal1),
             initial_state: LocatedState::Remote( ItemState{
                 calendar: cal1.clone(),
                 name: String::from("Task B1"),
@@ -482,12 +482,12 @@ pub fn scenarii_first_sync_to_local() -> Vec<ItemScenario> {
 pub fn scenarii_first_sync_to_server() -> Vec<ItemScenario> {
     let mut tasks = Vec::new();
 
-    let cal3 = CalendarId::from("https://some.calend.ar/third/".parse().unwrap());
-    let cal4 = CalendarId::from("https://some.calend.ar/fourth/".parse().unwrap());
+    let cal3 = Url::from("https://some.calend.ar/third/".parse().unwrap());
+    let cal4 = Url::from("https://some.calend.ar/fourth/".parse().unwrap());
 
     tasks.push(
         ItemScenario {
-            id: ItemId::random(&cal3),
+            url: random_url(&cal3),
             initial_state: LocatedState::Local( ItemState{
                 calendar: cal3.clone(),
                 name: String::from("Task A3"),
@@ -505,7 +505,7 @@ pub fn scenarii_first_sync_to_server() -> Vec<ItemScenario> {
 
     tasks.push(
         ItemScenario {
-            id: ItemId::random(&cal4),
+            url: random_url(&cal4),
             initial_state: LocatedState::Local( ItemState{
                 calendar: cal4.clone(),
                 name: String::from("Task A4"),
@@ -523,7 +523,7 @@ pub fn scenarii_first_sync_to_server() -> Vec<ItemScenario> {
 
     tasks.push(
         ItemScenario {
-            id: ItemId::random(&cal3),
+            url: random_url(&cal3),
             initial_state: LocatedState::Local( ItemState{
                 calendar: cal3.clone(),
                 name: String::from("Task B3"),
@@ -547,11 +547,11 @@ pub fn scenarii_first_sync_to_server() -> Vec<ItemScenario> {
 pub fn scenarii_transient_task() -> Vec<ItemScenario> {
     let mut tasks = Vec::new();
 
-    let cal = CalendarId::from("https://some.calend.ar/transient/".parse().unwrap());
+    let cal = Url::from("https://some.calend.ar/transient/".parse().unwrap());
 
     tasks.push(
         ItemScenario {
-            id: ItemId::random(&cal),
+            url: random_url(&cal),
             initial_state: LocatedState::Local( ItemState{
                 calendar: cal.clone(),
                 name: String::from("A task, so that the calendar actually exists"),
@@ -567,16 +567,16 @@ pub fn scenarii_transient_task() -> Vec<ItemScenario> {
         }
     );
 
-    let id_transient = ItemId::random(&cal);
+    let url_transient = random_url(&cal);
     tasks.push(
         ItemScenario {
-            id: id_transient.clone(),
+            url: url_transient.clone(),
             initial_state: LocatedState::None,
             local_changes_to_apply: vec![
                 ChangeToApply::Create(cal, Item::Task(
                     Task::new_with_parameters(
                         String::from("A transient task that will be deleted before the sync"),
-                        id_transient.to_string(), id_transient,
+                        url_transient.to_string(), url_transient,
                         CompletionStatus::Uncompleted,
                         SyncStatus::NotSynced, Some(Utc::now()), Utc::now(),
                         "prod_id".to_string(), Vec::new() )
@@ -637,8 +637,8 @@ async fn populate_test_provider(scenarii: &[ItemScenario], mock_behaviour: Arc<M
         let new_item = Item::Task(
             Task::new_with_parameters(
                 state.name.clone(),
-                item.id.to_string(),
-                item.id.clone(),
+                item.url.to_string(),
+                item.url.clone(),
                 completion_status,
                 sync_status,
                 Some(now),
@@ -667,37 +667,37 @@ async fn populate_test_provider(scenarii: &[ItemScenario], mock_behaviour: Arc<M
 async fn apply_changes_on_provider(provider: &mut Provider<Cache, CachedCalendar, Cache, CachedCalendar>, scenarii: &[ItemScenario]) {
     // Apply changes to each item
     for item in scenarii {
-        let initial_calendar_id = match &item.initial_state {
+        let initial_calendar_url = match &item.initial_state {
             LocatedState::None => None,
             LocatedState::Local(state) => Some(state.calendar.clone()),
             LocatedState::Remote(state) => Some(state.calendar.clone()),
             LocatedState::BothSynced(state) => Some(state.calendar.clone()),
         };
 
-        let mut calendar_id = initial_calendar_id.clone();
+        let mut calendar_url = initial_calendar_url.clone();
         for local_change in &item.local_changes_to_apply {
-            calendar_id = Some(apply_change(provider.local(), calendar_id, &item.id, local_change, false).await);
+            calendar_url = Some(apply_change(provider.local(), calendar_url, &item.url, local_change, false).await);
         }
 
-        let mut calendar_id = initial_calendar_id;
+        let mut calendar_url = initial_calendar_url;
         for remote_change in &item.remote_changes_to_apply {
-            calendar_id = Some(apply_change(provider.remote(), calendar_id, &item.id, remote_change, true).await);
+            calendar_url = Some(apply_change(provider.remote(), calendar_url, &item.url, remote_change, true).await);
         }
     }
 }
 
-async fn get_or_insert_calendar(source: &mut Cache, id: &CalendarId)
+async fn get_or_insert_calendar(source: &mut Cache, url: &Url)
     -> Result<Arc<Mutex<CachedCalendar>>, Box<dyn Error>>
 {
-    match source.get_calendar(id).await {
+    match source.get_calendar(url).await {
         Some(cal) => Ok(cal),
         None => {
-            let new_name = format!("Test calendar for ID {}", id);
+            let new_name = format!("Test calendar for URL {}", url);
             let supported_components = SupportedComponents::TODO;
             let color = csscolorparser::parse("#ff8000"); // TODO: we should rather have specific colors, depending on the calendars
 
             source.create_calendar(
-                id.clone(),
+                url.clone(),
                 new_name.to_string(),
                 supported_components,
                 None,
@@ -706,15 +706,15 @@ async fn get_or_insert_calendar(source: &mut Cache, id: &CalendarId)
     }
 }
 
-/// Apply a single change on a given source, and returns the calendar ID that was modified
-async fn apply_change<S, C>(source: &S, calendar_id: Option<CalendarId>, item_id: &ItemId, change: &ChangeToApply, is_remote: bool) -> CalendarId
+/// Apply a single change on a given source, and returns the calendar URL that was modified
+async fn apply_change<S, C>(source: &S, calendar_url: Option<Url>, item_url: &Url, change: &ChangeToApply, is_remote: bool) -> Url
 where
     S: CalDavSource<C>,
     C: CompleteCalendar + DavCalendar, // in this test, we're using a calendar that mocks both kinds
 {
-    match calendar_id {
+    match calendar_url {
         Some(cal) => {
-            apply_changes_on_an_existing_item(source, &cal, item_id, change, is_remote).await;
+            apply_changes_on_an_existing_item(source, &cal, item_url, change, is_remote).await;
             cal
         },
         None => {
@@ -723,14 +723,14 @@ where
     }
 }
 
-async fn apply_changes_on_an_existing_item<S, C>(source: &S, calendar_id: &CalendarId, item_id: &ItemId, change: &ChangeToApply, is_remote: bool)
+async fn apply_changes_on_an_existing_item<S, C>(source: &S, calendar_url: &Url, item_url: &Url, change: &ChangeToApply, is_remote: bool)
 where
     S: CalDavSource<C>,
     C: CompleteCalendar + DavCalendar, // in this test, we're using a calendar that mocks both kinds
 {
-    let cal = source.get_calendar(calendar_id).await.unwrap();
+    let cal = source.get_calendar(calendar_url).await.unwrap();
     let mut cal = cal.lock().unwrap();
-    let task = cal.get_item_by_id_mut(item_id).await.unwrap().unwrap_task_mut();
+    let task = cal.get_item_by_url_mut(item_url).await.unwrap().unwrap_task_mut();
 
     match change {
         ChangeToApply::Rename(new_name) => {
@@ -753,18 +753,18 @@ where
         },
         ChangeToApply::Remove => {
             match is_remote {
-                false => cal.mark_for_deletion(item_id).await.unwrap(),
-                true => cal.delete_item(item_id).await.unwrap(),
+                false => cal.mark_for_deletion(item_url).await.unwrap(),
+                true => cal.delete_item(item_url).await.unwrap(),
             };
         },
-        ChangeToApply::Create(_calendar_id, _item) => {
+        ChangeToApply::Create(_calendar_url, _item) => {
             panic!("This function only handles already existing items");
         },
     }
 }
 
-/// Create an item, and returns the calendar ID it was inserted in
-async fn create_test_item<S, C>(source: &S, change: &ChangeToApply) -> CalendarId
+/// Create an item, and returns the URL of the calendar it was inserted in
+async fn create_test_item<S, C>(source: &S, change: &ChangeToApply) -> Url
 where
     S: CalDavSource<C>,
     C: CompleteCalendar + DavCalendar, // in this test, we're using a calendar that mocks both kinds
@@ -775,10 +775,10 @@ where
         ChangeToApply::Remove => {
             panic!("This function only creates items that do not exist yet");
         }
-        ChangeToApply::Create(calendar_id, item) => {
-            let cal = source.get_calendar(calendar_id).await.unwrap();
+        ChangeToApply::Create(calendar_url, item) => {
+            let cal = source.get_calendar(calendar_url).await.unwrap();
             cal.lock().unwrap().add_item(item.clone()).await.unwrap();
-            calendar_id.clone()
+            calendar_url.clone()
         },
     }
 }

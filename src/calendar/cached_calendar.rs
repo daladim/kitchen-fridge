@@ -4,12 +4,12 @@ use std::error::Error;
 use serde::{Deserialize, Serialize};
 use async_trait::async_trait;
 use csscolorparser::Color;
+use url::Url;
 
 use crate::item::SyncStatus;
 use crate::traits::{BaseCalendar, CompleteCalendar};
-use crate::calendar::{CalendarId, SupportedComponents};
+use crate::calendar::SupportedComponents;
 use crate::Item;
-use crate::item::ItemId;
 
 #[cfg(feature = "local_calendar_mocks_remote_calendars")]
 use std::sync::{Arc, Mutex};
@@ -23,14 +23,14 @@ use crate::mock_behaviour::MockBehaviour;
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CachedCalendar {
     name: String,
-    id: CalendarId,
+    url: Url,
     supported_components: SupportedComponents,
     color: Option<Color>,
     #[cfg(feature = "local_calendar_mocks_remote_calendars")]
     #[serde(skip)]
     mock_behaviour: Option<Arc<Mutex<MockBehaviour>>>,
 
-    items: HashMap<ItemId, Item>,
+    items: HashMap<Url, Item>,
 }
 
 impl CachedCalendar {
@@ -65,7 +65,7 @@ impl CachedCalendar {
     fn regular_add_or_update_item(&mut self, item: Item) -> Result<SyncStatus, Box<dyn Error>> {
         let ss_clone = item.sync_status().clone();
         log::debug!("Adding or updating an item with {:?}", ss_clone);
-        self.items.insert(item.id().clone(), item);
+        self.items.insert(item.url().clone(), item);
         Ok(ss_clone)
     }
 
@@ -78,7 +78,7 @@ impl CachedCalendar {
             _ => item.set_sync_status(SyncStatus::random_synced()),
         };
         let ss_clone = item.sync_status().clone();
-        self.items.insert(item.id().clone(), item);
+        self.items.insert(item.url().clone(), item);
         Ok(ss_clone)
     }
 
@@ -86,7 +86,7 @@ impl CachedCalendar {
     #[cfg(any(test, feature = "integration_tests"))]
     pub async fn has_same_observable_content_as(&self, other: &CachedCalendar) -> Result<bool, Box<dyn Error>> {
         if self.name != other.name
-        || self.id != other.id
+        || self.url != other.url
         || self.supported_components != other.supported_components
         || self.color != other.color
         {
@@ -102,13 +102,13 @@ impl CachedCalendar {
             log::debug!("Different keys for items");
             return Ok(false);
         }
-        for (id_l, item_l) in items_l {
-            let item_r = match items_r.get(&id_l) {
+        for (url_l, item_l) in items_l {
+            let item_r = match items_r.get(&url_l) {
                 Some(c) => c,
                 None => return Err("should not happen, we've just tested keys are the same".into()),
             };
             if item_l.has_same_observable_content_as(&item_r) == false {
-                log::debug!("Different items for id {}:", id_l);
+                log::debug!("Different items for URL {}:", url_l);
                 log::debug!("{:#?}", item_l);
                 log::debug!("{:#?}", item_r);
                 return Ok(false);
@@ -118,36 +118,36 @@ impl CachedCalendar {
         Ok(true)
     }
 
-    /// The non-async version of [`Self::get_item_ids`]
-    pub fn get_item_ids_sync(&self) -> Result<HashSet<ItemId>, Box<dyn Error>> {
+    /// The non-async version of [`Self::get_item_urls`]
+    pub fn get_item_urls_sync(&self) -> Result<HashSet<Url>, Box<dyn Error>> {
         Ok(self.items.iter()
-            .map(|(id, _)| id.clone())
+            .map(|(url, _)| url.clone())
             .collect()
         )
     }
 
     /// The non-async version of [`Self::get_items`]
-    pub fn get_items_sync(&self) -> Result<HashMap<ItemId, &Item>, Box<dyn Error>> {
+    pub fn get_items_sync(&self) -> Result<HashMap<Url, &Item>, Box<dyn Error>> {
         Ok(self.items.iter()
-            .map(|(id, item)| (id.clone(), item))
+            .map(|(url, item)| (url.clone(), item))
             .collect()
         )
     }
 
-    /// The non-async version of [`Self::get_item_by_id`]
-    pub fn get_item_by_id_sync<'a>(&'a self, id: &ItemId) -> Option<&'a Item> {
-        self.items.get(id)
+    /// The non-async version of [`Self::get_item_by_url`]
+    pub fn get_item_by_url_sync<'a>(&'a self, url: &Url) -> Option<&'a Item> {
+        self.items.get(url)
     }
 
-    /// The non-async version of [`Self::get_item_by_id_mut`]
-    pub fn get_item_by_id_mut_sync<'a>(&'a mut self, id: &ItemId) -> Option<&'a mut Item> {
-        self.items.get_mut(id)
+    /// The non-async version of [`Self::get_item_by_url_mut`]
+    pub fn get_item_by_url_mut_sync<'a>(&'a mut self, url: &Url) -> Option<&'a mut Item> {
+        self.items.get_mut(url)
     }
 
     /// The non-async version of [`Self::add_item`]
     pub fn add_item_sync(&mut self, item: Item) -> Result<SyncStatus, Box<dyn Error>> {
-        if self.items.contains_key(item.id()) {
-            return Err(format!("Item {:?} cannot be added, it exists already", item.id()).into());
+        if self.items.contains_key(item.url()) {
+            return Err(format!("Item {:?} cannot be added, it exists already", item.url()).into());
         }
         #[cfg(not(feature = "local_calendar_mocks_remote_calendars"))]
         return self.regular_add_or_update_item(item);
@@ -158,8 +158,8 @@ impl CachedCalendar {
 
     /// The non-async version of [`Self::update_item`]
     pub fn update_item_sync(&mut self, item: Item) -> Result<SyncStatus, Box<dyn Error>> {
-        if self.items.contains_key(item.id()) == false {
-            return Err(format!("Item {:?} cannot be updated, it does not already exist", item.id()).into());
+        if self.items.contains_key(item.url()) == false {
+            return Err(format!("Item {:?} cannot be updated, it does not already exist", item.url()).into());
         }
         #[cfg(not(feature = "local_calendar_mocks_remote_calendars"))]
         return self.regular_add_or_update_item(item);
@@ -169,8 +169,8 @@ impl CachedCalendar {
     }
 
     /// The non-async version of [`Self::mark_for_deletion`]
-    pub fn mark_for_deletion_sync(&mut self, item_id: &ItemId) -> Result<(), Box<dyn Error>> {
-        match self.items.get_mut(item_id) {
+    pub fn mark_for_deletion_sync(&mut self, item_url: &Url) -> Result<(), Box<dyn Error>> {
+        match self.items.get_mut(item_url) {
             None => Err("no item for this key".into()),
             Some(item) => {
                 match item.sync_status() {
@@ -188,7 +188,7 @@ impl CachedCalendar {
                     },
                     SyncStatus::NotSynced => {
                         // This was never synced to the server, we can safely delete it as soon as now
-                        self.items.remove(item_id);
+                        self.items.remove(item_url);
                     },
                 };
                 Ok(())
@@ -197,9 +197,9 @@ impl CachedCalendar {
     }
 
     /// The non-async version of [`Self::immediately_delete_item`]
-    pub fn immediately_delete_item_sync(&mut self, item_id: &ItemId) -> Result<(), Box<dyn Error>> {
-        match self.items.remove(item_id) {
-            None => Err(format!("Item {} is absent from this calendar", item_id).into()),
+    pub fn immediately_delete_item_sync(&mut self, item_url: &Url) -> Result<(), Box<dyn Error>> {
+        match self.items.remove(item_url) {
+            None => Err(format!("Item {} is absent from this calendar", item_url).into()),
             Some(_) => Ok(())
         }
     }
@@ -213,8 +213,8 @@ impl BaseCalendar for CachedCalendar {
         &self.name
     }
 
-    fn id(&self) -> &CalendarId {
-        &self.id
+    fn url(&self) -> &Url {
+        &self.url
     }
 
     fn supported_components(&self) -> SupportedComponents {
@@ -236,37 +236,37 @@ impl BaseCalendar for CachedCalendar {
 
 #[async_trait]
 impl CompleteCalendar for CachedCalendar {
-    fn new(name: String, id: CalendarId, supported_components: SupportedComponents, color: Option<Color>) -> Self {
+    fn new(name: String, url: Url, supported_components: SupportedComponents, color: Option<Color>) -> Self {
         Self {
-            name, id, supported_components, color,
+            name, url, supported_components, color,
             #[cfg(feature = "local_calendar_mocks_remote_calendars")]
             mock_behaviour: None,
             items: HashMap::new(),
         }
     }
 
-    async fn get_item_ids(&self) -> Result<HashSet<ItemId>, Box<dyn Error>> {
-        self.get_item_ids_sync()
+    async fn get_item_urls(&self) -> Result<HashSet<Url>, Box<dyn Error>> {
+        self.get_item_urls_sync()
     }
 
-    async fn get_items(&self) -> Result<HashMap<ItemId, &Item>, Box<dyn Error>> {
+    async fn get_items(&self) -> Result<HashMap<Url, &Item>, Box<dyn Error>> {
         self.get_items_sync()
     }
 
-    async fn get_item_by_id<'a>(&'a self, id: &ItemId) -> Option<&'a Item> {
-        self.get_item_by_id_sync(id)
+    async fn get_item_by_url<'a>(&'a self, url: &Url) -> Option<&'a Item> {
+        self.get_item_by_url_sync(url)
     }
 
-    async fn get_item_by_id_mut<'a>(&'a mut self, id: &ItemId) -> Option<&'a mut Item> {
-        self.get_item_by_id_mut_sync(id)
+    async fn get_item_by_url_mut<'a>(&'a mut self, url: &Url) -> Option<&'a mut Item> {
+        self.get_item_by_url_mut_sync(url)
     }
 
-    async fn mark_for_deletion(&mut self, item_id: &ItemId) -> Result<(), Box<dyn Error>> {
-        self.mark_for_deletion_sync(item_id)
+    async fn mark_for_deletion(&mut self, item_url: &Url) -> Result<(), Box<dyn Error>> {
+        self.mark_for_deletion_sync(item_url)
     }
 
-    async fn immediately_delete_item(&mut self, item_id: &ItemId) -> Result<(), Box<dyn Error>> {
-        self.immediately_delete_item_sync(item_id)
+    async fn immediately_delete_item(&mut self, item_url: &Url) -> Result<(), Box<dyn Error>> {
+        self.immediately_delete_item_sync(item_url)
     }
 }
 
@@ -286,7 +286,7 @@ impl DavCalendar for CachedCalendar {
         crate::traits::CompleteCalendar::new(name, resource.url().clone(), supported_components, color)
     }
 
-    async fn get_item_version_tags(&self) -> Result<HashMap<ItemId, VersionTag>, Box<dyn Error>> {
+    async fn get_item_version_tags(&self) -> Result<HashMap<Url, VersionTag>, Box<dyn Error>> {
         #[cfg(feature = "local_calendar_mocks_remote_calendars")]
         self.mock_behaviour.as_ref().map_or(Ok(()), |b| b.lock().unwrap().can_get_item_version_tags())?;
 
@@ -294,30 +294,30 @@ impl DavCalendar for CachedCalendar {
 
         let mut result = HashMap::new();
 
-        for (id, item) in self.items.iter() {
+        for (url, item) in self.items.iter() {
             let vt = match item.sync_status() {
                 SyncStatus::Synced(vt) => vt.clone(),
                 _ => {
                     panic!("Mock calendars must contain only SyncStatus::Synced. Got {:?}", item);
                 }
             };
-            result.insert(id.clone(), vt);
+            result.insert(url.clone(), vt);
         }
 
         Ok(result)
     }
 
-    async fn get_item_by_id(&self, id: &ItemId) -> Result<Option<Item>, Box<dyn Error>> {
+    async fn get_item_by_url(&self, url: &Url) -> Result<Option<Item>, Box<dyn Error>> {
         #[cfg(feature = "local_calendar_mocks_remote_calendars")]
-        self.mock_behaviour.as_ref().map_or(Ok(()), |b| b.lock().unwrap().can_get_item_by_id())?;
+        self.mock_behaviour.as_ref().map_or(Ok(()), |b| b.lock().unwrap().can_get_item_by_url())?;
 
-        Ok(self.items.get(id).cloned())
+        Ok(self.items.get(url).cloned())
     }
 
-    async fn delete_item(&mut self, item_id: &ItemId) -> Result<(), Box<dyn Error>> {
+    async fn delete_item(&mut self, item_url: &Url) -> Result<(), Box<dyn Error>> {
         #[cfg(feature = "local_calendar_mocks_remote_calendars")]
         self.mock_behaviour.as_ref().map_or(Ok(()), |b| b.lock().unwrap().can_delete_item())?;
 
-        self.immediately_delete_item(item_id).await
+        self.immediately_delete_item(item_url).await
     }
 }

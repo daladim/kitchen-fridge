@@ -4,10 +4,10 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use chrono::{DateTime, Utc};
 use ical::property::Property;
+use url::Url;
 
-use crate::item::ItemId;
 use crate::item::SyncStatus;
-use crate::calendar::CalendarId;
+use crate::utils::random_url;
 
 /// RFC5545 defines the completion as several optional fields, yet some combinations make no sense.
 /// This enum provides an API that forbids such impossible combinations.
@@ -33,10 +33,11 @@ impl CompletionStatus {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Task {
     /// The task URL
-    id: ItemId,
+    url: Url,
 
     /// Persistent, globally unique identifier for the calendar component
-    /// The [RFC](https://tools.ietf.org/html/rfc5545#page-117) recommends concatenating a timestamp with the server's domain name, but UUID are even better
+    /// The [RFC](https://tools.ietf.org/html/rfc5545#page-117) recommends concatenating a timestamp with the server's domain name.
+    /// UUID are even better so we'll generate them, but we have to support tasks from the server, that may have any arbitrary strings here.
     uid: String,
 
     /// The sync status of this item
@@ -65,8 +66,8 @@ pub struct Task {
 impl Task {
     /// Create a brand new Task that is not on a server yet.
     /// This will pick a new (random) task ID.
-    pub fn new(name: String, completed: bool, parent_calendar_id: &CalendarId) -> Self {
-        let new_item_id = ItemId::random(parent_calendar_id);
+    pub fn new(name: String, completed: bool, parent_calendar_url: &Url) -> Self {
+        let new_url = random_url(parent_calendar_url);
         let new_sync_status = SyncStatus::NotSynced;
         let new_uid = Uuid::new_v4().to_hyphenated().to_string();
         let new_creation_date = Some(Utc::now());
@@ -76,18 +77,18 @@ impl Task {
             } else { CompletionStatus::Uncompleted };
         let ical_prod_id = crate::ical::default_prod_id();
         let extra_parameters = Vec::new();
-        Self::new_with_parameters(name, new_uid, new_item_id, new_completion_status, new_sync_status, new_creation_date, new_last_modified, ical_prod_id, extra_parameters)
+        Self::new_with_parameters(name, new_uid, new_url, new_completion_status, new_sync_status, new_creation_date, new_last_modified, ical_prod_id, extra_parameters)
     }
 
     /// Create a new Task instance, that may be synced on the server already
-    pub fn new_with_parameters(name: String, uid: String, id: ItemId,
+    pub fn new_with_parameters(name: String, uid: String, new_url: Url,
                                completion_status: CompletionStatus,
                                sync_status: SyncStatus, creation_date: Option<DateTime<Utc>>, last_modified: DateTime<Utc>,
                                ical_prod_id: String, extra_parameters: Vec<Property>,
                             ) -> Self
     {
         Self {
-            id,
+            url: new_url,
             uid,
             name,
             completion_status,
@@ -99,7 +100,7 @@ impl Task {
         }
     }
 
-    pub fn id(&self) -> &ItemId     { &self.id          }
+    pub fn url(&self) -> &Url       { &self.url         }
     pub fn uid(&self) -> &str       { &self.uid         }
     pub fn name(&self) -> &str      { &self.name        }
     pub fn completed(&self) -> bool { self.completion_status.is_completed() }
@@ -112,7 +113,8 @@ impl Task {
 
     #[cfg(any(test, feature = "integration_tests"))]
     pub fn has_same_observable_content_as(&self, other: &Task) -> bool {
-           self.id == other.id
+           self.url == other.url
+        && self.uid == other.uid
         && self.name == other.name
         // sync status must be the same variant, but we ignore its embedded version tag
         && std::mem::discriminant(&self.sync_status) == std::mem::discriminant(&other.sync_status)

@@ -6,10 +6,10 @@ use std::hash::Hash;
 use std::io::{stdin, stdout, Read, Write};
 
 use minidom::Element;
+use url::Url;
 
 use crate::traits::CompleteCalendar;
 use crate::traits::DavCalendar;
-use crate::calendar::CalendarId;
 use crate::Item;
 use crate::item::SyncStatus;
 
@@ -62,12 +62,12 @@ pub fn print_xml(element: &Element) {
 }
 
 /// A debug utility that pretty-prints calendars
-pub async fn print_calendar_list<C>(cals: &HashMap<CalendarId, Arc<Mutex<C>>>)
+pub async fn print_calendar_list<C>(cals: &HashMap<Url, Arc<Mutex<C>>>)
 where
     C: CompleteCalendar,
 {
-    for (id, cal) in cals {
-        println!("CAL {} ({})", cal.lock().unwrap().name(), id);
+    for (url, cal) in cals {
+        println!("CAL {} ({})", cal.lock().unwrap().name(), url);
         match cal.lock().unwrap().get_items().await {
             Err(_err) => continue,
             Ok(map) => {
@@ -80,17 +80,17 @@ where
 }
 
 /// A debug utility that pretty-prints calendars
-pub async fn print_dav_calendar_list<C>(cals: &HashMap<CalendarId, Arc<Mutex<C>>>)
+pub async fn print_dav_calendar_list<C>(cals: &HashMap<Url, Arc<Mutex<C>>>)
 where
     C: DavCalendar,
 {
-    for (id, cal) in cals {
-        println!("CAL {} ({})", cal.lock().unwrap().name(), id);
+    for (url, cal) in cals {
+        println!("CAL {} ({})", cal.lock().unwrap().name(), url);
         match cal.lock().unwrap().get_item_version_tags().await {
             Err(_err) => continue,
             Ok(map) => {
-                for (id, version_tag) in map {
-                    println!("    * {} (version {:?})", id, version_tag);
+                for (url, version_tag) in map {
+                    println!("    * {} (version {:?})", url, version_tag);
                 }
             },
         }
@@ -107,7 +107,7 @@ pub fn print_task(item: &Item) {
                 SyncStatus::LocallyModified(_) => "~",
                 SyncStatus::LocallyDeleted(_) =>  "x",
             };
-            println!("    {}{} {}\t{}", completion, sync, task.name(), task.id());
+            println!("    {}{} {}\t{}", completion, sync, task.name(), task.url());
         },
         _ => return,
     }
@@ -147,4 +147,11 @@ pub fn pause() {
     stdout.write_all(b"Press Enter to continue...").unwrap();
     stdout.flush().unwrap();
     stdin().read_exact(&mut [0]).unwrap();
+}
+
+
+/// Generate a random URL with a given prefix
+pub fn random_url(parent_calendar: &Url) -> Url {
+    let random = uuid::Uuid::new_v4().to_hyphenated().to_string();
+    parent_calendar.join(&random).unwrap(/* this cannot panic since we've just created a string that is a valid URL */)
 }

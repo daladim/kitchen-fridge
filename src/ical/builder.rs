@@ -130,12 +130,12 @@ mod tests {
     }
 
     fn build_task(completed: bool) -> (String, String, String) {
-        let cal_id = "http://my.calend.ar/id".parse().unwrap();
+        let cal_url = "http://my.calend.ar/id".parse().unwrap();
         let now = Utc::now();
         let s_now = format_date_time(&now);
 
         let task = Item::Task(Task::new(
-            String::from("This is a task with ÜTF-8 characters"), completed, &cal_id
+            String::from("This is a task with ÜTF-8 characters"), completed, &cal_url
         ));
 
         let ical = build_from(&task).unwrap();
