@@ -10,7 +10,7 @@ pub use builder::build_from;
 use crate::config::{ORG_NAME, PRODUCT_NAME};
 
 pub fn default_prod_id() -> String {
-    format!("-//{}//{}//EN", *ORG_NAME, *PRODUCT_NAME)
+    format!("-//{}//{}//EN", ORG_NAME.lock().unwrap(), PRODUCT_NAME.lock().unwrap())
 }
 
 

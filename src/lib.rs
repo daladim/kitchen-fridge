@@ -22,9 +22,9 @@
 //! See example usage in the `examples/` folder, that you can run using `cargo run --example <example-name>`. \
 //! You can also have a look at `tasklist`, a GUI app that uses `kitchen-fridge` under the hood.
 //!
-//! ## Compile-time configuration options
+//! ## Configuration options
 //!
-//! Have a look at the [`config`] module to see what options can be overridden at compile-time.
+//! Have a look at the [`config`] module to see what default options can be overridden.
 
 pub mod traits;
 
