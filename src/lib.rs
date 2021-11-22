@@ -26,6 +26,8 @@
 //!
 //! Have a look at the [`config`] module to see what default options can be overridden.
 
+#![doc(html_logo_url = "https://raw.githubusercontent.com/daladim/kitchen-fridge/master/resources/kitchen-fridge.svg")]
+
 pub mod traits;
 
 pub mod calendar;
