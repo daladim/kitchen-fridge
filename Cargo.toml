@@ -18,7 +18,7 @@ integration_tests = ["local_calendar_mocks_remote_calendars"]
 local_calendar_mocks_remote_calendars = []
 
 [dependencies]
-env_logger = "0.8"
+env_logger = "0.9"
 log = "0.4"
 tokio = { version = "1.2", features = ["macros", "rt", "rt-multi-thread"]}
 reqwest = "0.11"
