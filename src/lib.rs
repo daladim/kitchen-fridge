@@ -20,7 +20,7 @@
 //! ## Examples
 //!
 //! See example usage in the `examples/` folder, that you can run using `cargo run --example <example-name>`. \
-//! You can also have a look at `tasklist`, a GUI app that uses `kitchen-fridge` under the hood.
+//! You can also have a look at [`Voilà`](https://github.com/daladim/voila-tasks), a GUI app that uses `kitchen-fridge` under the hood.
 //!
 //! ## Configuration options
 //!
