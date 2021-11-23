@@ -23,12 +23,12 @@ bitflags! {
 impl SupportedComponents {
     pub fn to_xml_string(&self) -> String {
         format!(r#"
-            <C:supported-calendar-component-set>
+            <B:supported-calendar-component-set>
                 {} {}
-            </C:supported-calendar-component-set>
+            </B:supported-calendar-component-set>
             "#,
-            if self.contains(Self::EVENT) { "<C:comp name=\"VEVENT\"/>" } else { "" },
-            if self.contains(Self::TODO)  { "<C:comp name=\"VTODO\"/>"  } else { "" },
+            if self.contains(Self::EVENT) { "<B:comp name=\"VEVENT\"/>" } else { "" },
+            if self.contains(Self::TODO)  { "<B:comp name=\"VTODO\"/>"  } else { "" },
         )
     }
 }

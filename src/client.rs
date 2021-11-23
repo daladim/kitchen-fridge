@@ -263,7 +263,7 @@ impl CalDavSource<RemoteCalendar> for Client {
             },
         }
 
-        let creation_body = calendar_body(name, supported_components);
+        let creation_body = calendar_body(name, supported_components, color);
 
         let response = reqwest::Client::new()
             .request(Method::from_bytes(b"MKCALENDAR").unwrap(), url.clone())
@@ -282,21 +282,26 @@ impl CalDavSource<RemoteCalendar> for Client {
     }
 }
 
-fn calendar_body(name: String, supported_components: SupportedComponents) -> String {
+fn calendar_body(name: String, supported_components: SupportedComponents, color: Option<Color>) -> String {
+    let color_property = match color {
+        None => "".to_string(),
+        Some(color) => format!("<D:calendar-color xmlns:D=\"http://apple.com/ns/ical/\">{}FF</D:calendar-color>", color.to_hex_string().to_ascii_uppercase()),
+    };
+
     // This is taken from https://tools.ietf.org/html/rfc4791#page-24
     format!(r#"<?xml version="1.0" encoding="utf-8" ?>
-        <C:mkcalendar xmlns:D="DAV:"
-                    xmlns:C="urn:ietf:params:xml:ns:caldav">
-        <D:set>
-            <D:prop>
-            <D:displayname>{}</D:displayname>
-            {}
-            </D:prop>
-        </D:set>
-        </C:mkcalendar>
+        <B:mkcalendar xmlns:B="urn:ietf:params:xml:ns:caldav">
+            <A:set xmlns:A="DAV:">
+                <A:prop>
+                    <A:displayname>{}</A:displayname>
+                    {}
+                    {}
+                </A:prop>
+            </A:set>
+        </B:mkcalendar>
         "#,
         name,
+        color_property,
         supported_components.to_xml_string(),
     )
 }
-
