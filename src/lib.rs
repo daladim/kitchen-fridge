@@ -1,5 +1,6 @@
-//! This crate provides a CalDAV client.
-//! CalDAV is described as "Calendaring Extensions to WebDAV" in [RFC 4791](https://datatracker.ietf.org/doc/html/rfc4791) and [RFC 7986](https://datatracker.ietf.org/doc/html/rfc7986) and the underlying iCal format is described at least in [RFC 5545](https://datatracker.ietf.org/doc/html/rfc5545).
+//! This crate provides a CalDAV client library. \
+//! CalDAV is described as "Calendaring Extensions to WebDAV" in [RFC 4791](https://datatracker.ietf.org/doc/html/rfc4791) and [RFC 7986](https://datatracker.ietf.org/doc/html/rfc7986) and the underlying iCal format is described at least in [RFC 5545](https://datatracker.ietf.org/doc/html/rfc5545). \
+//! This library has been intensivley tested with Nextcloud servers. It should support Owncloud and iCloud as well, since they use the very same CalDAV protocol.
 //!
 //! This initial implementation only supports TODO events. This it can fetch and update a CalDAV-hosted todo-list...just like [sticky notes on a kitchen fridge](https://www.google.com/search?q=kitchen+fridge+todo+list&tbm=isch) would. \
 //! Supporting other items (and especially regular CalDAV calendar events) should be fairly trivial, as it should boil down to adding little logic in iCal files parsing, but any help is appreciated :-)
