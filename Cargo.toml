@@ -1,11 +1,13 @@
 [package]
 name = "kitchen-fridge"
-version = "0.1.0"
+version = "0.3.0"
 authors = ["daladim"]
 edition = "2018"
 description = "A CalDAV (ical file management over WebDAV) library"
 repository = "https://github.com/daladim/kitchen-fridge"
+documentation = "https://docs.rs/kitchen-fridge"
 license = "MIT"
+readme = "README.md"
 keywords = ["CalDAV", "client", "WebDAV", "todo", "iCloud"]
 categories = ["network-programming", "web-programming::http-client"]
 
