@@ -1,5 +1,9 @@
 # kitchen-fridge
 
+<p align="center">
+<img src="resources/kitchen-fridge.svg" alt="kitchen-fridge logo" width="250"/>
+</p>
+
 kitchen-fridge is a CalDAV (iCal file transfer over WebDAV) Rust client library.
 
 Its [documentation](https://docs.rs/kitchen-fridge/) is available on docs.rs.
