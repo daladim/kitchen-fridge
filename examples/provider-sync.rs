@@ -75,8 +75,7 @@ async fn main() {
     add_items_and_sync_again(&mut provider).await;
 }
 
-async fn add_items_and_sync_again(provider: &mut CalDavProvider)
-{
+async fn add_items_and_sync_again(provider: &mut CalDavProvider) {
     println!("\nNow, we'll add a calendar and a few tasks and run the sync again.");
     pause();
 
