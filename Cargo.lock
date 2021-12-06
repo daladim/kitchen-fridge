@@ -339,9 +339,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "ical"
-version = "0.6.0"
-source = "git+https://github.com/Peltoche/ical-rs.git?rev=c49506998dfacd8d809d106a7beb0c56c9e528e8#c49506998dfacd8d809d106a7beb0c56c9e528e8"
+name = "ical-daladim"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a357f6790b3c1362b45f94cd7efcb4d8e519a07075b4fc5f1899c87eeb120105"
 dependencies = [
  "serde",
  "thiserror",
@@ -404,7 +405,7 @@ dependencies = [
  "chrono",
  "csscolorparser",
  "env_logger",
- "ical",
+ "ical-daladim",
  "ics",
  "log",
  "minidom",

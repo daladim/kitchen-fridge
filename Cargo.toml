@@ -30,7 +30,7 @@ serde_json = "1.0"
 async-trait = "0.1"
 uuid = { version = "0.8", features = ["v4"] }
 sanitize-filename = "0.3"
-ical = { version = "0.6", features = ["serde-derive"], git = "https://github.com/Peltoche/ical-rs.git", rev = "c49506998dfacd8d809d106a7beb0c56c9e528e8" }
+ical-daladim = { version = "0.8", features = ["serde-derive"] }
 ics = "0.5"
 chrono = { version = "0.4", features = ["serde"] }
 csscolorparser = { version = "0.5", features = ["serde"] }
