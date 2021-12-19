@@ -123,7 +123,8 @@ pub fn parse(content: &str, item_url: Url, sync_status: SyncStatus) -> Result<It
 }
 
 fn parse_date_time(dt: &str) -> Result<DateTime<Utc>, chrono::format::ParseError> {
-    Utc.datetime_from_str(dt, "%Y%m%dT%H%M%S")
+                    Utc.datetime_from_str(dt, "%Y%m%dT%H%M%SZ")
+    .or_else(|_err| Utc.datetime_from_str(dt, "%Y%m%dT%H%M%S") )
 }
 
 fn parse_date_time_from_property(value: &Option<String>) -> Option<DateTime<Utc>> {
