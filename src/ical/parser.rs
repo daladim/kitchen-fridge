@@ -50,8 +50,17 @@ pub fn parse(content: &str, item_url: Url, sync_status: SyncStatus) -> Result<It
                         // The property can be specified once, but is not mandatory
                         // "This property specifies the date and time that the information associated with
                         //  the calendar component was last revised in the calendar store."
-                        last_modified = parse_date_time_from_property(&prop.value)
+                        // "In the case of an iCalendar object that doesn't specify a "METHOD"
+                        //  property [e.g.: VTODO and VEVENT], this property is equivalent to the "LAST-MODIFIED" property".
+                        last_modified = parse_date_time_from_property(&prop.value);
                     },
+                    "LAST-MODIFIED" => {
+                        // The property can be specified once, but is not mandatory
+                        // "This property specifies the date and time that the information associated with
+                        //  the calendar component was last revised in the calendar store."
+                        // In practise, for VEVENT and VTODO, this is generally the same value as DTSTAMP.
+                        last_modified = parse_date_time_from_property(&prop.value);
+                    }
                     "COMPLETED" => {
                         // The property can be specified once, but is not mandatory
                         // "This property defines the date and time that a to-do was
