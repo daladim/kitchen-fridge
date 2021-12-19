@@ -134,6 +134,14 @@ impl CachedCalendar {
         )
     }
 
+    /// The non-async version of [`Self::get_items_mut`]
+    pub fn get_items_mut_sync(&mut self) -> Result<HashMap<Url, &mut Item>, Box<dyn Error>> {
+        Ok(self.items.iter_mut()
+            .map(|(url, item)| (url.clone(), item))
+            .collect()
+        )
+    }
+
     /// The non-async version of [`Self::get_item_by_url`]
     pub fn get_item_by_url_sync<'a>(&'a self, url: &Url) -> Option<&'a Item> {
         self.items.get(url)
@@ -251,6 +259,10 @@ impl CompleteCalendar for CachedCalendar {
 
     async fn get_items(&self) -> Result<HashMap<Url, &Item>, Box<dyn Error>> {
         self.get_items_sync()
+    }
+
+    async fn get_items_mut(&mut self) -> Result<HashMap<Url, &mut Item>, Box<dyn Error>> {
+        self.get_items_mut_sync()
     }
 
     async fn get_item_by_url<'a>(&'a self, url: &Url) -> Option<&'a Item> {

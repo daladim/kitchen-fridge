@@ -115,6 +115,9 @@ pub trait CompleteCalendar : BaseCalendar {
     /// Returns all items that this calendar contains
     async fn get_items(&self) -> Result<HashMap<Url, &Item>, Box<dyn Error>>;
 
+    /// Returns all items that this calendar contains
+    async fn get_items_mut(&mut self) -> Result<HashMap<Url, &mut Item>, Box<dyn Error>>;
+
     /// Returns a particular item
     async fn get_item_by_url<'a>(&'a self, url: &Url) -> Option<&'a Item>;
 
