@@ -1,4 +1,4 @@
-///! Some utility functions
+//! Some utility functions
 
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};

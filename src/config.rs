@@ -1,4 +1,4 @@
-//! Support for compile-time configuration options
+//! Support for library configuration options
 
 use std::sync::{Arc, Mutex};
 use once_cell::sync::Lazy;
