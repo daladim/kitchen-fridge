@@ -326,6 +326,14 @@ impl DavCalendar for CachedCalendar {
         Ok(self.items.get(url).cloned())
     }
 
+    async fn get_items_by_url(&self, urls: &[Url]) -> Result<Vec<Option<Item>>, Box<dyn Error>> {
+        let mut v = Vec::new();
+        for url in urls {
+            v.push(DavCalendar::get_item_by_url(self, url).await?);
+        }
+        Ok(v)
+    }
+
     async fn delete_item(&mut self, item_url: &Url) -> Result<(), Box<dyn Error>> {
         #[cfg(feature = "local_calendar_mocks_remote_calendars")]
         self.mock_behaviour.as_ref().map_or(Ok(()), |b| b.lock().unwrap().can_delete_item())?;

@@ -14,6 +14,7 @@ use crate::item::Item;
 use crate::item::VersionTag;
 use crate::item::SyncStatus;
 use crate::resource::Resource;
+use crate::utils::find_elem;
 
 static TASKS_BODY: &str = r#"
     <c:calendar-query xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">
@@ -28,6 +29,15 @@ static TASKS_BODY: &str = r#"
     </c:calendar-query>
 "#;
 
+static MULTIGET_BODY_PREFIX: &str = r#"
+    <c:calendar-multiget xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">
+        <d:prop>
+            <c:calendar-data />
+        </d:prop>
+"#;
+static MULTIGET_BODY_SUFFIX: &str = r#"
+    </c:calendar-multiget>
+"#;
 
 
 
@@ -189,6 +199,40 @@ impl DavCalendar for RemoteCalendar {
 
         let item = crate::ical::parse(&text, url.clone(), SyncStatus::Synced(vt.clone()))?;
         Ok(Some(item))
+    }
+
+    async fn get_items_by_url(&self, urls: &[Url]) -> Result<Vec<Option<Item>>, Box<dyn Error>> {
+        // Build the request body
+        let mut hrefs = String::new();
+        for url in urls {
+            hrefs.push_str(&format!("        <d:href>{}</d:href>\n", url.path()));
+        }
+        let body = format!("{}{}{}", MULTIGET_BODY_PREFIX, hrefs, MULTIGET_BODY_SUFFIX);
+
+        // Send the request
+        let xml_replies = crate::client::sub_request_and_extract_elems(&self.resource, "REPORT", body, "response").await?;
+
+        // This is supposed to be cached
+        let version_tags = self.get_item_version_tags().await?;
+
+        // Parse the results
+        let mut results = Vec::new();
+        for xml_reply in xml_replies {
+            let href = find_elem(&xml_reply, "href").ok_or("Missing HREF")?.text();
+            let mut url = self.resource.url().clone();
+            url.set_path(&href);
+            let ical_data = find_elem(&xml_reply, "calendar-data").ok_or("Missing calendar-data")?.text();
+
+            let vt = match version_tags.get(&url) {
+                None => return Err(format!("Inconsistent data: {} has no version tag", url).into()),
+                Some(vt) => vt,
+            };
+
+            let item = crate::ical::parse(&ical_data, url.clone(), SyncStatus::Synced(vt.clone()))?;
+            results.push(Some(item));
+        }
+
+        Ok(results)
     }
 
     async fn delete_item(&mut self, item_url: &Url) -> Result<(), Box<dyn Error>> {
