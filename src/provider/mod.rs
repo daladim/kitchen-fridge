@@ -299,30 +299,13 @@ where
             }
         }
 
-        for url_add in remote_additions {
-            progress.debug(&format!("> Applying remote addition {} locally", url_add));
-            progress.feedback(SyncEvent::InProgress{
-                calendar: cal_name.clone(),
-                details: Self::item_name(&cal_local, &url_add).await,
-            });
-            match cal_remote.get_item_by_url(&url_add).await {
-                Err(err) => {
-                    progress.warn(&format!("Unable to get remote item {}: {}. Skipping it.", url_add, err));
-                    continue;
-                },
-                Ok(item) => match item {
-                    None => {
-                        progress.error(&format!("Inconsistency: new item {} has vanished from the remote end", url_add));
-                        continue;
-                    },
-                    Some(new_item) => {
-                        if let Err(err) = cal_local.add_item(new_item.clone()).await {
-                            progress.error(&format!("Not able to add item {} to local calendar: {}", url_add, err));
-                        }
-                    },
-                },
-            }
-        }
+        Self::apply_remote_additions(
+            remote_additions,
+            &mut *cal_local,
+            &mut *cal_remote,
+            progress,
+            &cal_name
+        ).await;
 
         for url_change in remote_changes {
             progress.debug(&format!("> Applying remote change {} locally", url_change));
@@ -402,6 +385,46 @@ where
 
     async fn item_name(cal: &T, url: &Url) -> String {
         cal.get_item_by_url(url).await.map(|item| item.name()).unwrap_or_default().to_string()
+    }
+
+    async fn apply_remote_additions(
+        remote_additions: HashSet<Url>,
+        cal_local: &mut T,
+        cal_remote: &mut U,
+        progress: &mut SyncProgress,
+        cal_name: &str
+    ) {
+        //
+        //
+        //
+        //
+        //
+        // TODO: OPTIM: in the server -> local way, download all the content at once
+        //
+        for url_add in remote_additions {
+            progress.debug(&format!("> Applying remote addition {} locally", url_add));
+            progress.feedback(SyncEvent::InProgress{
+                calendar: cal_name.to_string(),
+                details: Self::item_name(&cal_local, &url_add).await,
+            });
+            match cal_remote.get_item_by_url(&url_add).await {
+                Err(err) => {
+                    progress.warn(&format!("Unable to get remote item {}: {}. Skipping it.", url_add, err));
+                    continue;
+                },
+                Ok(item) => match item {
+                    None => {
+                        progress.error(&format!("Inconsistency: new item {} has vanished from the remote end", url_add));
+                        continue;
+                    },
+                    Some(new_item) => {
+                        if let Err(err) = cal_local.add_item(new_item.clone()).await {
+                            progress.error(&format!("Not able to add item {} to local calendar: {}", url_add, err));
+                        }
+                    },
+                },
+            }
+        }
     }
 
 }
