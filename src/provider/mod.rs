@@ -186,8 +186,10 @@ where
         let cal_name = cal_local.name().to_string();
 
         progress.info(&format!("Syncing calendar {}", cal_name));
+        progress.reset_counter();
         progress.feedback(SyncEvent::InProgress{
             calendar: cal_name.clone(),
+            items_done_already: 0,
             details: "started".to_string()
         });
 
@@ -203,6 +205,7 @@ where
         let remote_items = cal_remote.get_item_version_tags().await?;
         progress.feedback(SyncEvent::InProgress{
             calendar: cal_name.clone(),
+            items_done_already: 0,
             details: format!("{} remote items", remote_items.len()),
         });
 
@@ -298,10 +301,13 @@ where
         progress.trace("Committing changes...");
         for url_del in local_del {
             progress.debug(&format!("> Pushing local deletion {} to the server", url_del));
+            progress.increment_counter(1);
             progress.feedback(SyncEvent::InProgress{
                 calendar: cal_name.clone(),
+                items_done_already: progress.counter(),
                 details: Self::item_name(&cal_local, &url_del).await,
             });
+
             match cal_remote.delete_item(&url_del).await {
                 Err(err) => {
                     progress.warn(&format!("Unable to delete remote item {}: {}", url_del, err));
@@ -317,8 +323,10 @@ where
 
         for url_del in remote_del {
             progress.debug(&format!("> Applying remote deletion {} locally", url_del));
+            progress.increment_counter(1);
             progress.feedback(SyncEvent::InProgress{
                 calendar: cal_name.clone(),
+                items_done_already: progress.counter(),
                 details: Self::item_name(&cal_local, &url_del).await,
             });
             if let Err(err) = cal_local.immediately_delete_item(&url_del).await {
@@ -345,8 +353,10 @@ where
 
         for url_add in local_additions {
             progress.debug(&format!("> Pushing local addition {} to the server", url_add));
+            progress.increment_counter(1);
             progress.feedback(SyncEvent::InProgress{
                 calendar: cal_name.clone(),
+                items_done_already: progress.counter(),
                 details: Self::item_name(&cal_local, &url_add).await,
             });
             match cal_local.get_item_by_url_mut(&url_add).await {
@@ -368,8 +378,10 @@ where
 
         for url_change in local_changes {
             progress.debug(&format!("> Pushing local change {} to the server", url_change));
+            progress.increment_counter(1);
             progress.feedback(SyncEvent::InProgress{
                 calendar: cal_name.clone(),
+                items_done_already: progress.counter(),
                 details: Self::item_name(&cal_local, &url_change).await,
             });
             match cal_local.get_item_by_url_mut(&url_change).await {
@@ -460,8 +472,10 @@ where
                     Some(url) => Self::item_name(&cal_local, &url).await,
                     None => String::from("<unable to get the name of the first batched item>"),
                 };
+                progress.increment_counter(list_of_additions.len());
                 progress.feedback(SyncEvent::InProgress{
                     calendar: cal_name.to_string(),
+                    items_done_already: progress.counter(),
                     details: one_item_name,
                 });
             },
