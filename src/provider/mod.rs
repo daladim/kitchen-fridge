@@ -6,8 +6,9 @@ use std::error::Error;
 use std::collections::HashSet;
 use std::marker::PhantomData;
 use std::sync::{Arc, Mutex};
-use url::Url;
+use std::fmt::{Display, Formatter};
 
+use url::Url;
 use itertools::Itertools;
 
 use crate::traits::{BaseCalendar, CalDavSource, DavCalendar};
@@ -24,6 +25,22 @@ const DOWNLOAD_BATCH_SIZE: usize = 30;
 /// How many items will be batched in a single HTTP request when downloading from the server
 #[cfg(test)]
 const DOWNLOAD_BATCH_SIZE: usize = 3;
+
+// I am too lazy to actually make `fetch_and_apply` generic over an async closure.
+// Let's work around by passing an enum, so that `fetch_and_apply` will know what to do
+enum BatchDownloadType {
+    RemoteAdditions,
+    RemoteChanges,
+}
+
+impl Display for BatchDownloadType {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        match self {
+            Self::RemoteAdditions => write!(f, "remote additions"),
+            Self::RemoteChanges => write!(f, "remote changes"),
+        }
+    }
+}
 
 
 /// A data source that combines two `CalDavSource`s, which is able to sync both sources.
@@ -405,23 +422,24 @@ where
         cal_name: &str
     ) {
         for batch in remote_additions.drain().chunks(DOWNLOAD_BATCH_SIZE).into_iter() {
-            Self::apply_some_remote_additions(batch, cal_local, cal_remote, progress, cal_name).await;
+            Self::fetch_batch_and_apply(BatchDownloadType::RemoteAdditions, batch, cal_local, cal_remote, progress, cal_name).await;
         }
     }
 
-    async fn apply_some_remote_additions<I: Iterator<Item = Url>>(
+    async fn fetch_batch_and_apply<I: Iterator<Item = Url>>(
+        batch_type: BatchDownloadType,
         remote_additions: I,
         cal_local: &mut T,
         cal_remote: &mut U,
         progress: &mut SyncProgress,
         cal_name: &str
     ) {
-        progress.debug(&format!("> Applying a batch of remote additions locally") /* too bad Chunks does not implement ExactSizeIterator, that could provide useful debug info. See https://github.com/rust-itertools/itertools/issues/171 */);
+        progress.debug(&format!("> Applying a batch of {} locally", batch_type) /* too bad Chunks does not implement ExactSizeIterator, that could provide useful debug info. See https://github.com/rust-itertools/itertools/issues/171 */);
 
         let list_of_additions: Vec<Url> = remote_additions.map(|url| url.clone()).collect();
         match cal_remote.get_items_by_url(&list_of_additions).await {
             Err(err) => {
-                progress.warn(&format!("Unable to get a batch of items {:?}: {}. Skipping them.", list_of_additions, err));
+                progress.warn(&format!("Unable to get the batch of {} {:?}: {}. Skipping them.", batch_type, list_of_additions, err));
             },
             Ok(items) => {
                 for item in items {
