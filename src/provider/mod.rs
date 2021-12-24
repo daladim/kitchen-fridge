@@ -8,6 +8,8 @@ use std::marker::PhantomData;
 use std::sync::{Arc, Mutex};
 use url::Url;
 
+use itertools::Itertools;
+
 use crate::traits::{BaseCalendar, CalDavSource, DavCalendar};
 use crate::traits::CompleteCalendar;
 use crate::item::SyncStatus;
@@ -15,6 +17,14 @@ use crate::item::SyncStatus;
 pub mod sync_progress;
 use sync_progress::SyncProgress;
 use sync_progress::{FeedbackSender, SyncEvent};
+
+/// How many items will be batched in a single HTTP request when downloading from the server
+#[cfg(not(test))]
+const DOWNLOAD_BATCH_SIZE: usize = 30;
+/// How many items will be batched in a single HTTP request when downloading from the server
+#[cfg(test)]
+const DOWNLOAD_BATCH_SIZE: usize = 3;
+
 
 /// A data source that combines two `CalDavSource`s, which is able to sync both sources.
 ///
@@ -388,45 +398,58 @@ where
     }
 
     async fn apply_remote_additions(
-        remote_additions: HashSet<Url>,
+        mut remote_additions: HashSet<Url>,
         cal_local: &mut T,
         cal_remote: &mut U,
         progress: &mut SyncProgress,
         cal_name: &str
     ) {
-        //
-        //
-        //
-        //
-        //
-        // TODO: OPTIM: in the server -> local way, download all the content at once
-        //
-        for url_add in remote_additions {
-            progress.debug(&format!("> Applying remote addition {} locally", url_add));
-            progress.feedback(SyncEvent::InProgress{
-                calendar: cal_name.to_string(),
-                details: Self::item_name(&cal_local, &url_add).await,
-            });
-            match cal_remote.get_item_by_url(&url_add).await {
-                Err(err) => {
-                    progress.warn(&format!("Unable to get remote item {}: {}. Skipping it.", url_add, err));
-                    continue;
-                },
-                Ok(item) => match item {
-                    None => {
-                        progress.error(&format!("Inconsistency: new item {} has vanished from the remote end", url_add));
-                        continue;
-                    },
-                    Some(new_item) => {
-                        if let Err(err) = cal_local.add_item(new_item.clone()).await {
-                            progress.error(&format!("Not able to add item {} to local calendar: {}", url_add, err));
-                        }
-                    },
-                },
-            }
+        for batch in remote_additions.drain().chunks(DOWNLOAD_BATCH_SIZE).into_iter() {
+            Self::apply_some_remote_additions(batch, cal_local, cal_remote, progress, cal_name).await;
         }
     }
 
+    async fn apply_some_remote_additions<I: Iterator<Item = Url>>(
+        remote_additions: I,
+        cal_local: &mut T,
+        cal_remote: &mut U,
+        progress: &mut SyncProgress,
+        cal_name: &str
+    ) {
+        progress.debug(&format!("> Applying a batch of remote additions locally") /* too bad Chunks does not implement ExactSizeIterator, that could provide useful debug info. See https://github.com/rust-itertools/itertools/issues/171 */);
+
+        let list_of_additions: Vec<Url> = remote_additions.map(|url| url.clone()).collect();
+        match cal_remote.get_items_by_url(&list_of_additions).await {
+            Err(err) => {
+                progress.warn(&format!("Unable to get a batch of items {:?}: {}. Skipping them.", list_of_additions, err));
+            },
+            Ok(items) => {
+                for item in items {
+                    match item {
+                        None => {
+                            progress.error(&format!("Inconsistency: an item from the batch has vanished from the remote end"));
+                            continue;
+                        },
+                        Some(new_item) => {
+                            if let Err(err) = cal_local.add_item(new_item.clone()).await {
+                                progress.error(&format!("Not able to add item {} to local calendar: {}", new_item.url(), err));
+                            }
+                        },
+                    }
+                }
+
+                // Notifying every item at the same time would not make sense. Let's notify only one of them
+                let one_item_name = match list_of_additions.get(0) {
+                    Some(url) => Self::item_name(&cal_local, &url).await,
+                    None => String::from("<unable to get the name of the first batched item>"),
+                };
+                progress.feedback(SyncEvent::InProgress{
+                    calendar: cal_name.to_string(),
+                    details: one_item_name,
+                });
+            },
+        }
+    }
 }
 
 

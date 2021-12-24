@@ -145,7 +145,7 @@ impl TestFlavour {
             scenarii: scenarii::scenarii_basic(),
             mock_behaviour: Arc::new(Mutex::new(MockBehaviour{
                 add_item_behaviour: (2,3),
-                get_item_by_url_behaviour: (1,4),
+                get_item_by_url_behaviour: (1,12),
                 ..MockBehaviour::default()
             })),
         }
