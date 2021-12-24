@@ -334,30 +334,13 @@ where
             &cal_name
         ).await;
 
-        for url_change in remote_changes {
-            progress.debug(&format!("> Applying remote change {} locally", url_change));
-            progress.feedback(SyncEvent::InProgress{
-                calendar: cal_name.clone(),
-                details: Self::item_name(&cal_local, &url_change).await,
-            });
-            match cal_remote.get_item_by_url(&url_change).await {
-                Err(err) => {
-                    progress.warn(&format!("Unable to get remote item {}: {}. Skipping it", url_change, err));
-                    continue;
-                },
-                Ok(item) => match item {
-                    None => {
-                        progress.error(&format!("Inconsistency: modified item {} has vanished from the remote end", url_change));
-                        continue;
-                    },
-                    Some(item) => {
-                        if let Err(err) = cal_local.update_item(item.clone()).await {
-                            progress.error(&format!("Unable to update item {} in local calendar: {}", url_change, err));
-                        }
-                    },
-                }
-            }
-        }
+        Self::apply_remote_changes(
+            remote_changes,
+            &mut *cal_local,
+            &mut *cal_remote,
+            progress,
+            &cal_name
+        ).await;
 
 
         for url_add in local_additions {
@@ -426,6 +409,18 @@ where
         }
     }
 
+    async fn apply_remote_changes(
+        mut remote_changes: HashSet<Url>,
+        cal_local: &mut T,
+        cal_remote: &mut U,
+        progress: &mut SyncProgress,
+        cal_name: &str
+    ) {
+        for batch in remote_changes.drain().chunks(DOWNLOAD_BATCH_SIZE).into_iter() {
+            Self::fetch_batch_and_apply(BatchDownloadType::RemoteChanges, batch, cal_local, cal_remote, progress, cal_name).await;
+        }
+    }
+
     async fn fetch_batch_and_apply<I: Iterator<Item = Url>>(
         batch_type: BatchDownloadType,
         remote_additions: I,
@@ -449,7 +444,11 @@ where
                             continue;
                         },
                         Some(new_item) => {
-                            if let Err(err) = cal_local.add_item(new_item.clone()).await {
+                            let local_update_result = match batch_type {
+                                BatchDownloadType::RemoteAdditions => cal_local.add_item(new_item.clone()).await,
+                                BatchDownloadType::RemoteChanges => cal_local.update_item(new_item.clone()).await,
+                            };
+                            if let Err(err) = local_update_result {
                                 progress.error(&format!("Not able to add item {} to local calendar: {}", new_item.url(), err));
                             }
                         },
