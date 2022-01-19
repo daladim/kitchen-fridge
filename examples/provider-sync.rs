@@ -17,6 +17,8 @@ mod shared;
 use shared::initial_sync;
 use shared::{URL, USERNAME, EXAMPLE_EXISTING_CALENDAR_URL, EXAMPLE_CREATED_CALENDAR_URL};
 
+const CACHE_FOLDER: &str = "test_cache/provider_sync";
+
 
 #[tokio::main]
 async fn main() {
@@ -33,7 +35,7 @@ async fn main() {
     println!("  * EXAMPLE_CREATED_CALENDAR_URL = {}", EXAMPLE_CREATED_CALENDAR_URL);
     pause();
 
-    let mut provider = initial_sync().await;
+    let mut provider = initial_sync(CACHE_FOLDER).await;
 
     add_items_and_sync_again(&mut provider).await;
 }

@@ -14,16 +14,14 @@ pub const PASSWORD: &str = "secret_password";
 pub const EXAMPLE_EXISTING_CALENDAR_URL: &str = "https://my.server.com/remote.php/dav/calendars/john/a_calendar_name/";
 pub const EXAMPLE_CREATED_CALENDAR_URL: &str =  "https://my.server.com/remote.php/dav/calendars/john/a_calendar_that_we_have_created/";
 
-const CACHE_FOLDER: &str = "test_cache/provider_sync";
-
 fn main() {
     panic!("This file is not supposed to be executed");
 }
 
 
 /// Initializes a Provider, and run an initial sync from the server
-pub async fn initial_sync() -> CalDavProvider {
-    let cache_path = Path::new(CACHE_FOLDER);
+pub async fn initial_sync(cache_folder: &str) -> CalDavProvider {
+    let cache_path = Path::new(cache_folder);
 
     let client = Client::new(URL, USERNAME, PASSWORD).unwrap();
     let cache = match Cache::from_folder(&cache_path) {

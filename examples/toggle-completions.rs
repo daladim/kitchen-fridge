@@ -14,6 +14,7 @@ mod shared;
 use shared::initial_sync;
 use shared::{URL, USERNAME};
 
+const CACHE_FOLDER: &str = "test_cache/toggle_completion";
 
 #[tokio::main]
 async fn main() {
@@ -28,7 +29,7 @@ async fn main() {
     println!("  * USERNAME = {}", USERNAME);
     pause();
 
-    let mut provider = initial_sync().await;
+    let mut provider = initial_sync(CACHE_FOLDER).await;
 
     toggle_all_tasks_and_sync_again(&mut provider).await.unwrap();
 }
