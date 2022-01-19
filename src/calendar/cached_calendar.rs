@@ -19,7 +19,8 @@ use crate::mock_behaviour::MockBehaviour;
 
 /// A calendar used by the [`cache`](crate::cache) module
 ///
-/// Most of its methods are part of traits implementations
+/// Most of its functionality is provided by the async traits it implements.
+/// However, since these functions do not _need_ to be actually async, non-async versions of them are also provided for better convenience. See [`CachedCalendar::add_item_sync`] for example
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CachedCalendar {
     name: String,

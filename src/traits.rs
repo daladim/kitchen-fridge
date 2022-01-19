@@ -84,7 +84,7 @@ pub trait DavCalendar : BaseCalendar {
     async fn get_item_by_url(&self, url: &Url) -> Result<Option<Item>, Box<dyn Error>>;
 
     /// Returns a set of items.
-    /// This is usually faster than calling multiple consecutive [`get_item_by_url`], since it only issues one HTTP request.
+    /// This is usually faster than calling multiple consecutive [`DavCalendar::get_item_by_url`], since it only issues one HTTP request.
     async fn get_items_by_url(&self, urls: &[Url]) -> Result<Vec<Option<Item>>, Box<dyn Error>>;
 
     /// Delete an item

@@ -27,7 +27,8 @@ const MAIN_FILE: &str = "data.json";
 ///
 /// It automatically updates the content of the folder when dropped (see its `Drop` implementation), but you can also manually call [`Cache::save_to_folder`]
 ///
-/// Most of its methods are part of the `CalDavSource` trait implementation
+/// Most of its functionality is provided by the `CalDavSource` async trait it implements.
+/// However, since these functions do not _need_ to be actually async, non-async versions of them are also provided for better convenience. See [`Cache::get_calendar_sync`] for example
 #[derive(Debug)]
 pub struct Cache {
     backing_folder: PathBuf,
