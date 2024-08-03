@@ -1,17 +1,17 @@
 //! Traits used by multiple structs in this crate
 
-use std::error::Error;
 use std::collections::{HashMap, HashSet};
+use std::error::Error;
 use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
 use csscolorparser::Color;
 use url::Url;
 
-use crate::item::SyncStatus;
-use crate::item::Item;
-use crate::item::VersionTag;
 use crate::calendar::SupportedComponents;
+use crate::item::Item;
+use crate::item::SyncStatus;
+use crate::item::VersionTag;
 use crate::resource::Resource;
 
 /// This trait must be implemented by data sources (either local caches or remote CalDAV clients)
@@ -25,8 +25,13 @@ pub trait CalDavSource<T: BaseCalendar> {
     /// Returns the calendar matching the URL
     async fn get_calendar(&self, url: &Url) -> Option<Arc<Mutex<T>>>;
     /// Create a calendar if it did not exist, and return it
-    async fn create_calendar(&mut self, url: Url, name: String, supported_components: SupportedComponents, color: Option<Color>)
-        -> Result<Arc<Mutex<T>>, Box<dyn Error>>;
+    async fn create_calendar(
+        &mut self,
+        url: Url,
+        name: String,
+        supported_components: SupportedComponents,
+        color: Option<Color>,
+    ) -> Result<Arc<Mutex<T>>, Box<dyn Error>>;
 
     // Removing a calendar is not supported yet
 }
@@ -59,23 +64,29 @@ pub trait BaseCalendar {
 
     /// Returns whether this calDAV calendar supports to-do items
     fn supports_todo(&self) -> bool {
-        self.supported_components().contains(crate::calendar::SupportedComponents::TODO)
+        self.supported_components()
+            .contains(crate::calendar::SupportedComponents::TODO)
     }
 
     /// Returns whether this calDAV calendar supports calendar items
     fn supports_events(&self) -> bool {
-        self.supported_components().contains(crate::calendar::SupportedComponents::EVENT)
+        self.supported_components()
+            .contains(crate::calendar::SupportedComponents::EVENT)
     }
 }
-
 
 /// Functions availabe for calendars that are backed by a CalDAV server
 ///
 /// Note that some concrete types (e.g. [`crate::calendar::cached_calendar::CachedCalendar`]) can also provide non-async versions of these functions
 #[async_trait]
-pub trait DavCalendar : BaseCalendar {
+pub trait DavCalendar: BaseCalendar {
     /// Create a new calendar
-    fn new(name: String, resource: Resource, supported_components: SupportedComponents, color: Option<Color>) -> Self;
+    fn new(
+        name: String,
+        resource: Resource,
+        supported_components: SupportedComponents,
+        color: Option<Color>,
+    ) -> Self;
 
     /// Get the URLs and the version tags of every item in this calendar
     async fn get_item_version_tags(&self) -> Result<HashMap<Url, VersionTag>, Box<dyn Error>>;
@@ -93,15 +104,12 @@ pub trait DavCalendar : BaseCalendar {
     /// Get the URLs of all current items in this calendar
     async fn get_item_urls(&self) -> Result<HashSet<Url>, Box<dyn Error>> {
         let items = self.get_item_version_tags().await?;
-        Ok(items.iter()
-            .map(|(url, _tag)| url.clone())
-            .collect())
+        Ok(items.iter().map(|(url, _tag)| url.clone()).collect())
     }
 
     // Note: the CalDAV protocol could also enable to do this:
     // fn get_current_version(&self) -> CTag
 }
-
 
 /// Functions availabe for calendars we have full knowledge of
 ///
@@ -109,9 +117,14 @@ pub trait DavCalendar : BaseCalendar {
 ///
 /// Note that some concrete types (e.g. [`crate::calendar::cached_calendar::CachedCalendar`]) can also provide non-async versions of these functions
 #[async_trait]
-pub trait CompleteCalendar : BaseCalendar {
+pub trait CompleteCalendar: BaseCalendar {
     /// Create a new calendar
-    fn new(name: String, url: Url, supported_components: SupportedComponents, color: Option<Color>) -> Self;
+    fn new(
+        name: String,
+        url: Url,
+        supported_components: SupportedComponents,
+        color: Option<Color>,
+    ) -> Self;
 
     /// Get the URLs of all current items in this calendar
     async fn get_item_urls(&self) -> Result<HashSet<Url>, Box<dyn Error>>;

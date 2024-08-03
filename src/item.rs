@@ -1,10 +1,9 @@
 //! CalDAV items (todo, events, journals...)
 // TODO: move Event and Task to nest them in crate::items::calendar::Calendar?
 
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use url::Url;
-use chrono::{DateTime, Utc};
-
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum Item {
@@ -21,7 +20,7 @@ macro_rules! synthetise_common_getter {
                 Item::Task(t) => t.$property_name(),
             }
         }
-    }
+    };
 }
 
 impl Item {
@@ -80,19 +79,16 @@ impl Item {
     pub fn has_same_observable_content_as(&self, other: &Item) -> bool {
         match (self, other) {
             (Item::Event(s), Item::Event(o)) => s.has_same_observable_content_as(o),
-            (Item::Task(s),  Item::Task(o))  => s.has_same_observable_content_as(o),
+            (Item::Task(s), Item::Task(o)) => s.has_same_observable_content_as(o),
             _ => false,
         }
     }
 }
 
-
-
-
 /// A VersionTag is basically a CalDAV `ctag` or `etag`. Whenever it changes, this means the data has changed.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct VersionTag {
-    tag: String
+    tag: String,
 }
 
 impl From<String> for VersionTag {
@@ -114,8 +110,6 @@ impl VersionTag {
         Self { tag: random }
     }
 }
-
-
 
 /// Describes whether this item has been synced already, or modified since the last time it was synced
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

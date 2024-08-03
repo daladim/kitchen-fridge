@@ -10,12 +10,22 @@ pub struct Resource {
 
 impl Resource {
     pub fn new(url: Url, username: String, password: String) -> Self {
-        Self { url, username, password }
+        Self {
+            url,
+            username,
+            password,
+        }
     }
 
-    pub fn url(&self) -> &Url { &self.url }
-    pub fn username(&self) -> &String { &self.username }
-    pub fn password(&self) -> &String { &self.password }
+    pub fn url(&self) -> &Url {
+        &self.url
+    }
+    pub fn username(&self) -> &String {
+        &self.username
+    }
+    pub fn password(&self) -> &String {
+        &self.password
+    }
 
     /// Build a new Resource by keeping the same credentials, scheme and server from `base` but changing the path part
     pub fn combine(&self, new_path: &str) -> Resource {

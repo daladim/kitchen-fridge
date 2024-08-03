@@ -61,7 +61,9 @@ impl MockBehaviour {
     }
 
     pub fn can_get_calendars(&mut self) -> Result<(), Box<dyn Error>> {
-        if self.is_suspended { return Ok(()) }
+        if self.is_suspended {
+            return Ok(());
+        }
         decrement(&mut self.get_calendars_behaviour, "get_calendars")
     }
     // pub fn can_get_calendar(&mut self) -> Result<(), Box<dyn Error>> {
@@ -69,31 +71,45 @@ impl MockBehaviour {
     //     decrement(&mut self.get_calendar_behaviour, "get_calendar")
     // }
     pub fn can_create_calendar(&mut self) -> Result<(), Box<dyn Error>> {
-        if self.is_suspended { return Ok(()) }
+        if self.is_suspended {
+            return Ok(());
+        }
         decrement(&mut self.create_calendar_behaviour, "create_calendar")
     }
     pub fn can_add_item(&mut self) -> Result<(), Box<dyn Error>> {
-        if self.is_suspended { return Ok(()) }
+        if self.is_suspended {
+            return Ok(());
+        }
         decrement(&mut self.add_item_behaviour, "add_item")
     }
     pub fn can_update_item(&mut self) -> Result<(), Box<dyn Error>> {
-        if self.is_suspended { return Ok(()) }
+        if self.is_suspended {
+            return Ok(());
+        }
         decrement(&mut self.update_item_behaviour, "update_item")
     }
     pub fn can_get_item_version_tags(&mut self) -> Result<(), Box<dyn Error>> {
-        if self.is_suspended { return Ok(()) }
-        decrement(&mut self.get_item_version_tags_behaviour, "get_item_version_tags")
+        if self.is_suspended {
+            return Ok(());
+        }
+        decrement(
+            &mut self.get_item_version_tags_behaviour,
+            "get_item_version_tags",
+        )
     }
     pub fn can_get_item_by_url(&mut self) -> Result<(), Box<dyn Error>> {
-        if self.is_suspended { return Ok(()) }
+        if self.is_suspended {
+            return Ok(());
+        }
         decrement(&mut self.get_item_by_url_behaviour, "get_item_by_url")
     }
     pub fn can_delete_item(&mut self) -> Result<(), Box<dyn Error>> {
-        if self.is_suspended { return Ok(()) }
+        if self.is_suspended {
+            return Ok(());
+        }
         decrement(&mut self.delete_item_behaviour, "delete_item")
     }
 }
-
 
 /// Return Ok(()) in case the value is `(1+, _)` or `(_, 0)`, or return Err and decrement otherwise
 fn decrement(value: &mut (u32, u32), descr: &str) -> Result<(), Box<dyn Error>> {
@@ -108,7 +124,11 @@ fn decrement(value: &mut (u32, u32), descr: &str) -> Result<(), Box<dyn Error>> 
         if remaining_failures > 0 {
             value.1 = value.1 - 1;
             log::debug!("Mock behaviour: failing a {} ({:?})", descr, value);
-            Err(format!("Mocked behaviour requires this {} to fail this time. ({:?})", descr, value).into())
+            Err(format!(
+                "Mocked behaviour requires this {} to fail this time. ({:?})",
+                descr, value
+            )
+            .into())
         } else {
             log::debug!("Mock behaviour: allowing a {} ({:?})", descr, value);
             Ok(())
@@ -140,9 +160,9 @@ mod test {
         assert!(now.can_get_calendars().is_ok());
         assert!(now.can_create_calendar().is_ok());
 
-        let mut custom = MockBehaviour{
-            get_calendars_behaviour: (0,1),
-            create_calendar_behaviour: (1,3),
+        let mut custom = MockBehaviour {
+            get_calendars_behaviour: (0, 1),
+            create_calendar_behaviour: (1, 3),
             ..MockBehaviour::default()
         };
         assert!(custom.can_get_calendars().is_err());

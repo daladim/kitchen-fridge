@@ -10,21 +10,24 @@ pub use builder::build_from;
 use crate::config::{ORG_NAME, PRODUCT_NAME};
 
 pub fn default_prod_id() -> String {
-    format!("-//{}//{}//EN", ORG_NAME.lock().unwrap(), PRODUCT_NAME.lock().unwrap())
+    format!(
+        "-//{}//{}//EN",
+        ORG_NAME.lock().unwrap(),
+        PRODUCT_NAME.lock().unwrap()
+    )
 }
-
-
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    use std::collections::HashSet;
     use crate::item::SyncStatus;
+    use std::collections::HashSet;
 
     #[test]
     fn test_ical_round_trip_serde() {
-        let ical_with_unknown_fields = std::fs::read_to_string("tests/assets/ical_with_unknown_fields.ics").unwrap();
+        let ical_with_unknown_fields =
+            std::fs::read_to_string("tests/assets/ical_with_unknown_fields.ics").unwrap();
 
         let item_id = "http://item.id".parse().unwrap();
         let sync_status = SyncStatus::NotSynced;

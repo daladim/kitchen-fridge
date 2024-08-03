@@ -3,17 +3,17 @@ use std::error::Error;
 use std::sync::Mutex;
 
 use async_trait::async_trait;
-use reqwest::{header::CONTENT_TYPE, header::CONTENT_LENGTH};
 use csscolorparser::Color;
+use reqwest::{header::CONTENT_LENGTH, header::CONTENT_TYPE};
 use url::Url;
 
-use crate::traits::BaseCalendar;
-use crate::traits::DavCalendar;
 use crate::calendar::SupportedComponents;
 use crate::item::Item;
-use crate::item::VersionTag;
 use crate::item::SyncStatus;
+use crate::item::VersionTag;
 use crate::resource::Resource;
+use crate::traits::BaseCalendar;
+use crate::traits::DavCalendar;
 use crate::utils::find_elem;
 
 static TASKS_BODY: &str = r#"
@@ -39,8 +39,6 @@ static MULTIGET_BODY_SUFFIX: &str = r#"
     </c:calendar-multiget>
 "#;
 
-
-
 /// A CalDAV calendar created by a [`Client`](crate::client::Client).
 #[derive(Debug)]
 pub struct RemoteCalendar {
@@ -54,8 +52,12 @@ pub struct RemoteCalendar {
 
 #[async_trait]
 impl BaseCalendar for RemoteCalendar {
-    fn name(&self) -> &str { &self.name }
-    fn url(&self) -> &Url { &self.resource.url() }
+    fn name(&self) -> &str {
+        &self.name
+    }
+    fn url(&self) -> &Url {
+        &self.resource.url()
+    }
     fn supported_components(&self) -> crate::calendar::SupportedComponents {
         self.supported_components
     }
@@ -82,7 +84,12 @@ impl BaseCalendar for RemoteCalendar {
 
         let reply_hdrs = response.headers();
         match reply_hdrs.get("ETag") {
-            None => Err(format!("No ETag in these response headers: {:?} (request was {:?})", reply_hdrs, item.url()).into()),
+            None => Err(format!(
+                "No ETag in these response headers: {:?} (request was {:?})",
+                reply_hdrs,
+                item.url()
+            )
+            .into()),
             Some(etag) => {
                 let vtag_str = etag.to_str()?;
                 let vtag = VersionTag::from(String::from(vtag_str));
@@ -93,8 +100,12 @@ impl BaseCalendar for RemoteCalendar {
 
     async fn update_item(&mut self, item: Item) -> Result<SyncStatus, Box<dyn Error>> {
         let old_etag = match item.sync_status() {
-            SyncStatus::NotSynced => return Err("Cannot update an item that has not been synced already".into()),
-            SyncStatus::Synced(_) => return Err("Cannot update an item that has not changed".into()),
+            SyncStatus::NotSynced => {
+                return Err("Cannot update an item that has not been synced already".into())
+            }
+            SyncStatus::Synced(_) => {
+                return Err("Cannot update an item that has not changed".into())
+            }
             SyncStatus::LocallyModified(etag) => etag,
             SyncStatus::LocallyDeleted(etag) => etag,
         };
@@ -116,7 +127,12 @@ impl BaseCalendar for RemoteCalendar {
 
         let reply_hdrs = request.headers();
         match reply_hdrs.get("ETag") {
-            None => Err(format!("No ETag in these response headers: {:?} (request was {:?})", reply_hdrs, item.url()).into()),
+            None => Err(format!(
+                "No ETag in these response headers: {:?} (request was {:?})",
+                reply_hdrs,
+                item.url()
+            )
+            .into()),
             Some(etag) => {
                 let vtag_str = etag.to_str()?;
                 let vtag = VersionTag::from(String::from(vtag_str));
@@ -128,13 +144,20 @@ impl BaseCalendar for RemoteCalendar {
 
 #[async_trait]
 impl DavCalendar for RemoteCalendar {
-    fn new(name: String, resource: Resource, supported_components: SupportedComponents, color: Option<Color>) -> Self {
+    fn new(
+        name: String,
+        resource: Resource,
+        supported_components: SupportedComponents,
+        color: Option<Color>,
+    ) -> Self {
         Self {
-            name, resource, supported_components, color,
+            name,
+            resource,
+            supported_components,
+            color,
             cached_version_tags: Mutex::new(None),
         }
     }
-
 
     async fn get_item_version_tags(&self) -> Result<HashMap<Url, VersionTag>, Box<dyn Error>> {
         if let Some(map) = &*self.cached_version_tags.lock().unwrap() {
@@ -142,7 +165,13 @@ impl DavCalendar for RemoteCalendar {
             return Ok(map.clone());
         };
 
-        let responses = crate::client::sub_request_and_extract_elems(&self.resource, "REPORT", TASKS_BODY.to_string(), "response").await?;
+        let responses = crate::client::sub_request_and_extract_elems(
+            &self.resource,
+            "REPORT",
+            TASKS_BODY.to_string(),
+            "response",
+        )
+        .await?;
 
         let mut items = HashMap::new();
         for response in responses {
@@ -152,20 +181,16 @@ impl DavCalendar for RemoteCalendar {
                 None => {
                     log::warn!("Unable to extract HREF");
                     continue;
-                },
-                Some(resource) => {
-                    resource.url().clone()
-                },
+                }
+                Some(resource) => resource.url().clone(),
             };
 
             let version_tag = match crate::utils::find_elem(&response, "getetag") {
                 None => {
                     log::warn!("Unable to extract ETAG for item {}, ignoring it", item_url);
                     continue;
-                },
-                Some(etag) => {
-                    VersionTag::from(etag.text())
                 }
+                Some(etag) => VersionTag::from(etag.text()),
             };
 
             items.insert(item_url.clone(), version_tag);
@@ -210,7 +235,13 @@ impl DavCalendar for RemoteCalendar {
         let body = format!("{}{}{}", MULTIGET_BODY_PREFIX, hrefs, MULTIGET_BODY_SUFFIX);
 
         // Send the request
-        let xml_replies = crate::client::sub_request_and_extract_elems(&self.resource, "REPORT", body, "response").await?;
+        let xml_replies = crate::client::sub_request_and_extract_elems(
+            &self.resource,
+            "REPORT",
+            body,
+            "response",
+        )
+        .await?;
 
         // This is supposed to be cached
         let version_tags = self.get_item_version_tags().await?;
@@ -221,7 +252,9 @@ impl DavCalendar for RemoteCalendar {
             let href = find_elem(&xml_reply, "href").ok_or("Missing HREF")?.text();
             let mut url = self.resource.url().clone();
             url.set_path(&href);
-            let ical_data = find_elem(&xml_reply, "calendar-data").ok_or("Missing calendar-data")?.text();
+            let ical_data = find_elem(&xml_reply, "calendar-data")
+                .ok_or("Missing calendar-data")?
+                .text();
 
             let vt = match version_tags.get(&url) {
                 None => return Err(format!("Inconsistent data: {} has no version tag", url).into()),
@@ -249,4 +282,3 @@ impl DavCalendar for RemoteCalendar {
         Ok(())
     }
 }
-

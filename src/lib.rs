@@ -27,7 +27,9 @@
 //!
 //! Have a look at the [`config`] module to see what default options can be overridden.
 
-#![doc(html_logo_url = "https://raw.githubusercontent.com/daladim/kitchen-fridge/master/resources/kitchen-fridge.svg")]
+#![doc(
+    html_logo_url = "https://raw.githubusercontent.com/daladim/kitchen-fridge/master/resources/kitchen-fridge.svg"
+)]
 
 pub mod traits;
 
@@ -38,8 +40,8 @@ pub mod task;
 pub use task::Task;
 pub mod event;
 pub use event::Event;
-pub mod provider;
 pub mod mock_behaviour;
+pub mod provider;
 
 pub mod client;
 pub use client::Client;
@@ -48,9 +50,14 @@ pub use cache::Cache;
 pub mod ical;
 
 pub mod config;
-pub mod utils;
 pub mod resource;
+pub mod utils;
 
 /// Unless you want another kind of Provider to write integration tests, you'll probably want this kind of Provider. \
 /// See alse the [`Provider` documentation](crate::provider::Provider)
-pub type CalDavProvider = provider::Provider<cache::Cache, calendar::cached_calendar::CachedCalendar, Client, calendar::remote_calendar::RemoteCalendar>;
+pub type CalDavProvider = provider::Provider<
+    cache::Cache,
+    calendar::cached_calendar::CachedCalendar,
+    Client,
+    calendar::remote_calendar::RemoteCalendar,
+>;

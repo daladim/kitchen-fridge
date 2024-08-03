@@ -7,8 +7,8 @@ use chrono::Utc;
 
 use kitchen_fridge::item::Item;
 use kitchen_fridge::task::CompletionStatus;
-use kitchen_fridge::CalDavProvider;
 use kitchen_fridge::utils::pause;
+use kitchen_fridge::CalDavProvider;
 
 mod shared;
 use shared::initial_sync;
@@ -22,7 +22,9 @@ async fn main() {
 
     println!("This example show how to sync a remote server with a local cache, using a Provider.");
     println!("Make sure you have edited the constants in the 'shared.rs' file to include correct URLs and credentials.");
-    println!("You can also set the RUST_LOG environment variable to display more info about the sync.");
+    println!(
+        "You can also set the RUST_LOG environment variable to display more info about the sync."
+    );
     println!("");
     println!("This will use the following settings:");
     println!("  * URL = {}", URL);
@@ -31,10 +33,14 @@ async fn main() {
 
     let mut provider = initial_sync(CACHE_FOLDER).await;
 
-    toggle_all_tasks_and_sync_again(&mut provider).await.unwrap();
+    toggle_all_tasks_and_sync_again(&mut provider)
+        .await
+        .unwrap();
 }
 
-async fn toggle_all_tasks_and_sync_again(provider: &mut CalDavProvider) -> Result<(), Box<dyn Error>> {
+async fn toggle_all_tasks_and_sync_again(
+    provider: &mut CalDavProvider,
+) -> Result<(), Box<dyn Error>> {
     let mut n_toggled = 0;
 
     for (_url, cal) in provider.local().get_calendars_sync()?.iter() {
@@ -42,14 +48,15 @@ async fn toggle_all_tasks_and_sync_again(provider: &mut CalDavProvider) -> Resul
             match item {
                 Item::Task(task) => {
                     match task.completed() {
-                        false => task.set_completion_status(CompletionStatus::Completed(Some(Utc::now()))),
+                        false => task
+                            .set_completion_status(CompletionStatus::Completed(Some(Utc::now()))),
                         true => task.set_completion_status(CompletionStatus::Uncompleted),
                     };
                     n_toggled += 1;
                 }
                 Item::Event(_) => {
                     // Not doing anything with calendar events
-                },
+                }
             }
         }
     }

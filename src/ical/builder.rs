@@ -3,16 +3,15 @@
 use std::error::Error;
 
 use chrono::{DateTime, Utc};
-use ics::properties::{Completed, Created, LastModified, PercentComplete, Status, Summary};
-use ics::{ICalendar, ToDo};
+use ical::property::Property as IcalProperty;
 use ics::components::Parameter as IcsParameter;
 use ics::components::Property as IcsProperty;
-use ical::property::Property as IcalProperty;
+use ics::properties::{Completed, Created, LastModified, PercentComplete, Status, Summary};
+use ics::{ICalendar, ToDo};
 
-use crate::Task;
 use crate::item::Item;
 use crate::task::CompletionStatus;
-
+use crate::Task;
 
 /// Create an iCal item from a `crate::item::Item`
 pub fn build_from(item: &Item) -> Result<String, Box<dyn Error>> {
@@ -25,26 +24,22 @@ pub fn build_from(item: &Item) -> Result<String, Box<dyn Error>> {
 pub fn build_from_task(task: &Task) -> Result<String, Box<dyn Error>> {
     let s_last_modified = format_date_time(task.last_modified());
 
-    let mut todo = ToDo::new(
-        task.uid(),
-        s_last_modified.clone(),
-    );
+    let mut todo = ToDo::new(task.uid(), s_last_modified.clone());
 
-    task.creation_date().map(|dt|
-        todo.push(Created::new(format_date_time(dt)))
-    );
+    task.creation_date()
+        .map(|dt| todo.push(Created::new(format_date_time(dt))));
     todo.push(LastModified::new(s_last_modified));
     todo.push(Summary::new(task.name()));
 
     match task.completion_status() {
         CompletionStatus::Uncompleted => {
             todo.push(Status::needs_action());
-        },
+        }
         CompletionStatus::Completed(completion_date) => {
             todo.push(PercentComplete::new("100"));
-            completion_date.as_ref().map(|dt| todo.push(
-                Completed::new(format_date_time(dt))
-            ));
+            completion_date
+                .as_ref()
+                .map(|dt| todo.push(Completed::new(format_date_time(dt))));
             todo.push(Status::completed());
         }
     }
@@ -65,11 +60,10 @@ fn format_date_time(dt: &DateTime<Utc>) -> String {
     dt.format("%Y%m%dT%H%M%S").to_string()
 }
 
-
 fn ical_to_ics_property(prop: IcalProperty) -> IcsProperty<'static> {
     let mut ics_prop = match prop.value {
         Some(value) => IcsProperty::new(prop.name, value),
-        None =>        IcsProperty::new(prop.name, ""),
+        None => IcsProperty::new(prop.name, ""),
     };
     prop.params.map(|v| {
         for (key, vec_values) in v {
@@ -80,18 +74,18 @@ fn ical_to_ics_property(prop: IcalProperty) -> IcsProperty<'static> {
     ics_prop
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::Task;
     use crate::config::{ORG_NAME, PRODUCT_NAME};
+    use crate::Task;
 
     #[test]
     fn test_ical_from_completed_task() {
         let (s_now, uid, ical) = build_task(true);
 
-        let expected_ical = format!("BEGIN:VCALENDAR\r\n\
+        let expected_ical = format!(
+            "BEGIN:VCALENDAR\r\n\
             VERSION:2.0\r\n\
             PRODID:-//{}//{}//EN\r\n\
             BEGIN:VTODO\r\n\
@@ -104,7 +98,15 @@ mod tests {
             COMPLETED:{}\r\n\
             STATUS:COMPLETED\r\n\
             END:VTODO\r\n\
-            END:VCALENDAR\r\n", ORG_NAME.lock().unwrap(), PRODUCT_NAME.lock().unwrap(), uid, s_now, s_now, s_now, s_now);
+            END:VCALENDAR\r\n",
+            ORG_NAME.lock().unwrap(),
+            PRODUCT_NAME.lock().unwrap(),
+            uid,
+            s_now,
+            s_now,
+            s_now,
+            s_now
+        );
 
         assert_eq!(ical, expected_ical);
     }
@@ -113,7 +115,8 @@ mod tests {
     fn test_ical_from_uncompleted_task() {
         let (s_now, uid, ical) = build_task(false);
 
-        let expected_ical = format!("BEGIN:VCALENDAR\r\n\
+        let expected_ical = format!(
+            "BEGIN:VCALENDAR\r\n\
             VERSION:2.0\r\n\
             PRODID:-//{}//{}//EN\r\n\
             BEGIN:VTODO\r\n\
@@ -124,7 +127,14 @@ mod tests {
             SUMMARY:This is a task with ÜTF-8 characters\r\n\
             STATUS:NEEDS-ACTION\r\n\
             END:VTODO\r\n\
-            END:VCALENDAR\r\n", ORG_NAME.lock().unwrap(), PRODUCT_NAME.lock().unwrap(), uid, s_now, s_now, s_now);
+            END:VCALENDAR\r\n",
+            ORG_NAME.lock().unwrap(),
+            PRODUCT_NAME.lock().unwrap(),
+            uid,
+            s_now,
+            s_now,
+            s_now
+        );
 
         assert_eq!(ical, expected_ical);
     }
@@ -135,7 +145,9 @@ mod tests {
         let s_now = format_date_time(&now);
 
         let task = Item::Task(Task::new(
-            String::from("This is a task with ÜTF-8 characters"), completed, &cal_url
+            String::from("This is a task with ÜTF-8 characters"),
+            completed,
+            &cal_url,
         ));
 
         let ical = build_from(&task).unwrap();

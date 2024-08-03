@@ -1,17 +1,17 @@
 //! Some utility functions
 
 use std::collections::{HashMap, HashSet};
-use std::sync::{Arc, Mutex};
 use std::hash::Hash;
 use std::io::{stdin, stdout, Read, Write};
+use std::sync::{Arc, Mutex};
 
 use minidom::Element;
 use url::Url;
 
+use crate::item::SyncStatus;
 use crate::traits::CompleteCalendar;
 use crate::traits::DavCalendar;
 use crate::Item;
-use crate::item::SyncStatus;
 
 /// Walks an XML tree and returns every element that has the given name
 pub fn find_elems<S: AsRef<str>>(root: &Element, searched_name: S) -> Vec<&Element> {
@@ -49,14 +49,10 @@ pub fn find_elem<S: AsRef<str>>(root: &Element, searched_name: S) -> Option<&Ele
     None
 }
 
-
 pub fn print_xml(element: &Element) {
     let mut writer = std::io::stdout();
 
-    let mut xml_writer = minidom::quick_xml::Writer::new_with_indent(
-        std::io::stdout(),
-        0x20, 4
-    );
+    let mut xml_writer = minidom::quick_xml::Writer::new_with_indent(std::io::stdout(), 0x20, 4);
     let _ = element.to_writer(&mut xml_writer);
     let _ = writer.write(&[0x0a]);
 }
@@ -74,7 +70,7 @@ where
                 for (_, item) in map {
                     print_task(item);
                 }
-            },
+            }
         }
     }
 }
@@ -92,7 +88,7 @@ where
                 for (url, version_tag) in map {
                     println!("    * {} (version {:?})", url, version_tag);
                 }
-            },
+            }
         }
     }
 }
@@ -105,14 +101,13 @@ pub fn print_task(item: &Item) {
                 SyncStatus::NotSynced => ".",
                 SyncStatus::Synced(_) => "=",
                 SyncStatus::LocallyModified(_) => "~",
-                SyncStatus::LocallyDeleted(_) =>  "x",
+                SyncStatus::LocallyDeleted(_) => "x",
             };
             println!("    {}{} {}\t{}", completion, sync, task.name(), task.url());
-        },
+        }
         _ => return,
     }
 }
-
 
 /// Compare keys of two hashmaps for equality
 pub fn keys_are_the_same<T, U, V>(left: &HashMap<T, U>, right: &HashMap<T, V>) -> bool
@@ -140,7 +135,6 @@ where
     result
 }
 
-
 /// Wait for the user to press enter
 pub fn pause() {
     let mut stdout = stdout();
@@ -148,7 +142,6 @@ pub fn pause() {
     stdout.flush().unwrap();
     stdin().read_exact(&mut [0]).unwrap();
 }
-
 
 /// Generate a random URL with a given prefix
 pub fn random_url(parent_calendar: &Url) -> Url {
