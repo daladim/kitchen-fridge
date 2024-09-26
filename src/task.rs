@@ -1,10 +1,10 @@
 //! To-do tasks (iCal `VTODO` item)
 
-use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 use chrono::{DateTime, Utc};
 use ical::property::Property;
+use serde::{Deserialize, Serialize};
 use url::Url;
+use uuid::Uuid;
 
 use crate::item::SyncStatus;
 use crate::utils::random_url;
@@ -14,6 +14,7 @@ use crate::utils::random_url;
 ///
 /// * `COMPLETED` is an optional timestamp that tells whether this task is completed
 /// * `STATUS` is an optional field, that can be set to `NEEDS-ACTION`, `COMPLETED`, or others.
+///
 /// Even though having a `COMPLETED` date but a `STATUS:NEEDS-ACTION` is theorically possible, it obviously makes no sense. This API ensures this cannot happen
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum CompletionStatus {
@@ -22,10 +23,7 @@ pub enum CompletionStatus {
 }
 impl CompletionStatus {
     pub fn is_completed(&self) -> bool {
-        match self {
-            CompletionStatus::Completed(_) => true,
-            _ => false,
-        }
+        matches!(self, CompletionStatus::Completed(_))
     }
 }
 
@@ -53,7 +51,6 @@ pub struct Task {
     /// The display name of the task
     name: String,
 
-
     /// The PRODID, as defined in iCal files
     ical_prod_id: String,
 
@@ -61,7 +58,6 @@ pub struct Task {
     /// They are needed to serialize this item into an equivalent iCal file
     extra_parameters: Vec<Property>,
 }
-
 
 impl Task {
     /// Create a brand new Task that is not on a server yet.
@@ -73,20 +69,37 @@ impl Task {
         let new_creation_date = Some(Utc::now());
         let new_last_modified = Utc::now();
         let new_completion_status = if completed {
-                CompletionStatus::Completed(Some(Utc::now()))
-            } else { CompletionStatus::Uncompleted };
+            CompletionStatus::Completed(Some(Utc::now()))
+        } else {
+            CompletionStatus::Uncompleted
+        };
         let ical_prod_id = crate::ical::default_prod_id();
         let extra_parameters = Vec::new();
-        Self::new_with_parameters(name, new_uid, new_url, new_completion_status, new_sync_status, new_creation_date, new_last_modified, ical_prod_id, extra_parameters)
+        Self::new_with_parameters(
+            name,
+            new_uid,
+            new_url,
+            new_completion_status,
+            new_sync_status,
+            new_creation_date,
+            new_last_modified,
+            ical_prod_id,
+            extra_parameters,
+        )
     }
 
     /// Create a new Task instance, that may be synced on the server already
-    pub fn new_with_parameters(name: String, uid: String, new_url: Url,
-                               completion_status: CompletionStatus,
-                               sync_status: SyncStatus, creation_date: Option<DateTime<Utc>>, last_modified: DateTime<Utc>,
-                               ical_prod_id: String, extra_parameters: Vec<Property>,
-                            ) -> Self
-    {
+    pub fn new_with_parameters(
+        name: String,
+        uid: String,
+        new_url: Url,
+        completion_status: CompletionStatus,
+        sync_status: SyncStatus,
+        creation_date: Option<DateTime<Utc>>,
+        last_modified: DateTime<Utc>,
+        ical_prod_id: String,
+        extra_parameters: Vec<Property>,
+    ) -> Self {
         Self {
             url: new_url,
             uid,
@@ -100,20 +113,40 @@ impl Task {
         }
     }
 
-    pub fn url(&self) -> &Url       { &self.url         }
-    pub fn uid(&self) -> &str       { &self.uid         }
-    pub fn name(&self) -> &str      { &self.name        }
-    pub fn completed(&self) -> bool { self.completion_status.is_completed() }
-    pub fn ical_prod_id(&self) -> &str            { &self.ical_prod_id }
-    pub fn sync_status(&self) -> &SyncStatus      { &self.sync_status  }
-    pub fn last_modified(&self) -> &DateTime<Utc> { &self.last_modified }
-    pub fn creation_date(&self) -> Option<&DateTime<Utc>>   { self.creation_date.as_ref() }
-    pub fn completion_status(&self) -> &CompletionStatus    { &self.completion_status }
-    pub fn extra_parameters(&self) -> &[Property]           { &self.extra_parameters }
+    pub fn url(&self) -> &Url {
+        &self.url
+    }
+    pub fn uid(&self) -> &str {
+        &self.uid
+    }
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+    pub fn completed(&self) -> bool {
+        self.completion_status.is_completed()
+    }
+    pub fn ical_prod_id(&self) -> &str {
+        &self.ical_prod_id
+    }
+    pub fn sync_status(&self) -> &SyncStatus {
+        &self.sync_status
+    }
+    pub fn last_modified(&self) -> &DateTime<Utc> {
+        &self.last_modified
+    }
+    pub fn creation_date(&self) -> Option<&DateTime<Utc>> {
+        self.creation_date.as_ref()
+    }
+    pub fn completion_status(&self) -> &CompletionStatus {
+        &self.completion_status
+    }
+    pub fn extra_parameters(&self) -> &[Property] {
+        &self.extra_parameters
+    }
 
     #[cfg(any(test, feature = "integration_tests"))]
     pub fn has_same_observable_content_as(&self, other: &Task) -> bool {
-           self.url == other.url
+        self.url == other.url
         && self.uid == other.uid
         && self.name == other.name
         // sync status must be the same variant, but we ignore its embedded version tag
@@ -129,22 +162,19 @@ impl Task {
 
     fn update_sync_status(&mut self) {
         match &self.sync_status {
-            SyncStatus::NotSynced => return,
-            SyncStatus::LocallyModified(_) => return,
+            SyncStatus::NotSynced | SyncStatus::LocallyModified(_) => { /* do nothing */ }
             SyncStatus::Synced(prev_vt) => {
                 self.sync_status = SyncStatus::LocallyModified(prev_vt.clone());
             }
             SyncStatus::LocallyDeleted(_) => {
                 log::warn!("Trying to update an item that has previously been deleted. These changes will probably be ignored at next sync.");
-                return;
-            },
+            }
         }
     }
 
     fn update_last_modified(&mut self) {
         self.last_modified = Utc::now();
     }
-
 
     /// Rename a task.
     /// This updates its "last modified" field
@@ -169,7 +199,10 @@ impl Task {
     }
     #[cfg(feature = "local_calendar_mocks_remote_calendars")]
     /// Set the completion status, but forces a "master" SyncStatus, just like CalDAV servers are always "masters"
-    pub fn mock_remote_calendar_set_completion_status(&mut self, new_completion_status: CompletionStatus) {
+    pub fn mock_remote_calendar_set_completion_status(
+        &mut self,
+        new_completion_status: CompletionStatus,
+    ) {
         self.sync_status = SyncStatus::random_synced();
         self.completion_status = new_completion_status;
     }
