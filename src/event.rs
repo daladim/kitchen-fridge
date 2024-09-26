@@ -1,7 +1,7 @@
 //! Calendar events (iCal `VEVENT` items)
 
-use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 use url::Url;
 
 use crate::item::SyncStatus;
