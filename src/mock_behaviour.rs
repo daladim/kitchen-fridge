@@ -1,7 +1,14 @@
 //! This module provides ways to tweak mocked calendars, so that they can return errors on some tests
 #![cfg(feature = "local_calendar_mocks_remote_calendars")]
 
-use std::error::Error;
+/// Errors related to mocking
+#[derive(thiserror::Error, Debug)]
+pub enum MockError {
+    #[error("Mocked behaviour requires this {descr} to fail this time. ({value:?})")]
+    MissingFailure { descr: String, value: (u32, u32) },
+}
+
+pub type MockResult<T> = Result<T, MockError>;
 
 /// This stores some behaviour tweaks, that describe how a mocked instance will behave during a given test
 ///
@@ -24,6 +31,10 @@ pub struct MockBehaviour {
     pub get_item_version_tags_behaviour: (u32, u32),
     pub get_item_by_url_behaviour: (u32, u32),
     pub delete_item_behaviour: (u32, u32),
+    pub set_property_behaviour: (u32, u32),
+    pub get_properties_behaviour: (u32, u32),
+    pub get_property_behaviour: (u32, u32),
+    pub delete_property_behaviour: (u32, u32),
 }
 
 impl MockBehaviour {
@@ -43,6 +54,10 @@ impl MockBehaviour {
             get_item_version_tags_behaviour: (0, n_fails),
             get_item_by_url_behaviour: (0, n_fails),
             delete_item_behaviour: (0, n_fails),
+            set_property_behaviour: (0, n_fails),
+            get_properties_behaviour: (0, n_fails),
+            get_property_behaviour: (0, n_fails),
+            delete_property_behaviour: (0, n_fails),
         }
     }
 
@@ -60,59 +75,100 @@ impl MockBehaviour {
         self.create_calendar_behaviour = other.create_calendar_behaviour;
     }
 
-    pub fn can_get_calendars(&mut self) -> Result<(), Box<dyn Error>> {
-        if self.is_suspended { return Ok(()) }
+    pub fn can_get_calendars(&mut self) -> MockResult<()> {
+        if self.is_suspended {
+            return Ok(());
+        }
         decrement(&mut self.get_calendars_behaviour, "get_calendars")
     }
     // pub fn can_get_calendar(&mut self) -> Result<(), Box<dyn Error>> {
     //     if self.is_suspended { return Ok(()) }
     //     decrement(&mut self.get_calendar_behaviour, "get_calendar")
     // }
-    pub fn can_create_calendar(&mut self) -> Result<(), Box<dyn Error>> {
-        if self.is_suspended { return Ok(()) }
+    pub fn can_create_calendar(&mut self) -> MockResult<()> {
+        if self.is_suspended {
+            return Ok(());
+        }
         decrement(&mut self.create_calendar_behaviour, "create_calendar")
     }
-    pub fn can_add_item(&mut self) -> Result<(), Box<dyn Error>> {
-        if self.is_suspended { return Ok(()) }
+    pub fn can_add_item(&mut self) -> MockResult<()> {
+        if self.is_suspended {
+            return Ok(());
+        }
         decrement(&mut self.add_item_behaviour, "add_item")
     }
-    pub fn can_update_item(&mut self) -> Result<(), Box<dyn Error>> {
-        if self.is_suspended { return Ok(()) }
+    pub fn can_update_item(&mut self) -> MockResult<()> {
+        if self.is_suspended {
+            return Ok(());
+        }
         decrement(&mut self.update_item_behaviour, "update_item")
     }
-    pub fn can_get_item_version_tags(&mut self) -> Result<(), Box<dyn Error>> {
-        if self.is_suspended { return Ok(()) }
-        decrement(&mut self.get_item_version_tags_behaviour, "get_item_version_tags")
+    pub fn can_get_item_version_tags(&mut self) -> MockResult<()> {
+        if self.is_suspended {
+            return Ok(());
+        }
+        decrement(
+            &mut self.get_item_version_tags_behaviour,
+            "get_item_version_tags",
+        )
     }
-    pub fn can_get_item_by_url(&mut self) -> Result<(), Box<dyn Error>> {
-        if self.is_suspended { return Ok(()) }
+    pub fn can_get_item_by_url(&mut self) -> MockResult<()> {
+        if self.is_suspended {
+            return Ok(());
+        }
         decrement(&mut self.get_item_by_url_behaviour, "get_item_by_url")
     }
-    pub fn can_delete_item(&mut self) -> Result<(), Box<dyn Error>> {
-        if self.is_suspended { return Ok(()) }
+    pub fn can_delete_item(&mut self) -> MockResult<()> {
+        if self.is_suspended {
+            return Ok(());
+        }
         decrement(&mut self.delete_item_behaviour, "delete_item")
+    }
+    pub fn can_set_property(&mut self) -> MockResult<()> {
+        if self.is_suspended {
+            return Ok(());
+        }
+        decrement(&mut self.set_property_behaviour, "set_property")
+    }
+    pub fn can_get_properties(&mut self) -> MockResult<()> {
+        if self.is_suspended {
+            return Ok(());
+        }
+        decrement(&mut self.get_properties_behaviour, "get_properties")
+    }
+    pub fn can_get_property(&mut self) -> MockResult<()> {
+        if self.is_suspended {
+            return Ok(());
+        }
+        decrement(&mut self.get_property_behaviour, "get_property")
+    }
+    pub fn can_delete_property(&mut self) -> MockResult<()> {
+        if self.is_suspended {
+            return Ok(());
+        }
+        decrement(&mut self.delete_property_behaviour, "delete_property")
     }
 }
 
-
 /// Return Ok(()) in case the value is `(1+, _)` or `(_, 0)`, or return Err and decrement otherwise
-fn decrement(value: &mut (u32, u32), descr: &str) -> Result<(), Box<dyn Error>> {
+fn decrement(value: &mut (u32, u32), descr: &str) -> MockResult<()> {
     let remaining_successes = value.0;
     let remaining_failures = value.1;
 
     if remaining_successes > 0 {
-        value.0 = value.0 - 1;
+        value.0 -= 1;
         log::debug!("Mock behaviour: allowing a {} ({:?})", descr, value);
         Ok(())
+    } else if remaining_failures > 0 {
+        value.1 -= 1;
+        log::debug!("Mock behaviour: failing a {} ({:?})", descr, value);
+        Err(MockError::MissingFailure {
+            descr: descr.into(),
+            value: value.to_owned(),
+        })
     } else {
-        if remaining_failures > 0 {
-            value.1 = value.1 - 1;
-            log::debug!("Mock behaviour: failing a {} ({:?})", descr, value);
-            Err(format!("Mocked behaviour requires this {} to fail this time. ({:?})", descr, value).into())
-        } else {
-            log::debug!("Mock behaviour: allowing a {} ({:?})", descr, value);
-            Ok(())
-        }
+        log::debug!("Mock behaviour: allowing a {} ({:?})", descr, value);
+        Ok(())
     }
 }
 
@@ -140,9 +196,9 @@ mod test {
         assert!(now.can_get_calendars().is_ok());
         assert!(now.can_create_calendar().is_ok());
 
-        let mut custom = MockBehaviour{
-            get_calendars_behaviour: (0,1),
-            create_calendar_behaviour: (1,3),
+        let mut custom = MockBehaviour {
+            get_calendars_behaviour: (0, 1),
+            create_calendar_behaviour: (1, 3),
             ..MockBehaviour::default()
         };
         assert!(custom.can_get_calendars().is_err());

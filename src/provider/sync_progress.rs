@@ -9,10 +9,23 @@ pub enum SyncEvent {
     NotStarted,
     /// Sync has just started but no calendar is handled yet
     Started,
-    /// Sync is in progress.
-    InProgress{ calendar: String, items_done_already: usize, details: String},
+
+    /// Item sync is in progress.
+    ItemsInProgress {
+        calendar_name: String,
+        items_done_already: usize,
+        details: String,
+    },
+
+    /// Property sync is in progress.
+    PropsInProgress {
+        calendar_name: String,
+        props_done_already: usize,
+        details: String,
+    },
+
     /// Sync is finished
-    Finished{ success: bool },
+    Finished { success: bool },
 }
 
 impl Display for SyncEvent {
@@ -20,11 +33,28 @@ impl Display for SyncEvent {
         match self {
             SyncEvent::NotStarted => write!(f, "Not started"),
             SyncEvent::Started => write!(f, "Sync has started..."),
-            SyncEvent::InProgress{calendar, items_done_already, details} => write!(f, "{} [{}/?] {}...", calendar, items_done_already, details),
-            SyncEvent::Finished{success} => match success {
+            SyncEvent::ItemsInProgress {
+                calendar_name,
+                items_done_already,
+                details,
+            } => write!(
+                f,
+                "(i) {} [{}/?] {}...",
+                calendar_name, items_done_already, details
+            ),
+            SyncEvent::PropsInProgress {
+                calendar_name,
+                props_done_already,
+                details,
+            } => write!(
+                f,
+                "(p) {} [{}/?] {}...",
+                calendar_name, props_done_already, details
+            ),
+            SyncEvent::Finished { success } => match success {
                 true => write!(f, "Sync successfully finished"),
                 false => write!(f, "Sync finished with errors"),
-            }
+            },
         }
     }
 }
@@ -34,8 +64,6 @@ impl Default for SyncEvent {
         Self::NotStarted
     }
 }
-
-
 
 /// See [`feedback_channel`]
 pub type FeedbackSender = tokio::sync::watch::Sender<SyncEvent>;
@@ -47,9 +75,6 @@ pub fn feedback_channel() -> (FeedbackSender, FeedbackReceiver) {
     tokio::sync::watch::channel(SyncEvent::default())
 }
 
-
-
-
 /// A structure that tracks the progression and the errors that happen during a sync
 pub struct SyncProgress {
     n_errors: u32,
@@ -58,10 +83,18 @@ pub struct SyncProgress {
 }
 impl SyncProgress {
     pub fn new() -> Self {
-        Self { n_errors: 0, feedback_channel: None, counter: 0 }
+        Self {
+            n_errors: 0,
+            feedback_channel: None,
+            counter: 0,
+        }
     }
     pub fn new_with_feedback_channel(channel: FeedbackSender) -> Self {
-        Self { n_errors: 0, feedback_channel: Some(channel), counter: 0 }
+        Self {
+            n_errors: 0,
+            feedback_channel: Some(channel),
+            counter: 0,
+        }
     }
 
     /// Reset the user-info counter
@@ -78,8 +111,6 @@ impl SyncProgress {
     pub fn counter(&self) -> usize {
         self.counter
     }
-
-
 
     pub fn is_success(&self) -> bool {
         self.n_errors == 0
@@ -111,8 +142,12 @@ impl SyncProgress {
     pub fn feedback(&mut self, event: SyncEvent) {
         self.feedback_channel
             .as_ref()
-            .map(|sender| {
-                sender.send(event)
-            });
+            .map(|sender| sender.send(event));
+    }
+}
+
+impl Default for SyncProgress {
+    fn default() -> Self {
+        Self::new()
     }
 }
